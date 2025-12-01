@@ -349,7 +349,7 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
     }
     nuevasPracticas[practicaIndex].materiales.push({
       id_temporal: Date.now(),
-      tipo: "link",
+      tipo: "enlace",
       url: "",
       nombre: "",
     })
@@ -378,7 +378,7 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
   const handleAddProyectoMaterial = () => {
     setProyecto({
       ...proyecto,
-      materiales: [...proyecto.materiales, { id_temporal: Date.now(), tipo: "link", url: "", nombre: "" }],
+      materiales: [...proyecto.materiales, { id_temporal: Date.now(), tipo: "enlace", url: "", nombre: "" }],
     })
   }
 
@@ -840,21 +840,21 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                         value={material.tipo}
                         onChange={(e) => handleMaterialChange(pIndex, mIndex, "tipo", e.target.value)}
                       >
-                        <option value="link">🔗 Enlace</option>
+                        <option value="enlace">🔗 Enlace</option>
                         <option value="pdf">📄 PDF</option>
-                        <option value="doc">📝 Documento</option>
+                        <option value="referencia">📝 Referencias APA</option>
                       </select>
 
                       <input
                         type="text"
                         className={styles.input}
-                        placeholder={material.tipo === "link" ? "URL del material" : "Nombre del archivo"}
-                        value={material.tipo === "link" ? material.url : material.nombre}
+                        placeholder={material.tipo === "enlace" ? "URL del material" : "Nombre del archivo"}
+                        value={material.tipo === "enlace" ? material.url : material.nombre}
                         onChange={(e) =>
                           handleMaterialChange(
                             pIndex,
                             mIndex,
-                            material.tipo === "link" ? "url" : "nombre",
+                            material.tipo === "enlace" ? "url" : "nombre",
                             e.target.value,
                           )
                         }
@@ -972,19 +972,19 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                       setProyecto({ ...proyecto, materiales: nuevosMateriales })
                     }}
                   >
-                    <option value="link">🔗 Enlace</option>
+                    <option value="enlace">🔗 Enlace</option>
                     <option value="pdf">📄 PDF</option>
-                    <option value="doc">📝 Documento</option>
+                    <option value="referencias">📝 Referencias APA</option>
                   </select>
 
                   <input
                     type="text"
                     className={styles.input}
-                    placeholder={material.tipo === "link" ? "URL del material" : "Nombre del archivo"}
-                    value={material.tipo === "link" ? material.url : material.nombre}
+                    placeholder={material.tipo === "enlace" ? "URL del material" : "Nombre del archivo"}
+                    value={material.tipo === "enlace" ? material.url : material.nombre}
                     onChange={(e) => {
                       const nuevosMateriales = [...proyecto.materiales]
-                      if (material.tipo === "link") {
+                      if (material.tipo === "enlace") {
                         nuevosMateriales[index].url = e.target.value
                       } else {
                         nuevosMateriales[index].nombre = e.target.value
@@ -1028,10 +1028,9 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                     value={fuente.tipo}
                     onChange={(e) => handleFuenteChange(index, "tipo", e.target.value)}
                   >
-                    <option value="libro">📚 Libro</option>
-                    <option value="articulo">📄 Artículo</option>
-                    <option value="web">🌐 Sitio Web</option>
-                    <option value="otro">📎 Otro</option>
+                    <option value="referencias">📚 Referencias APA</option>
+                    <option value="enlace">🌐 Sitio Web</option>
+                    <option value="pdf">📄 Otro</option>
                   </select>
                   <textarea
                     className={styles.textareaSmall}

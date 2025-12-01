@@ -76,31 +76,35 @@ const guardarPlaneacion = async (req, res) => {
         id_calificaciones_curso,
         porcentaje_proyecto,
         proyecto.instrucciones || 'Proyecto final del curso',
-        JSON.stringify(['pdf', 'link', 'doc', 'docx', 'zip'])
+        JSON.stringify(['pdf', 'link', 'zip'])
       ]
     );
 
     // Guardar archivos/links del proyecto
     await guardarMateriales(connection, proyectoActividad.insertId, id_curso, proyecto.materiales, id_usuario);
 
-    // 5. Guardar temario
+    // 5. Guardar temario (usando los campos correctos de unidades_curso)
     await connection.query(
-      "DELETE FROM temario_curso WHERE id_curso = ?",
+      "DELETE FROM unidades_curso WHERE id_curso = ?",
       [id_curso]
     );
 
     for (const [index, tema] of temario.entries()) {
+      // Usar nombre_unidad y descripcion_unidad, y guardar competencias en descripcion
+      const descripcionCompleta = [
+        tema.competencias_especificas ? `Competencias específicas: ${tema.competencias_especificas}` : '',
+        tema.competencias_genericas ? `Competencias genéricas: ${tema.competencias_genericas}` : ''
+      ].filter(Boolean).join('\n\n');
+
       const [temaInsertado] = await connection.query(
-        `INSERT INTO temario_curso (
-          id_curso, numero_tema, nombre_tema, competencias_especificas, 
-          competencias_genericas, fecha_creacion
-        ) VALUES (?, ?, ?, ?, ?, NOW())`,
+        `INSERT INTO unidades_curso (
+          id_curso, nombre_unidad, descripcion_unidad, orden
+        ) VALUES (?, ?, ?, ?)`,
         [
           id_curso,
-          index + 1,
           tema.nombre,
-          tema.competencias_especificas || '',
-          tema.competencias_genericas || ''
+          descripcionCompleta || null,
+          index
         ]
       );
 
@@ -108,10 +112,10 @@ const guardarPlaneacion = async (req, res) => {
       if (tema.subtemas && tema.subtemas.length > 0) {
         for (const [subIndex, subtema] of tema.subtemas.entries()) {
           await connection.query(
-            `INSERT INTO subtemas_curso (
-              id_tema, numero_subtema, nombre_subtema
-            ) VALUES (?, ?, ?)`,
-            [temaInsertado.insertId, subIndex + 1, subtema.nombre]
+            `INSERT INTO subtemas_unidad (
+              id_unidad, nombre_subtema, descripcion_subtema, orden
+            ) VALUES (?, ?, ?, ?)`,
+            [temaInsertado.insertId, subtema.nombre, null, subIndex]
           );
         }
       }
@@ -134,6 +138,10 @@ const guardarMateriales = async (connection, id_actividad, id_curso, materiales,
   if (!materiales || !Array.isArray(materiales)) return;
 
   for (const material of materiales) {
+    // Mapear 'referencias' a 'texto' para coincidir con el enum de la base de datos
+    const tipoArchivo = material.tipo === 'referencias' ? 'texto' : 
+                       (material.tipo || (material.url ? 'enlace' : 'pdf'));
+
     await connection.query(
       `INSERT INTO material_curso (
         id_curso, nombre_archivo, ruta_archivo, tipo_archivo, 
@@ -144,7 +152,7 @@ const guardarMateriales = async (connection, id_actividad, id_curso, materiales,
         id_curso,
         material.nombre || (material.url ? 'Enlace' : 'Archivo adjunto'),
         material.ruta || null,
-        material.tipo || (material.url ? 'link' : 'pdf'),
+        tipoArchivo,
         material.url ? 1 : 0,
         material.url || null,
         material.descripcion || '',
@@ -168,31 +176,63 @@ const obtenerPlaneacion = async (req, res) => {
       [id_curso]
     );
 
+    if (!califCurso.length) {
+      return res.status(200).json({
+        temario: [],
+        porcentaje_practicas: 0,
+        porcentaje_proyecto: 0,
+        practicas: [],
+        proyecto: null
+      });
+    }
+
     // 2. Obtener actividades (prácticas y proyecto)
     const [actividades] = await pool.query(
       `SELECT * FROM calificaciones_actividades 
        WHERE id_calificaciones_curso = ? 
        ORDER BY tipo_actividad, id_actividad`,
-      [califCurso[0]?.id_calificaciones]
+      [califCurso[0].id_calificaciones]
     );
 
     // 3. Obtener materiales de cada actividad
     const actividadesConMateriales = await Promise.all(
       actividades.map(async (actividad) => {
         const [materiales] = await pool.query(
-          `SELECT * FROM material_curso 
+          `SELECT 
+            id_material,
+            nombre_archivo as nombre,
+            tipo_archivo as tipo,
+            es_enlace,
+            url_enlace as url,
+            descripcion
+           FROM material_curso 
            WHERE id_actividad = ?`,
           [actividad.id_actividad]
         );
-        return { ...actividad, materiales };
+        
+        // Mapear tipos de archivo para el frontend
+        const materialesMapeados = materiales.map(m => ({
+          ...m,
+          tipo: m.tipo === 'texto' ? 'referencias' : m.tipo
+        }));
+
+        return { 
+          ...actividad, 
+          materiales: materialesMapeados 
+        };
       })
     );
 
     // 4. Obtener temario
     const [temas] = await pool.query(
-      `SELECT * FROM temario_curso 
+      `SELECT 
+        id_tema as id,
+        nombre as nombre_tema,
+        competencias_especificas,
+        competencias_genericas
+       FROM unidades_curso 
        WHERE id_curso = ? 
-       ORDER BY numero_tema`,
+       ORDER BY orden_unidad`,
       [id_curso]
     );
 
@@ -200,26 +240,50 @@ const obtenerPlaneacion = async (req, res) => {
     const temario = await Promise.all(
       temas.map(async (tema) => {
         const [subtemas] = await pool.query(
-          `SELECT * FROM subtemas_curso 
-           WHERE id_tema = ? 
-           ORDER BY numero_subtema`,
-          [tema.id_tema]
+          `SELECT 
+            id_subtema as id,
+            nombre as nombre_subtema
+           FROM subtemas_unidad 
+           WHERE id_unidad = ? 
+           ORDER BY orden_subtema`,
+          [tema.id]
         );
         return { ...tema, subtemas };
       })
     );
 
-    // Calcular porcentajes
+    // Separar prácticas y proyecto
     const practicas = actividadesConMateriales
-      .filter(a => a.tipo_actividad === 'actividad');
+      .filter(a => a.tipo_actividad === 'actividad')
+      .map(p => ({
+        ...p,
+        id_temporal: p.id_actividad, // Para compatibilidad con el frontend
+        descripcion: p.instrucciones || '',
+        materiales: p.materiales || []
+      }));
     
-    const proyecto = actividadesConMateriales
+    const proyectoData = actividadesConMateriales
       .find(a => a.tipo_actividad === 'proyecto');
 
+    const proyecto = proyectoData ? {
+      ...proyectoData,
+      id_temporal: proyectoData.id_actividad,
+      instrucciones: proyectoData.instrucciones || '',
+      fundamentacion: proyectoData.fundamentacion || '',
+      planeacion: proyectoData.planeacion || '',
+      ejecucion: proyectoData.ejecucion || '',
+      evaluacion: proyectoData.evaluacion || '',
+      materiales: (proyectoData.materiales || []).map(m => ({
+        ...m,
+        id_temporal: m.id_material
+      }))
+    } : null;
+
+    // Calcular porcentajes
     const porcentaje_practicas = practicas
-      .reduce((sum, p) => sum + parseFloat(p.porcentaje), 0);
+      .reduce((sum, p) => sum + (parseFloat(p.porcentaje) || 0), 0);
     
-    const porcentaje_proyecto = proyecto ? parseFloat(proyecto.porcentaje) : 0;
+    const porcentaje_proyecto = proyecto ? (parseFloat(proyecto.porcentaje) || 0) : 0;
 
     res.status(200).json({
       temario,
@@ -230,6 +294,7 @@ const obtenerPlaneacion = async (req, res) => {
     });
 
   } catch (error) {
+    console.error('Error en obtenerPlaneacion:', error);
     logger.error(`Error al obtener planeación: ${error.message}`);
     res.status(500).json({ error: "Error al obtener la planeación" });
   }
