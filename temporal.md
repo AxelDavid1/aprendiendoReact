@@ -1,3 +1,52 @@
+CREATE TABLE `convocatoria_universidades` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `convocatoria_id` int(10) unsigned NOT NULL,
+  `universidad_id` int(10) unsigned NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `idx_convocatoria_universidad_unique` (`convocatoria_id`,`universidad_id`),
+  KEY `fk_conv_univ_convocatoria_idx` (`convocatoria_id`),
+  KEY `fk_conv_univ_universidad_idx` (`universidad_id`),
+  CONSTRAINT `fk_conv_univ_convocatoria` FOREIGN KEY (`convocatoria_id`) REFERENCES `convocatorias` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_conv_univ_universidad` FOREIGN KEY (`universidad_id`) REFERENCES `universidad` (`id_universidad`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+
+CREATE TABLE `material_curso` (
+  `id_material` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `id_curso` int(10) unsigned NOT NULL,
+  `nombre_archivo` varchar(255) NOT NULL,
+  `ruta_archivo` varchar(500) DEFAULT NULL,
+  `tipo_archivo` enum('pdf','enlace','texto') DEFAULT NULL,
+  `categoria_material` enum('planeacion','material_descarga','actividad') DEFAULT NULL,
+  `es_enlace` tinyint(1) NOT NULL DEFAULT 0,
+  `url_enlace` varchar(500) DEFAULT NULL,
+  `tamaño_archivo` int(10) unsigned DEFAULT NULL,
+  `descripcion` text DEFAULT NULL,
+  `instrucciones_texto` text DEFAULT NULL,
+  `fecha_limite` date DEFAULT NULL,
+  `activo` tinyint(1) NOT NULL DEFAULT 1,
+  `fecha_subida` timestamp NULL DEFAULT current_timestamp(),
+  `subido_por` int(10) unsigned NOT NULL,
+  `id_actividad` int(10) unsigned DEFAULT NULL,
+  PRIMARY KEY (`id_material`),
+  KEY `idx_curso` (`id_curso`),
+  KEY `idx_tipo_archivo` (`tipo_archivo`),
+  KEY `idx_fecha_subida` (`fecha_subida`),
+  KEY `idx_subido_por` (`subido_por`),
+  KEY `idx_categoria_material` (`categoria_material`),
+  KEY `idx_curso_categoria` (`id_curso`,`categoria_material`),
+  KEY `idx_activo` (`activo`),
+  KEY `idx_actividad` (`id_actividad`),
+  CONSTRAINT `fk_material_actividad` FOREIGN KEY (`id_actividad`) REFERENCES `calificaciones_actividades` (`id_actividad`) ON DELETE CASCADE,
+  CONSTRAINT `fk_material_curso` FOREIGN KEY (`id_curso`) REFERENCES `curso` (`id_curso`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_material_usuario` FOREIGN KEY (`subido_por`) REFERENCES `usuario` (`id_usuario`) ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=78 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
 CREATE TABLE `curso` (
   `id_curso` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `id_maestro` int(10) unsigned DEFAULT NULL,
@@ -79,19 +128,6 @@ CREATE TABLE `curso` (
 
 
 
-CREATE TABLE `convocatoria_universidades` (
-  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `convocatoria_id` int(10) unsigned NOT NULL,
-  `universidad_id` int(10) unsigned NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `idx_convocatoria_universidad_unique` (`convocatoria_id`,`universidad_id`),
-  KEY `fk_conv_univ_convocatoria_idx` (`convocatoria_id`),
-  KEY `fk_conv_univ_universidad_idx` (`universidad_id`),
-  CONSTRAINT `fk_conv_univ_convocatoria` FOREIGN KEY (`convocatoria_id`) REFERENCES `convocatorias` (`id`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `fk_conv_univ_universidad` FOREIGN KEY (`universidad_id`) REFERENCES `universidad` (`id_universidad`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
 
 
 CREATE TABLE `unidades_curso` (
@@ -118,41 +154,7 @@ CREATE TABLE `subtemas_unidad` (
   PRIMARY KEY (`id_subtema`),
   KEY `idx_unidad_orden` (`id_unidad`,`orden`),
   CONSTRAINT `subtemas_unidad_ibfk_1` FOREIGN KEY (`id_unidad`) REFERENCES `unidades_curso` (`id_unidad`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
-
-CREATE TABLE `material_curso` (
-  `id_material` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `id_curso` int(10) unsigned NOT NULL,
-  `nombre_archivo` varchar(255) NOT NULL,
-  `ruta_archivo` varchar(500) DEFAULT NULL,
-  `tipo_archivo` enum('pdf','enlace','texto') DEFAULT NULL,
-  `categoria_material` enum('planeacion','material_descarga','actividad') DEFAULT NULL,
-  `es_enlace` tinyint(1) NOT NULL DEFAULT 0,
-  `url_enlace` varchar(500) DEFAULT NULL,
-  `tamaño_archivo` int(10) unsigned DEFAULT NULL,
-  `descripcion` text DEFAULT NULL,
-  `instrucciones_texto` text DEFAULT NULL,
-  `fecha_limite` date DEFAULT NULL,
-  `activo` tinyint(1) NOT NULL DEFAULT 1,
-  `fecha_subida` timestamp NULL DEFAULT current_timestamp(),
-  `subido_por` int(10) unsigned NOT NULL,
-  `id_actividad` int(10) unsigned DEFAULT NULL,
-  PRIMARY KEY (`id_material`),
-  KEY `idx_curso` (`id_curso`),
-  KEY `idx_tipo_archivo` (`tipo_archivo`),
-  KEY `idx_fecha_subida` (`fecha_subida`),
-  KEY `idx_subido_por` (`subido_por`),
-  KEY `idx_categoria_material` (`categoria_material`),
-  KEY `idx_curso_categoria` (`id_curso`,`categoria_material`),
-  KEY `idx_activo` (`activo`),
-  KEY `idx_actividad` (`id_actividad`),
-  CONSTRAINT `fk_material_actividad` FOREIGN KEY (`id_actividad`) REFERENCES `calificaciones_actividades` (`id_actividad`) ON DELETE CASCADE,
-  CONSTRAINT `fk_material_curso` FOREIGN KEY (`id_curso`) REFERENCES `curso` (`id_curso`) ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `fk_material_usuario` FOREIGN KEY (`subido_por`) REFERENCES `usuario` (`id_usuario`) ON UPDATE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=78 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
 CREATE TABLE `calificaciones_actividades` (
   `id_actividad` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -171,4 +173,19 @@ CREATE TABLE `calificaciones_actividades` (
   KEY `idx_tipo_actividad` (`tipo_actividad`),
   CONSTRAINT `fk_actividad_calificaciones` FOREIGN KEY (`id_calificaciones_curso`) REFERENCES `calificaciones_curso` (`id_calificaciones`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=127 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+CREATE TABLE `calificaciones_curso` (
+  `id_calificaciones` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `id_curso` int(10) unsigned NOT NULL,
+  `umbral_aprobatorio` int(11) NOT NULL DEFAULT 60 CHECK (`umbral_aprobatorio` >= 50 and `umbral_aprobatorio` <= 100),
+  `puntos_totales` int(11) NOT NULL DEFAULT 100,
+  `fecha_creacion` timestamp NULL DEFAULT current_timestamp(),
+  `fecha_actualizacion` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `porcentaje_actividades` int(10) unsigned NOT NULL DEFAULT 50,
+  `porcentaje_proyecto` int(10) unsigned NOT NULL DEFAULT 50,
+  PRIMARY KEY (`id_calificaciones`),
+  UNIQUE KEY `uk_curso` (`id_curso`),
+  CONSTRAINT `fk_calificaciones_curso` FOREIGN KEY (`id_curso`) REFERENCES `curso` (`id_curso`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=142 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;

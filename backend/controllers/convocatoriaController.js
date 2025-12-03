@@ -649,5 +649,5 @@ module.exports = {
   getEstadoGeneralAlumno,
   solicitarInscripcionConvocatoria,
   getAllSolicitudes,
-  updateSolicitudStatus, // <-- ¡Añade esta línea!
+  updateSolicitudStatus,
 };

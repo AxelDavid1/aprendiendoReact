@@ -128,7 +128,6 @@ const firmasRoutes = require("./routes/firmasRoutes");
 const certificadoConstanciaRoutes = require("./routes/certificadoConstanciaRoutes");
 const verificacionHomeConstanciasYcertificadosRoutes = require("./routes/verificacionHomeConstanciasYcertificadosRoutes");
 const publicFilesRoutes = require("./routes/publicFilesRoutes");
-const planeacionRoutes = require("./routes/planeacionRoutes");
 
 log(`✅ Rutas importadas correctamente`);
 
@@ -147,14 +146,13 @@ app.use("/api/inscripciones", inscripcionRoutes);
 app.use("/api/dominios", domainRoutes);
 app.use("/api/convocatorias", convocatoriaRoutes);
 app.use("/api/areas-conocimiento", areaConocimientoRoutes);
-app.use("/api/horarios", horarioRoutes); // <-- 2. REGISTRAMOS LAS NUEVAS RUTAS
+app.use("/api/horarios", horarioRoutes);
 app.use("/api/unidades", unidadesRoutes);
 app.use("/api/calificaciones", calificacionesRoutes);
 app.use("/api/entregas", entregasRoutes);
 app.use("/api/material", materialRoutes);
 app.use("/api/firmas", firmasRoutes);
 app.use("/api/alumno", certificadoConstanciaRoutes);
-app.use('/api/planeacion', planeacionRoutes);
 log(`🔌 Rutas configuradas en la aplicación`);
 
 log(`💾 Conectando a la base de datos...`);

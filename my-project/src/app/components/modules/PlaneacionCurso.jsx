@@ -1,11 +1,16 @@
-"use client"
+"use client";
 
-import { useState, useEffect, useMemo } from "react"
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
-import { faTrash, faPlus, faChevronDown, faChevronUp } from "@fortawesome/free-solid-svg-icons"
-import styles from "./PlaneacionCurso.module.css"
+import { useState, useEffect, useMemo } from "react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faTrash,
+  faPlus,
+  faChevronDown,
+  faChevronUp,
+} from "@fortawesome/free-solid-svg-icons";
+import styles from "./PlaneacionCurso.module.css";
 
-const API_BASE_URL = "http://localhost:5000"
+const API_BASE_URL = "http://localhost:5000";
 
 const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
   // Estados principales
@@ -19,9 +24,9 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
     evaluacion_competencias: "",
     fecha_creacion: new Date().toISOString().split("T")[0],
     convocatoria_id: "",
-  })
-  const [porcentajePracticas, setPorcentajePracticas] = useState(50)
-  const [porcentajeProyecto, setPorcentajeProyecto] = useState(50)
+  });
+  const [porcentajePracticas, setPorcentajePracticas] = useState(50);
+  const [porcentajeProyecto, setPorcentajeProyecto] = useState(50);
   const [proyecto, setProyecto] = useState({
     instrucciones: "",
     materiales: [],
@@ -29,28 +34,30 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
     planeacion: "",
     ejecucion: "",
     evaluacion: "",
-  })
-  const [temario, setTemario] = useState([])
-  const [temasExpandidos, setTemasExpandidos] = useState({})
-  const [practicas, setPracticas] = useState([])
-  const [fuentes, setFuentes] = useState([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(null)
+  });
+  const [temario, setTemario] = useState([]);
+  const [temasExpandidos, setTemasExpandidos] = useState({});
+  const [practicas, setPracticas] = useState([]);
+  const [fuentes, setFuentes] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const [carreras, setCarreras] = useState([])
-  const [convocatorias, setConvocatorias] = useState([])
-  const [universidadesParticipantes, setUniversidadesParticipantes] = useState([])
+  const [carreras, setCarreras] = useState([]);
+  const [convocatorias, setConvocatorias] = useState([]);
+  const [universidadesParticipantes, setUniversidadesParticipantes] = useState(
+    []
+  );
 
   useEffect(() => {
-    cargarCarreras()
-    cargarConvocatorias()
-  }, [])
+    cargarCarreras();
+    cargarConvocatorias();
+  }, []);
 
   useEffect(() => {
     if (planeacion.convocatoria_id) {
-      cargarUniversidadesParticipantes(planeacion.convocatoria_id)
+      cargarUniversidadesParticipantes(planeacion.convocatoria_id);
     }
-  }, [planeacion.convocatoria_id])
+  }, [planeacion.convocatoria_id]);
 
   // Inicializar id_carrera y clave_asignatura automáticamente
   useEffect(() => {
@@ -59,104 +66,162 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
         ...prev,
         id_carrera: String(curso.id_carrera),
         clave_asignatura: curso.codigo_curso || prev.clave_asignatura,
-      }))
+      }));
     }
-  }, [curso.id_carrera, curso.codigo_curso])
+  }, [curso.id_carrera, curso.codigo_curso]);
 
   // Cargar datos existentes si los hay
   useEffect(() => {
     if (curso.id_curso) {
-      cargarPlaneacionExistente()
+      cargarPlaneacionExistente();
     }
-  }, [curso.id_curso])
+  }, [curso.id_curso]);
 
   // --- FUNCIONES PARA CARGAR DATOS ---
   const cargarCarreras = async () => {
     try {
-      const params = new URLSearchParams()
+      const params = new URLSearchParams();
       if (curso.id_facultad) {
-        params.append("id_facultad", curso.id_facultad)
+        params.append("id_facultad", curso.id_facultad);
       } else if (curso.id_universidad) {
-        params.append("id_universidad", curso.id_universidad)
+        params.append("id_universidad", curso.id_universidad);
       }
 
-      const url = `${API_BASE_URL}/api/carreras${params.toString() ? `?${params.toString()}` : ""}`
+      const url = `${API_BASE_URL}/api/carreras${params.toString() ? `?${params.toString()}` : ""
+        }`;
       const response = await fetch(url, {
         headers: { Authorization: `Bearer ${token}` },
-      })
+      });
 
-      if (!response.ok) return
+      if (!response.ok) return;
 
-      const data = await response.json()
-      const carrerasResponse = Array.isArray(data) ? data : data.carreras || data.data || []
-      setCarreras(carrerasResponse)
+      const data = await response.json();
+      const carrerasResponse = Array.isArray(data)
+        ? data
+        : data.carreras || data.data || [];
+      setCarreras(carrerasResponse);
     } catch (err) {
-      console.error("Error al cargar carreras:", err)
+      console.error("Error al cargar carreras:", err);
     }
-  }
+  };
 
   const cargarConvocatorias = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/convocatorias`, {
         headers: { Authorization: `Bearer ${token}` },
-      })
+      });
       if (response.ok) {
-        const data = await response.json()
-        setConvocatorias(data)
+        const data = await response.json();
+        setConvocatorias(data);
       }
     } catch (err) {
-      console.error("Error al cargar convocatorias:", err)
+      console.error("Error al cargar convocatorias:", err);
     }
-  }
+  };
 
   const cargarUniversidadesParticipantes = async (convocatoriaId) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/convocatorias/${convocatoriaId}/universidades`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      console.log("Cargando universidades para convocatoria:", convocatoriaId);
+      const response = await fetch(
+        `${API_BASE_URL}/api/cursos/${curso.id_curso}/planeacion`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
       if (response.ok) {
-        const data = await response.json()
-        setUniversidadesParticipantes(data)
+        const data = await response.json();
+        if (data.universidades_participantes) {
+          setUniversidadesParticipantes(data.universidades_participantes);
+        }
       }
     } catch (err) {
-      console.error("Error al cargar universidades participantes:", err)
+      console.error("Error al cargar universidades participantes:", err);
     }
-  }
+  };
 
   const cargarPlaneacionExistente = async () => {
     try {
-      setLoading(true)
-      const response = await fetch(`${API_BASE_URL}/api/planeacion/${curso.id_curso}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
+      setLoading(true);
+      const response = await fetch(
+        `${API_BASE_URL}/api/cursos/${curso.id_curso}/planeacion`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       if (response.ok) {
-        const data = await response.json()
+        const data = await response.json();
+        console.log("Datos recibidos del servidor:", data);
 
-        // Actualizar estados con los datos recibidos
+        // 1. ACTUALIZAR DATOS DEL CURSO
+        setPlaneacion((prev) => ({
+          ...prev,
+          caracterizacion: data.caracterizacion || "",
+          intencion_didactica: data.intencion_didactica || "",
+          competencias_desarrollar: data.competencias_desarrollar || "",
+          competencias_previas: data.competencias_previas || "",
+          evaluacion_competencias: data.evaluacion_competencias || "",
+          convocatoria_id: data.convocatoria_id
+            ? String(data.convocatoria_id)
+            : data.convocatoria?.id
+              ? String(data.convocatoria.id)
+              : "",
+          clave_asignatura:
+            data.clave_asignatura ||
+            curso.codigo_curso ||
+            prev.clave_asignatura,
+          id_carrera: data.id_carrera
+            ? String(data.id_carrera)
+            : curso.id_carrera
+              ? String(curso.id_carrera)
+              : prev.id_carrera,
+        }));
+
+        // Cargar datos de convocatoria y universidades si existen
+        if (data.convocatoria || data.universidades_participantes) {
+          if (
+            data.universidades_participantes &&
+            data.universidades_participantes.length > 0
+          ) {
+            setUniversidadesParticipantes(data.universidades_participantes);
+          }
+        }
+
+        // 2. Cargar temario
         if (data.temario) {
           setTemario(
             data.temario.map((tema) => ({
               id_temporal: Date.now() + Math.random(),
-              nombre_tema: tema.nombre,
-              competencias_especificas: tema.competencias_especificas || "",
-              competencias_genericas: tema.competencias_genericas || "",
+              nombre_tema: tema.nombre_unidad || tema.nombre,
+              descripcion: tema.descripcion_unidad || "",
+              competencias_especificas:
+                tema.competenciasEspecificas || "",
+              competencias_genericas:
+                tema.competenciasGenericas || tema.competenciasGenericas || "",
               subtemas: (tema.subtemas || []).map((subtema) => ({
                 id_temporal: Date.now() + Math.random(),
-                nombre_subtema: subtema.nombre,
+                nombre_subtema: subtema.nombre_subtema || subtema.nombre,
+                descripcion: subtema.descripcion_subtema || "",
               })),
-            })),
-          )
+            }))
+          );
         }
+        console.log("Temario cargado:", temario);
+        console.log("Primer tema competencias_especificas:", temario[0]?.competencias_especificas);
+        console.log("Primer tema competencias_genericas:", temario[0]?.competencias_genericas);
 
-        if (data.porcentaje_practicas) {
-          setPorcentajePracticas(data.porcentaje_practicas)
+        // 3. Cargar porcentajes
+        if (data.porcentaje_actividades || data.porcentaje_practicas) {
+          setPorcentajePracticas(
+            data.porcentaje_actividades || data.porcentaje_practicas
+          );
         }
-
         if (data.porcentaje_proyecto) {
-          setPorcentajeProyecto(data.porcentaje_proyecto)
+          setPorcentajeProyecto(data.porcentaje_proyecto);
         }
 
+        // 4. Cargar prácticas
         if (data.practicas) {
           setPracticas(
             data.practicas.map((p, i) => ({
@@ -165,10 +230,11 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
               materiales: p.materiales || [],
               id_tema: p.id_tema || "",
               id_subtema: p.id_subtema || "",
-            })),
-          )
+            }))
+          );
         }
 
+        // 5. Cargar proyecto
         if (data.proyecto) {
           setProyecto({
             instrucciones: data.proyecto.instrucciones || "",
@@ -177,16 +243,37 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
             planeacion: data.proyecto.planeacion || "",
             ejecucion: data.proyecto.ejecucion || "",
             evaluacion: data.proyecto.evaluacion || "",
-          })
+          });
+        }
+
+        // 6. Cargar fuentes (si vienen en la respuesta)
+        if (data.fuentes) {
+          setFuentes(
+            data.fuentes.map((fuente, i) => ({
+              id_temporal: Date.now() + i,
+              tipo: fuente.tipo || "libro",
+              referencia: fuente.referencia || fuente.nombre || "",
+            }))
+          );
+        }
+
+        // 7. Cargar universidades participantes (si vienen)
+        if (data.universidades_participantes) {
+          setUniversidadesParticipantes(data.universidades_participantes);
+        }
+
+        // 8. Cargar convocatoria (si viene)
+        if (data.convocatoria) {
+          // Ya se actualizó en setPlaneacion
         }
       }
     } catch (err) {
-      console.error("Error al cargar planeación:", err)
-      setError("Error al cargar la planeación del curso")
+      console.error("Error al cargar planeación:", err);
+      setError("Error al cargar la planeación del curso");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // --- FUNCIONES PARA TEMARIO ---
   const handleAddTema = () => {
@@ -195,78 +282,81 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
       numero_tema: temario.length + 1,
       nombre_tema: "",
       subtemas: [],
-    }
-    setTemario([...temario, nuevoTema])
-    setTemasExpandidos({ ...temasExpandidos, [nuevoTema.id_temporal]: true })
-  }
+    };
+    setTemario([...temario, nuevoTema]);
+    setTemasExpandidos({ ...temasExpandidos, [nuevoTema.id_temporal]: true });
+  };
 
   const handleRemoveTema = (index) => {
-    const nuevosTemarios = temario.filter((_, i) => i !== index)
+    const nuevosTemarios = temario.filter((_, i) => i !== index);
     // Renumerar temas
     const renumerados = nuevosTemarios.map((tema, i) => ({
       ...tema,
       numero_tema: i + 1,
-    }))
-    setTemario(renumerados)
-  }
+    }));
+    setTemario(renumerados);
+  };
 
   const handleTemaChange = (index, field, value) => {
-    const nuevosTemarios = [...temario]
-    nuevosTemarios[index][field] = value
-    setTemario(nuevosTemarios)
-  }
+    const nuevosTemarios = [...temario];
+    nuevosTemarios[index][field] = value;
+    setTemario(nuevosTemarios);
+  };
 
   const toggleTemaExpansion = (idTemporal) => {
     setTemasExpandidos({
       ...temasExpandidos,
       [idTemporal]: !temasExpandidos[idTemporal],
-    })
-  }
+    });
+  };
 
   // --- FUNCIONES PARA SUBTEMAS ---
   const handleAddSubtema = (temaIndex) => {
-    const nuevosTemarios = [...temario]
-    const subtemas = nuevosTemarios[temaIndex].subtemas || []
+    const nuevosTemarios = [...temario];
+    const subtemas = nuevosTemarios[temaIndex].subtemas || [];
     const nuevoSubtema = {
       id_temporal: Date.now(),
-      numero_subtema: `${nuevosTemarios[temaIndex].numero_tema}.${subtemas.length + 1}`,
+      numero_subtema: `${nuevosTemarios[temaIndex].numero_tema}.${subtemas.length + 1
+        }`,
       nombre_subtema: "",
-    }
-    nuevosTemarios[temaIndex].subtemas = [...subtemas, nuevoSubtema]
-    setTemario(nuevosTemarios)
-  }
+    };
+    nuevosTemarios[temaIndex].subtemas = [...subtemas, nuevoSubtema];
+    setTemario(nuevosTemarios);
+  };
 
   const handleRemoveSubtema = (temaIndex, subtemaIndex) => {
-    const nuevosTemarios = [...temario]
-    const subtemasFiltrados = nuevosTemarios[temaIndex].subtemas.filter((_, i) => i !== subtemaIndex)
+    const nuevosTemarios = [...temario];
+    const subtemasFiltrados = nuevosTemarios[temaIndex].subtemas.filter(
+      (_, i) => i !== subtemaIndex
+    );
     // Renumerar subtemas
     const renumerados = subtemasFiltrados.map((subtema, i) => ({
       ...subtema,
       numero_subtema: `${nuevosTemarios[temaIndex].numero_tema}.${i + 1}`,
-    }))
-    nuevosTemarios[temaIndex].subtemas = renumerados
-    setTemario(nuevosTemarios)
-  }
+    }));
+    nuevosTemarios[temaIndex].subtemas = renumerados;
+    setTemario(nuevosTemarios);
+  };
 
   const handleSubtemaChange = (temaIndex, subtemaIndex, value) => {
-    const nuevosTemarios = [...temario]
-    nuevosTemarios[temaIndex].subtemas[subtemaIndex].nombre_subtema = value
-    setTemario(nuevosTemarios)
-  }
+    const nuevosTemarios = [...temario];
+    nuevosTemarios[temaIndex].subtemas[subtemaIndex].nombre_subtema = value;
+    setTemario(nuevosTemarios);
+  };
 
   // --- FUNCIONES PARA ACTIVIDADES DE APRENDIZAJE ---
   const handleActividadesAprendizajeChange = (temaIndex, field, value) => {
-    const nuevosTemarios = [...temario]
+    const nuevosTemarios = [...temario];
     if (!nuevosTemarios[temaIndex].actividades_aprendizaje) {
       nuevosTemarios[temaIndex].actividades_aprendizaje = {
         competencias_especificas: "",
         competencias_genericas: "",
         actividades: "",
-      }
+      };
     }
-    nuevosTemarios[temaIndex].actividades_aprendizaje[field] = value
-    setTemario(nuevosTemarios)
-  }
+    nuevosTemarios[temaIndex].actividades_aprendizaje[field] = value;
+    setTemario(nuevosTemarios);
+  };
 
   // --- FUNCIONES PARA PRÁCTICAS ---
   const handleAddPractica = () => {
@@ -279,113 +369,122 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
         id_tema: "",
         id_subtema: "",
       },
-    ])
-  }
+    ]);
+  };
 
   const handleRemovePractica = (index) => {
-    const nuevasPracticas = [...practicas]
-    nuevasPracticas.splice(index, 1)
-    setPracticas(nuevasPracticas)
-  }
+    const nuevasPracticas = [...practicas];
+    nuevasPracticas.splice(index, 1);
+    setPracticas(nuevasPracticas);
+  };
 
   const handlePracticaChange = (index, field, value) => {
-    const nuevasPracticas = [...practicas]
-    nuevasPracticas[index][field] = value
-    setPracticas(nuevasPracticas)
-  }
+    const nuevasPracticas = [...practicas];
+    nuevasPracticas[index][field] = value;
+    setPracticas(nuevasPracticas);
+  };
 
   const obtenerNombreTema = (idTema) => {
     const tema = temario.find(
-      (t) => t.id_temporal?.toString() === idTema?.toString() || t.id_tema?.toString() === idTema?.toString(),
-    )
-    return tema ? `${tema.numero_tema}. ${tema.nombre_tema}` : "Sin tema asignado"
-  }
+      (t) =>
+        t.id_temporal?.toString() === idTema?.toString() ||
+        t.id_tema?.toString() === idTema?.toString()
+    );
+    return tema
+      ? `${tema.numero_tema}. ${tema.nombre_tema}`
+      : "Sin tema asignado";
+  };
 
   const practicasAgrupadasPorTema = () => {
-    const grupos = {}
+    const grupos = {};
 
     practicas.forEach((practica, index) => {
-      const idTema = practica.id_tema || "sin_tema"
+      const idTema = practica.id_tema || "sin_tema";
       if (!grupos[idTema]) {
-        grupos[idTema] = []
+        grupos[idTema] = [];
       }
-      grupos[idTema].push({ ...practica, index })
-    })
+      grupos[idTema].push({ ...practica, index });
+    });
 
-    return grupos
-  }
+    return grupos;
+  };
 
   const obtenerNombreCompleto = (practica) => {
-    if (!practica.id_tema) return "Sin tema asignado"
+    if (!practica.id_tema) return "Sin tema asignado";
 
     const tema = temario.find(
       (t) =>
         t.id_temporal?.toString() === practica.id_tema?.toString() ||
-        t.id_tema?.toString() === practica.id_tema?.toString(),
-    )
+        t.id_tema?.toString() === practica.id_tema?.toString()
+    );
 
-    if (!tema) return "Sin tema asignado"
+    if (!tema) return "Sin tema asignado";
 
     // Si tiene subtema seleccionado
     if (practica.id_subtema && tema.subtemas) {
       const subtema = tema.subtemas.find(
         (s) =>
           s.id_temporal?.toString() === practica.id_subtema?.toString() ||
-          s.id_subtema?.toString() === practica.id_subtema?.toString(),
-      )
+          s.id_subtema?.toString() === practica.id_subtema?.toString()
+      );
       if (subtema) {
-        return `${tema.numero_tema}. ${tema.nombre_tema} → ${subtema.numero_subtema} ${subtema.nombre_subtema}`
+        return `${tema.numero_tema}. ${tema.nombre_tema} → ${subtema.numero_subtema} ${subtema.nombre_subtema}`;
       }
     }
 
-    return `${tema.numero_tema}. ${tema.nombre_tema}`
-  }
+    return `${tema.numero_tema}. ${tema.nombre_tema}`;
+  };
 
   // --- FUNCIONES PARA MANEJAR MATERIALES ---
   const handleAddMaterialPractica = (practicaIndex) => {
-    const nuevasPracticas = [...practicas]
+    const nuevasPracticas = [...practicas];
     if (!nuevasPracticas[practicaIndex].materiales) {
-      nuevasPracticas[practicaIndex].materiales = []
+      nuevasPracticas[practicaIndex].materiales = [];
     }
     nuevasPracticas[practicaIndex].materiales.push({
       id_temporal: Date.now(),
       tipo: "enlace",
       url: "",
       nombre: "",
-    })
-    setPracticas(nuevasPracticas)
-  }
+    });
+    setPracticas(nuevasPracticas);
+  };
 
   const handleMaterialChange = (practicaIndex, materialIndex, field, value) => {
-    const nuevasPracticas = [...practicas]
-    nuevasPracticas[practicaIndex].materiales[materialIndex][field] = value
-    setPracticas(nuevasPracticas)
-  }
+    const nuevasPracticas = [...practicas];
+    nuevasPracticas[practicaIndex].materiales[materialIndex][field] = value;
+    setPracticas(nuevasPracticas);
+  };
 
   const handleRemoveMaterial = (practicaIndex, materialIndex) => {
-    const nuevasPracticas = [...practicas]
-    nuevasPracticas[practicaIndex].materiales.splice(materialIndex, 1)
-    setPracticas(nuevasPracticas)
-  }
+    const nuevasPracticas = [...practicas];
+    nuevasPracticas[practicaIndex].materiales.splice(materialIndex, 1);
+    setPracticas(nuevasPracticas);
+  };
 
   // Funciones similares para el proyecto
   const handleProyectoMaterialChange = (materialIndex, field, value) => {
-    const nuevosMateriales = [...proyecto.materiales]
-    nuevosMateriales[materialIndex][field] = value
-    setProyecto({ ...proyecto, materiales: nuevosMateriales })
-  }
+    const nuevosMateriales = [...proyecto.materiales];
+    nuevosMateriales[materialIndex][field] = value;
+    setProyecto({ ...proyecto, materiales: nuevosMateriales });
+  };
 
   const handleAddProyectoMaterial = () => {
     setProyecto({
       ...proyecto,
-      materiales: [...proyecto.materiales, { id_temporal: Date.now(), tipo: "enlace", url: "", nombre: "" }],
-    })
-  }
+      materiales: [
+        ...proyecto.materiales,
+        { id_temporal: Date.now(), tipo: "enlace", url: "", nombre: "" },
+      ],
+    });
+  };
 
   const handleRemoveProyectoMaterial = (materialIndex) => {
-    const nuevosMateriales = proyecto.materiales.filter((_, i) => i !== materialIndex)
-    setProyecto({ ...proyecto, materiales: nuevosMateriales })
-  }
+    const nuevosMateriales = proyecto.materiales.filter(
+      (_, i) => i !== materialIndex
+    );
+    setProyecto({ ...proyecto, materiales: nuevosMateriales });
+  };
 
   // --- FUNCIONES PARA FUENTES ---
   const handleAddFuente = () => {
@@ -396,48 +495,55 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
         tipo: "libro",
         referencia: "",
       },
-    ])
-  }
+    ]);
+  };
 
   const handleRemoveFuente = (index) => {
-    setFuentes(fuentes.filter((_, i) => i !== index))
-  }
+    setFuentes(fuentes.filter((_, i) => i !== index));
+  };
 
   const handleFuenteChange = (index, field, value) => {
-    const nuevasFuentes = [...fuentes]
-    nuevasFuentes[index][field] = value
-    setFuentes(nuevasFuentes)
-  }
+    const nuevasFuentes = [...fuentes];
+    nuevasFuentes[index][field] = value;
+    setFuentes(nuevasFuentes);
+  };
 
   // --- FUNCIÓN PARA GUARDAR ---
   const handleSave = async () => {
     try {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
 
       // Validaciones
-      if (porcentajePracticas + porcentajeProyecto !== 100) {
-        setError("La suma de los porcentajes de prácticas y proyecto debe ser 100%")
-        return
+      if (
+        parseInt(porcentajePracticas) + parseInt(porcentajeProyecto) !==
+        100
+      ) {
+        setError(
+          "La suma de los porcentajes de actividades y proyecto debe ser 100%"
+        );
+        return;
       }
+      console.log("Temario antes de enviar:", temario);
+      console.log("Primer tema competencias_especificas:", temario[0]?.competencias_especificas);
 
       const payload = {
         id_curso: curso.id_curso,
         temario: temario.map((tema) => ({
           nombre: tema.nombre_tema,
-          competencias_especificas: tema.competencias_especificas || "",
-          competencias_genericas: tema.competencias_genericas || "",
+          descripcion: tema.descripcion || "",
+          competenciasEspecificas: tema.competencias_especificas || "",
+          competenciasGenericas: tema.competencias_genericas || "",
           subtemas: (tema.subtemas || []).map((subtema) => ({
             nombre: subtema.nombre_subtema,
+            descripcion: subtema.descripcion || "",
           })),
         })),
-        porcentaje_practicas: porcentajePracticas,
-        porcentaje_proyecto: porcentajeProyecto,
+        porcentaje_actividades: parseInt(porcentajePracticas),
+        porcentaje_proyecto: parseInt(porcentajeProyecto),
         practicas: practicas.map((p) => ({
           descripcion: p.descripcion_practica,
           materiales: p.materiales || [],
-          id_tema: p.id_tema,
-          id_subtema: p.id_subtema,
         })),
         proyecto: {
           instrucciones: proyecto.instrucciones,
@@ -447,46 +553,69 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
           ejecucion: proyecto.ejecucion,
           evaluacion: proyecto.evaluacion,
         },
-      }
+        // Añadir estos campos para la tabla curso
+        caracterizacion: planeacion.caracterizacion,
+        intencion_didactica: planeacion.intencion_didactica,
+        competencias_desarrollar: planeacion.competencias_desarrollar,
+        competencias_previas: planeacion.competencias_previas,
+        evaluacion_competencias: planeacion.evaluacion_competencias,
+        convocatoria_id: planeacion.convocatoria_id,
+        // Si el frontend separa el proyecto
+        proyecto_fundamentacion: proyecto.fundamentacion,
+        proyecto_planeacion: proyecto.planeacion,
+        proyecto_ejecucion: proyecto.ejecucion,
+        proyecto_evaluacion: proyecto.evaluacion,
+        // Fuentes
+        fuentes: fuentes,
+      };
 
-      const response = await fetch(`${API_BASE_URL}/api/planeacion/${curso.id_curso}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      })
+      const response = await fetch(
+        `${API_BASE_URL}/api/cursos/${curso.id_curso}/planeacion`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Error al guardar la planeación")
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Error al guardar la planeación");
       }
 
-      const result = await response.json()
-      if (onSave) onSave(result)
-      alert("Planeación guardada exitosamente")
-      onClose()
+      const result = await response.json();
+      if (onSave) onSave(result);
+      alert("Planeación guardada exitosamente");
+      onClose();
     } catch (err) {
-      setError(err.message)
-      console.error("Error al guardar:", err)
+      setError(err.message);
+      console.error("Error al guardar:", err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // useMemo para obtener la carrera seleccionada
   const carreraSeleccionada = useMemo(
-    () => carreras.find((carrera) => String(carrera.id_carrera) === String(planeacion.id_carrera || curso.id_carrera)),
-    [carreras, planeacion.id_carrera, curso.id_carrera],
-  )
+    () =>
+      carreras.find(
+        (carrera) =>
+          String(carrera.id_carrera) ===
+          String(planeacion.id_carrera || curso.id_carrera)
+      ),
+    [carreras, planeacion.id_carrera, curso.id_carrera]
+  );
 
   // Generar el label de la carrera
   const carreraLabel = carreraSeleccionada
-    ? `${carreraSeleccionada.nombre}${
-        carreraSeleccionada.clave_carrera ? ` (${carreraSeleccionada.clave_carrera})` : ""
-      }`
-    : curso.nombre_carrera || "No asignada"
+    ? `${carreraSeleccionada.nombre}${carreraSeleccionada.clave_carrera
+      ? ` (${carreraSeleccionada.clave_carrera})`
+      : ""
+    }`
+    : curso.nombre_carrera || "No asignada";
 
   if (loading && !planeacion.clave_asignatura) {
     return (
@@ -495,14 +624,16 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
           <p>Cargando planeación...</p>
         </div>
       </div>
-    )
+    );
   }
 
   return (
     <div className={styles.modalBackdrop}>
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
-          <h2 className={styles.modalTitle}>📋 Planeación del Curso: {curso.nombre_curso || curso.nombre}</h2>
+          <h2 className={styles.modalTitle}>
+            📋 Planeación del Curso: {curso.nombre_curso || curso.nombre}
+          </h2>
           <button onClick={onClose} className={styles.closeButton}>
             ×
           </button>
@@ -521,14 +652,23 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                 <input
                   type="text"
                   className={styles.inputReadonly}
-                  value={curso.codigo_curso || planeacion.clave_asignatura || "Se asignará automáticamente"}
+                  value={
+                    curso.codigo_curso ||
+                    planeacion.clave_asignatura ||
+                    "Se asignará automáticamente"
+                  }
                   readOnly
                 />
               </div>
 
               <div className={styles.formGroup}>
                 <label className={styles.label}>Carrera *</label>
-                <input type="text" className={styles.inputReadonly} value={carreraLabel} readOnly />
+                <input
+                  type="text"
+                  className={styles.inputReadonly}
+                  value={carreraLabel}
+                  readOnly
+                />
               </div>
             </div>
 
@@ -538,7 +678,12 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                 type="date"
                 className={styles.input}
                 value={planeacion.fecha_creacion}
-                onChange={(e) => setPlaneacion({ ...planeacion, fecha_creacion: e.target.value })}
+                onChange={(e) =>
+                  setPlaneacion({
+                    ...planeacion,
+                    fecha_creacion: e.target.value,
+                  })
+                }
               />
             </div>
           </div>
@@ -548,11 +693,18 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
             <h3 className={styles.sectionTitle}>📖 Presentación</h3>
 
             <div className={styles.formGroup}>
-              <label className={styles.label}>Caracterización de la Asignatura</label>
+              <label className={styles.label}>
+                Caracterización de la Asignatura
+              </label>
               <textarea
                 className={styles.textarea}
                 value={planeacion.caracterizacion}
-                onChange={(e) => setPlaneacion({ ...planeacion, caracterizacion: e.target.value })}
+                onChange={(e) =>
+                  setPlaneacion({
+                    ...planeacion,
+                    caracterizacion: e.target.value,
+                  })
+                }
                 placeholder="Describe cómo esta asignatura aporta al perfil del egresado..."
               />
             </div>
@@ -562,7 +714,12 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
               <textarea
                 className={styles.textarea}
                 value={planeacion.intencion_didactica}
-                onChange={(e) => setPlaneacion({ ...planeacion, intencion_didactica: e.target.value })}
+                onChange={(e) =>
+                  setPlaneacion({
+                    ...planeacion,
+                    intencion_didactica: e.target.value,
+                  })
+                }
                 placeholder="Describe la organización de los temas y la estrategia de enseñanza..."
               />
             </div>
@@ -576,7 +733,12 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
               <select
                 className={styles.select}
                 value={planeacion.convocatoria_id}
-                onChange={(e) => setPlaneacion({ ...planeacion, convocatoria_id: e.target.value })}
+                onChange={(e) =>
+                  setPlaneacion({
+                    ...planeacion,
+                    convocatoria_id: e.target.value,
+                  })
+                }
               >
                 <option value="">Seleccionar convocatoria...</option>
                 {convocatorias.map((conv) => (
@@ -587,18 +749,24 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
               </select>
             </div>
 
-            {planeacion.convocatoria_id && universidadesParticipantes.length > 0 && (
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Universidades Participantes</label>
-                <div className={styles.universidadesList}>
-                  {universidadesParticipantes.map((universidad) => (
-                    <div key={universidad.id_universidad} className={styles.universidadItem}>
-                      🎓 {universidad.nombre}
-                    </div>
-                  ))}
+            {planeacion.convocatoria_id &&
+              universidadesParticipantes.length > 0 && (
+                <div className={styles.formGroup}>
+                  <label className={styles.label}>
+                    Universidades Participantes
+                  </label>
+                  <div className={styles.universidadesList}>
+                    {universidadesParticipantes.map((universidad) => (
+                      <div
+                        key={universidad.id_universidad}
+                        className={styles.universidadItem}
+                      >
+                        🎓 {universidad.nombre}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
           </div>
 
           {/* SECCIÓN 3: COMPETENCIAS */}
@@ -610,7 +778,12 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
               <textarea
                 className={styles.textarea}
                 value={planeacion.competencias_desarrollar}
-                onChange={(e) => setPlaneacion({ ...planeacion, competencias_desarrollar: e.target.value })}
+                onChange={(e) =>
+                  setPlaneacion({
+                    ...planeacion,
+                    competencias_desarrollar: e.target.value,
+                  })
+                }
                 placeholder="Describe las competencias específicas que se desarrollarán..."
               />
             </div>
@@ -620,7 +793,12 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
               <textarea
                 className={styles.textarea}
                 value={planeacion.competencias_previas}
-                onChange={(e) => setPlaneacion({ ...planeacion, competencias_previas: e.target.value })}
+                onChange={(e) =>
+                  setPlaneacion({
+                    ...planeacion,
+                    competencias_previas: e.target.value,
+                  })
+                }
                 placeholder="Describe los conocimientos previos requeridos..."
               />
             </div>
@@ -631,27 +809,40 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
             <h3 className={styles.sectionTitle}>📚 Temario</h3>
 
             {temario.map((tema, temaIndex) => (
-              <div key={tema.id_temporal || tema.id_tema} className={styles.temaItem}>
+              <div
+                key={tema.id_temporal || tema.id_tema}
+                className={styles.temaItem}
+              >
                 <div
                   className={styles.temaHeader}
-                  onClick={() => toggleTemaExpansion(tema.id_temporal || tema.id_tema)}
+                  onClick={() =>
+                    toggleTemaExpansion(tema.id_temporal || tema.id_tema)
+                  }
                 >
                   <div className={styles.temaHeaderContent}>
-                    <span className={styles.temaNumero}>Tema {tema.numero_tema}</span>
-                    <span className={styles.temaNombre}>{tema.nombre_tema || "Sin nombre"}</span>
+                    <span className={styles.temaNumero}>
+                      Tema {tema.numero_tema}
+                    </span>
+                    <span className={styles.temaNombre}>
+                      {tema.nombre_tema || "Sin nombre"}
+                    </span>
                   </div>
                   <div className={styles.temaActions}>
                     <button
                       onClick={(e) => {
-                        e.stopPropagation()
-                        handleRemoveTema(temaIndex)
+                        e.stopPropagation();
+                        handleRemoveTema(temaIndex);
                       }}
                       className={styles.buttonDanger}
                     >
                       <FontAwesomeIcon icon={faTrash} />
                     </button>
                     <FontAwesomeIcon
-                      icon={temasExpandidos[tema.id_temporal || tema.id_tema] ? faChevronUp : faChevronDown}
+                      icon={
+                        temasExpandidos[tema.id_temporal || tema.id_tema]
+                          ? faChevronUp
+                          : faChevronDown
+                      }
                       className={styles.chevronIcon}
                     />
                   </div>
@@ -665,7 +856,13 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                         type="text"
                         className={styles.input}
                         value={tema.nombre_tema}
-                        onChange={(e) => handleTemaChange(temaIndex, "nombre_tema", e.target.value)}
+                        onChange={(e) =>
+                          handleTemaChange(
+                            temaIndex,
+                            "nombre_tema",
+                            e.target.value
+                          )
+                        }
                         placeholder="Ej: Sistemas numéricos"
                       />
                     </div>
@@ -674,49 +871,65 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Subtemas</label>
                       {(tema.subtemas || []).map((subtema, subtemaIndex) => (
-                        <div key={subtema.id_temporal || subtema.id_subtema} className={styles.subtemaItem}>
-                          <span className={styles.subtemaNumero}>{subtema.numero_subtema}</span>
+                        <div
+                          key={subtema.id_temporal || subtema.id_subtema}
+                          className={styles.subtemaItem}
+                        >
+                          <span className={styles.subtemaNumero}>
+                            {subtema.numero_subtema}
+                          </span>
                           <input
                             type="text"
                             className={styles.inputFlex}
                             value={subtema.nombre_subtema}
-                            onChange={(e) => handleSubtemaChange(temaIndex, subtemaIndex, e.target.value)}
+                            onChange={(e) =>
+                              handleSubtemaChange(
+                                temaIndex,
+                                subtemaIndex,
+                                e.target.value
+                              )
+                            }
                             placeholder="Nombre del subtema"
                           />
                           <button
-                            onClick={() => handleRemoveSubtema(temaIndex, subtemaIndex)}
+                            onClick={() =>
+                              handleRemoveSubtema(temaIndex, subtemaIndex)
+                            }
                             className={styles.buttonDanger}
                           >
                             <FontAwesomeIcon icon={faTrash} />
                           </button>
                         </div>
                       ))}
-                      <button onClick={() => handleAddSubtema(temaIndex)} className={styles.buttonAdd}>
+                      <button
+                        onClick={() => handleAddSubtema(temaIndex)}
+                        className={styles.buttonAdd}
+                      >
                         <FontAwesomeIcon icon={faPlus} /> Añadir Subtema
                       </button>
                     </div>
 
                     {/* Actividades de Aprendizaje */}
                     <div className={styles.formGroup}>
-                      <label className={styles.label}>Competencias Específicas del Tema</label>
+                      <label className={styles.label}>
+                        Competencias Específicas del Tema
+                      </label>
                       <textarea
                         className={styles.textareaSmall}
-                        value={tema.actividades_aprendizaje?.competencias_especificas || ""}
-                        onChange={(e) =>
-                          handleActividadesAprendizajeChange(temaIndex, "competencias_especificas", e.target.value)
-                        }
+                        value={tema.competencias_especificas || ""}
+                        onChange={(e) => handleTemaChange(temaIndex, "competencias_especificas", e.target.value)}
                         placeholder="Competencias específicas que se desarrollan en este tema..."
                       />
                     </div>
 
                     <div className={styles.formGroup}>
-                      <label className={styles.label}>Competencias Genéricas del Tema</label>
+                      <label className={styles.label}>
+                        Competencias Genéricas del Tema
+                      </label>
                       <textarea
                         className={styles.textareaSmall}
-                        value={tema.actividades_aprendizaje?.competencias_genericas || ""}
-                        onChange={(e) =>
-                          handleActividadesAprendizajeChange(temaIndex, "competencias_genericas", e.target.value)
-                        }
+                        value={tema.competencias_genericas || ""}
+                        onChange={(e) => handleTemaChange(temaIndex, "competencias_genericas", e.target.value)}
                         placeholder="Competencias genéricas que se desarrollan en este tema..."
                       />
                     </div>
@@ -735,14 +948,26 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
             <h3 className={styles.sectionTitle}>🔬 Prácticas</h3>
 
             <div className={styles.formGroup}>
-              <label className={styles.label}>Distribución de Porcentajes</label>
+              <label className={styles.label}>
+                Distribución de Porcentajes
+              </label>
               <div className={styles.porcentajeVisual}>
                 <div className={styles.porcentajeBarContainer}>
-                  <div className={styles.porcentajeBarPracticas} style={{ width: `${porcentajePracticas}%` }}>
-                    <span className={styles.porcentajeLabel}>Prácticas: {porcentajePracticas}%</span>
+                  <div
+                    className={styles.porcentajeBarPracticas}
+                    style={{ width: `${porcentajePracticas}%` }}
+                  >
+                    <span className={styles.porcentajeLabel}>
+                      Prácticas: {porcentajePracticas}%
+                    </span>
                   </div>
-                  <div className={styles.porcentajeBarProyecto} style={{ width: `${porcentajeProyecto}%` }}>
-                    <span className={styles.porcentajeLabel}>Proyecto: {porcentajeProyecto}%</span>
+                  <div
+                    className={styles.porcentajeBarProyecto}
+                    style={{ width: `${porcentajeProyecto}%` }}
+                  >
+                    <span className={styles.porcentajeLabel}>
+                      Proyecto: {porcentajeProyecto}%
+                    </span>
                   </div>
                 </div>
               </div>
@@ -752,44 +977,52 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                 max="100"
                 value={porcentajePracticas}
                 onChange={(e) => {
-                  const nuevoValor = Number.parseInt(e.target.value)
-                  setPorcentajePracticas(nuevoValor)
-                  setPorcentajeProyecto(100 - nuevoValor)
+                  const nuevoValor = Number.parseInt(e.target.value);
+                  setPorcentajePracticas(nuevoValor);
+                  setPorcentajeProyecto(100 - nuevoValor);
                 }}
                 className={styles.rangeInput}
               />
             </div>
 
             {practicas.map((practica, pIndex) => (
-              <div key={practica.id_temporal || pIndex} className={styles.practicaItem}>
+              <div
+                key={practica.id_temporal || pIndex}
+                className={styles.practicaItem}
+              >
                 <div className={styles.practicaHeader}>
                   <h4>Práctica {pIndex + 1}</h4>
-                  <button onClick={() => handleRemovePractica(pIndex)} className={styles.buttonDanger}>
+                  <button
+                    onClick={() => handleRemovePractica(pIndex)}
+                    className={styles.buttonDanger}
+                  >
                     <FontAwesomeIcon icon={faTrash} /> Eliminar
                   </button>
                 </div>
 
                 <div className={styles.formGroup}>
-                  <label className={styles.label}>Asignar a tema o subtema</label>
+                  <label className={styles.label}>
+                    Asignar a tema o subtema
+                  </label>
                   <select
                     className={styles.select}
                     value={practica.id_subtema || practica.id_tema || ""}
                     onChange={(e) => {
-                      const value = e.target.value
-                      const nuevasPracticas = [...practicas]
+                      const value = e.target.value;
+                      const nuevasPracticas = [...practicas];
 
                       // Verificar si es un subtema (formato: "tema_X_subtema_Y")
                       if (value.includes("_subtema_")) {
-                        const [temaId, subtemaId] = value.split("_subtema_")
-                        nuevasPracticas[pIndex].id_tema = temaId
-                        nuevasPracticas[pIndex].id_subtema = subtemaId
+                        const [temaId, subtemaId] = value.split("_subtema_");
+                        nuevasPracticas[pIndex].id_tema = temaId;
+                        nuevasPracticas[pIndex].id_subtema = subtemaId;
                       } else {
                         // Es un tema
-                        nuevasPracticas[pIndex].id_tema = value
-                        nuevasPracticas[pIndex].id_subtema = ""
+                        nuevasPracticas[pIndex].id_tema = value;
+                        nuevasPracticas[pIndex].id_subtema = "";
                       }
 
-                      setPracticas(nuevasPracticas)
+                      setPracticas(nuevasPracticas);
                     }}
                   >
                     <option value="">Seleccionar tema...</option>
@@ -804,23 +1037,34 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                         {tema.subtemas?.map((subtema) => (
                           <option
                             key={subtema.id_temporal || subtema.id_subtema}
-                            value={`${tema.id_temporal || tema.id_tema}_subtema_${subtema.id_temporal || subtema.id_subtema}`}
+                            value={`${tema.id_temporal || tema.id_tema
+                              }_subtema_${subtema.id_temporal || subtema.id_subtema
+                              }`}
                           >
-                            &nbsp;&nbsp;&nbsp;&nbsp;↳ {subtema.numero_subtema} {subtema.nombre_subtema}
+                            &nbsp;&nbsp;&nbsp;&nbsp;↳ {subtema.numero_subtema}{" "}
+                            {subtema.nombre_subtema}
                           </option>
                         ))}
                       </optgroup>
                     ))}
                   </select>
                   {(practica.id_tema || practica.id_subtema) && (
-                    <div className={styles.temaAsignado}>📌 Asignado a: {obtenerNombreCompleto(practica)}</div>
+                    <div className={styles.temaAsignado}>
+                      📌 Asignado a: {obtenerNombreCompleto(practica)}
+                    </div>
                   )}
                 </div>
 
                 <textarea
                   className={styles.textarea}
                   value={practica.descripcion_practica}
-                  onChange={(e) => handlePracticaChange(pIndex, "descripcion_practica", e.target.value)}
+                  onChange={(e) =>
+                    handlePracticaChange(
+                      pIndex,
+                      "descripcion_practica",
+                      e.target.value
+                    )
+                  }
                   placeholder="Descripción de la práctica..."
                 />
 
@@ -828,17 +1072,30 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                 <div className={styles.materialesSection}>
                   <div className={styles.materialesHeader}>
                     <h5>Materiales de apoyo</h5>
-                    <button onClick={() => handleAddMaterialPractica(pIndex)} className={styles.buttonSmall}>
+                    <button
+                      onClick={() => handleAddMaterialPractica(pIndex)}
+                      className={styles.buttonSmall}
+                    >
                       <FontAwesomeIcon icon={faPlus} /> Agregar material
                     </button>
                   </div>
 
                   {practica.materiales?.map((material, mIndex) => (
-                    <div key={material.id_temporal || mIndex} className={styles.materialItem}>
+                    <div
+                      key={material.id_temporal || mIndex}
+                      className={styles.materialItem}
+                    >
                       <select
                         className={styles.selectSmall}
                         value={material.tipo}
-                        onChange={(e) => handleMaterialChange(pIndex, mIndex, "tipo", e.target.value)}
+                        onChange={(e) =>
+                          handleMaterialChange(
+                            pIndex,
+                            mIndex,
+                            "tipo",
+                            e.target.value
+                          )
+                        }
                       >
                         <option value="enlace">🔗 Enlace</option>
                         <option value="pdf">📄 PDF</option>
@@ -848,19 +1105,30 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                       <input
                         type="text"
                         className={styles.input}
-                        placeholder={material.tipo === "enlace" ? "URL del material" : "Nombre del archivo"}
-                        value={material.tipo === "enlace" ? material.url : material.nombre}
+                        placeholder={
+                          material.tipo === "enlace"
+                            ? "URL del material"
+                            : "Nombre del archivo"
+                        }
+                        value={
+                          material.tipo === "enlace"
+                            ? material.url
+                            : material.nombre
+                        }
                         onChange={(e) =>
                           handleMaterialChange(
                             pIndex,
                             mIndex,
                             material.tipo === "enlace" ? "url" : "nombre",
-                            e.target.value,
+                            e.target.value
                           )
                         }
                       />
 
-                      <button onClick={() => handleRemoveMaterial(pIndex, mIndex)} className={styles.buttonDanger}>
+                      <button
+                        onClick={() => handleRemoveMaterial(pIndex, mIndex)}
+                        className={styles.buttonDanger}
+                      >
                         <FontAwesomeIcon icon={faTrash} />
                       </button>
                     </div>
@@ -880,9 +1148,12 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
             <div className={styles.formGroup}>
               <label className={styles.label}>Porcentaje del Proyecto</label>
               <div className={styles.porcentajeReadOnly}>
-                <div className={styles.porcentajeValue}>{porcentajeProyecto}%</div>
+                <div className={styles.porcentajeValue}>
+                  {porcentajeProyecto}%
+                </div>
                 <p className={styles.porcentajeHint}>
-                  Ajusta el porcentaje desde la sección de Prácticas. La suma debe ser 100%.
+                  Ajusta el porcentaje desde la sección de Prácticas. La suma
+                  debe ser 100%.
                 </p>
               </div>
             </div>
@@ -892,7 +1163,9 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
               <textarea
                 className={styles.textarea}
                 value={proyecto.instrucciones}
-                onChange={(e) => setProyecto({ ...proyecto, instrucciones: e.target.value })}
+                onChange={(e) =>
+                  setProyecto({ ...proyecto, instrucciones: e.target.value })
+                }
                 placeholder="Describe las instrucciones y requisitos del proyecto..."
               />
             </div>
@@ -900,7 +1173,8 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
             <div className={styles.fasesProyecto}>
               <h4 className={styles.fasesTitle}>Fases del Proyecto</h4>
               <p className={styles.fasesDescription}>
-                El proyecto demuestra competencias mediante las siguientes fases:
+                El proyecto demuestra competencias mediante las siguientes
+                fases:
               </p>
 
               <div className={styles.formGroup}>
@@ -908,11 +1182,15 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                 <textarea
                   className={styles.textarea}
                   value={proyecto.fundamentacion}
-                  onChange={(e) => setProyecto({ ...proyecto, fundamentacion: e.target.value })}
+                  onChange={(e) =>
+                    setProyecto({ ...proyecto, fundamentacion: e.target.value })
+                  }
                   placeholder="Marco teórico basado en diagnóstico para diseño de software..."
                   rows={4}
                 />
-                <p className={styles.faseHint}>Marco teórico basado en diagnóstico para diseño de software.</p>
+                <p className={styles.faseHint}>
+                  Marco teórico basado en diagnóstico para diseño de software.
+                </p>
               </div>
 
               <div className={styles.formGroup}>
@@ -920,11 +1198,15 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                 <textarea
                   className={styles.textarea}
                   value={proyecto.planeacion}
-                  onChange={(e) => setProyecto({ ...proyecto, planeacion: e.target.value })}
+                  onChange={(e) =>
+                    setProyecto({ ...proyecto, planeacion: e.target.value })
+                  }
                   placeholder="Diseño con UML, recursos y cronograma..."
                   rows={4}
                 />
-                <p className={styles.faseHint}>Diseño con UML, recursos y cronograma.</p>
+                <p className={styles.faseHint}>
+                  Diseño con UML, recursos y cronograma.
+                </p>
               </div>
 
               <div className={styles.formGroup}>
@@ -932,11 +1214,15 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                 <textarea
                   className={styles.textarea}
                   value={proyecto.ejecucion}
-                  onChange={(e) => setProyecto({ ...proyecto, ejecucion: e.target.value })}
+                  onChange={(e) =>
+                    setProyecto({ ...proyecto, ejecucion: e.target.value })
+                  }
                   placeholder="Implementación del sistema, fase clave para competencias..."
                   rows={4}
                 />
-                <p className={styles.faseHint}>Implementación del sistema, fase clave para competencias.</p>
+                <p className={styles.faseHint}>
+                  Implementación del sistema, fase clave para competencias.
+                </p>
               </div>
 
               <div className={styles.formGroup}>
@@ -944,11 +1230,16 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                 <textarea
                   className={styles.textarea}
                   value={proyecto.evaluacion}
-                  onChange={(e) => setProyecto({ ...proyecto, evaluacion: e.target.value })}
+                  onChange={(e) =>
+                    setProyecto({ ...proyecto, evaluacion: e.target.value })
+                  }
                   placeholder="Análisis de resultados para mejora, fomentando reflexión crítica..."
                   rows={4}
                 />
-                <p className={styles.faseHint}>Análisis de resultados para mejora, fomentando reflexión crítica.</p>
+                <p className={styles.faseHint}>
+                  Análisis de resultados para mejora, fomentando reflexión
+                  crítica.
+                </p>
               </div>
             </div>
 
@@ -956,20 +1247,29 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
             <div className={styles.materialesSection}>
               <div className={styles.materialesHeader}>
                 <h4>Materiales de apoyo para el proyecto</h4>
-                <button onClick={handleAddProyectoMaterial} className={styles.buttonSmall}>
+                <button
+                  onClick={handleAddProyectoMaterial}
+                  className={styles.buttonSmall}
+                >
                   <FontAwesomeIcon icon={faPlus} /> Agregar material
                 </button>
               </div>
 
               {proyecto.materiales?.map((material, index) => (
-                <div key={material.id_temporal || index} className={styles.materialItem}>
+                <div
+                  key={material.id_temporal || index}
+                  className={styles.materialItem}
+                >
                   <select
                     className={styles.selectSmall}
                     value={material.tipo}
                     onChange={(e) => {
-                      const nuevosMateriales = [...proyecto.materiales]
-                      nuevosMateriales[index].tipo = e.target.value
-                      setProyecto({ ...proyecto, materiales: nuevosMateriales })
+                      const nuevosMateriales = [...proyecto.materiales];
+                      nuevosMateriales[index].tipo = e.target.value;
+                      setProyecto({
+                        ...proyecto,
+                        materiales: nuevosMateriales,
+                      });
                     }}
                   >
                     <option value="enlace">🔗 Enlace</option>
@@ -980,20 +1280,34 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                   <input
                     type="text"
                     className={styles.input}
-                    placeholder={material.tipo === "enlace" ? "URL del material" : "Nombre del archivo"}
-                    value={material.tipo === "enlace" ? material.url : material.nombre}
+                    placeholder={
+                      material.tipo === "enlace"
+                        ? "URL del material"
+                        : "Nombre del archivo"
+                    }
+                    value={
+                      material.tipo === "enlace"
+                        ? material.url
+                        : material.nombre
+                    }
                     onChange={(e) => {
-                      const nuevosMateriales = [...proyecto.materiales]
+                      const nuevosMateriales = [...proyecto.materiales];
                       if (material.tipo === "enlace") {
-                        nuevosMateriales[index].url = e.target.value
+                        nuevosMateriales[index].url = e.target.value;
                       } else {
-                        nuevosMateriales[index].nombre = e.target.value
+                        nuevosMateriales[index].nombre = e.target.value;
                       }
-                      setProyecto({ ...proyecto, materiales: nuevosMateriales })
+                      setProyecto({
+                        ...proyecto,
+                        materiales: nuevosMateriales,
+                      });
                     }}
                   />
 
-                  <button onClick={() => handleRemoveProyectoMaterial(index)} className={styles.buttonDanger}>
+                  <button
+                    onClick={() => handleRemoveProyectoMaterial(index)}
+                    className={styles.buttonDanger}
+                  >
                     <FontAwesomeIcon icon={faTrash} />
                   </button>
                 </div>
@@ -1003,14 +1317,21 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
 
           {/* SECCIÓN 7: EVALUACIÓN POR COMPETENCIAS */}
           <div className={styles.section}>
-            <h3 className={styles.sectionTitle}>✅ Evaluación por Competencias</h3>
+            <h3 className={styles.sectionTitle}>
+              ✅ Evaluación por Competencias
+            </h3>
 
             <div className={styles.formGroup}>
               <label className={styles.label}>Criterios de Evaluación</label>
               <textarea
                 className={styles.textarea}
                 value={planeacion.evaluacion_competencias}
-                onChange={(e) => setPlaneacion({ ...planeacion, evaluacion_competencias: e.target.value })}
+                onChange={(e) =>
+                  setPlaneacion({
+                    ...planeacion,
+                    evaluacion_competencias: e.target.value,
+                  })
+                }
                 placeholder="Describe los instrumentos y criterios de evaluación: mapas conceptuales, reportes, exposiciones, problemarios, rúbricas, listas de cotejo, etc..."
               />
             </div>
@@ -1020,13 +1341,18 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
           <div className={styles.section}>
             <h3 className={styles.sectionTitle}>📖 Fuentes de Información</h3>
             {fuentes.map((fuente, index) => (
-              <div key={fuente.id_temporal || fuente.id_fuente} className={styles.practicaItem}>
+              <div
+                key={fuente.id_temporal || fuente.id_fuente}
+                className={styles.practicaItem}
+              >
                 <span className={styles.practicaNumber}>{index + 1}</span>
                 <div className={styles.fuenteContent}>
                   <select
                     className={styles.select}
                     value={fuente.tipo}
-                    onChange={(e) => handleFuenteChange(index, "tipo", e.target.value)}
+                    onChange={(e) =>
+                      handleFuenteChange(index, "tipo", e.target.value)
+                    }
                   >
                     <option value="referencias">📚 Referencias APA</option>
                     <option value="enlace">🌐 Sitio Web</option>
@@ -1035,12 +1361,17 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                   <textarea
                     className={styles.textareaSmall}
                     value={fuente.referencia}
-                    onChange={(e) => handleFuenteChange(index, "referencia", e.target.value)}
+                    onChange={(e) =>
+                      handleFuenteChange(index, "referencia", e.target.value)
+                    }
                     placeholder="Formato: Autor(es). (Año). Título. Editorial/Revista/URL."
                     rows={2}
                   />
                 </div>
-                <button onClick={() => handleRemoveFuente(index)} className={styles.buttonDanger}>
+                <button
+                  onClick={() => handleRemoveFuente(index)}
+                  className={styles.buttonDanger}
+                >
                   <FontAwesomeIcon icon={faTrash} />
                 </button>
               </div>
@@ -1053,12 +1384,17 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
         </div>
 
         <div className={styles.modalActions}>
-          <button onClick={onClose} className={styles.buttonSecondary} disabled={loading}>
+          <button
+            onClick={onClose}
+            className={styles.buttonSecondary}
+            disabled={loading}
+          >
             Cancelar
           </button>
           <button
             onClick={handleSave}
-            className={`${styles.buttonPrimary} ${loading ? styles.buttonDisabled : ""}`}
+            className={`${styles.buttonPrimary} ${loading ? styles.buttonDisabled : ""
+              }`}
             disabled={loading}
           >
             {loading ? "Guardando..." : "Guardar Planeación"}
@@ -1066,7 +1402,7 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
         </div>
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default PlaneacionCurso
+export default PlaneacionCurso;
