@@ -25,6 +25,7 @@ const guardarPlaneacion = async (req, res) => {
     proyecto_ejecucion,
     proyecto_evaluacion,
     convocatoria_id,
+    fuentes, // Añadido para fuentes
   } = req.body;
 
   const { id_usuario } = req.user;
@@ -49,7 +50,7 @@ const guardarPlaneacion = async (req, res) => {
     connection = await pool.getConnection();
     await connection.beginTransaction();
 
-    // **1. ACTUALIZAR TABLA CURSO CON TODOS LOS CAMPOS**
+    // **1. ACTUALIZAR TABLA CURSO CON TODOS LOS CAMPOS (INCLUYENDO PROYECTO)**
     await connection.query(
       `UPDATE curso SET
     caracterizacion = ?,
@@ -81,12 +82,6 @@ const guardarPlaneacion = async (req, res) => {
     );
 
     console.log("DEBUG: Actualización del curso ejecutada con éxito");
-    console.log("DEBUG: Valores guardados:", {
-      caracterizacion: caracterizacion || null,
-      intencion_didactica: intencion_didactica || null,
-      competencias_desarrollar: competencias_desarrollar || null,
-      competencias_previas: competencias_previas || null,
-    });
 
     // 2. Guardar configuración de calificaciones
     const [califCurso] = await connection.query(
@@ -117,22 +112,122 @@ const guardarPlaneacion = async (req, res) => {
       [id_curso]
     );
 
-    // 4. Guardar prácticas si existen
+    // 4. Eliminar temario existente para recrearlo
+    await connection.query("DELETE FROM unidades_curso WHERE id_curso = ?", [
+      id_curso,
+    ]);
+
+    // 5. Guardar temario CON COMPETENCIAS (PRIMERO para tener IDs reales)
+    const unidadesMap = {}; // { índice_tema: id_unidad_real }
+    
+    if (temario && temario.length > 0) {
+      for (const [index, tema] of temario.entries()) {
+        const [temaInsertado] = await connection.query(
+          `INSERT INTO unidades_curso (
+        id_curso, nombre_unidad, descripcion_unidad, 
+        competenciasEspecificas, competenciasGenericas, orden
+      ) VALUES (?, ?, ?, ?, ?, ?)`,
+          [
+            id_curso,
+            tema.nombre,
+            tema.descripcion || null,
+            tema.competenciasEspecificas || tema.competencias_especificas || null,
+            tema.competenciasGenericas || tema.competencias_genericas || null,
+            index,
+          ]
+        );
+
+        const idUnidadReal = temaInsertado.insertId;
+        unidadesMap[index] = { idUnidad: idUnidadReal, subtemasMap: {} };
+
+        // Crear subtemas y guardar sus IDs reales
+        if (tema.subtemas && tema.subtemas.length > 0) {
+          for (const [subIndex, subtema] of tema.subtemas.entries()) {
+            const [subtemaInsertado] = await connection.query(
+              `INSERT INTO subtemas_unidad (
+            id_unidad, nombre_subtema, descripcion_subtema, orden
+          ) VALUES (?, ?, ?, ?)`,
+              [
+                idUnidadReal,
+                subtema.nombre,
+                subtema.descripcion || null,
+                subIndex,
+              ]
+            );
+
+            const idSubtemaReal = subtemaInsertado.insertId;
+            unidadesMap[index].subtemasMap[subIndex] = idSubtemaReal;
+          }
+        }
+      }
+    }
+
+    console.log('DEBUG: Mapa de unidades creadas:', JSON.stringify(unidadesMap, null, 2));
+
+    // 6. Guardar prácticas usando IDs reales
     if (practicas && practicas.length > 0) {
       const porcentajePorActividad = porcentaje_actividades / practicas.length;
 
       for (const [index, practica] of practicas.entries()) {
+        let idUnidadReal = null;
+        let idSubtemaReal = null;
+
+        // Usar IDs reales directamente del frontend
+        // El frontend debe enviar id_unidad e id_subtema como números reales
+        if (practica.id_unidad) {
+          idUnidadReal = parseInt(practica.id_unidad);
+          
+          // Verificar que la unidad exista
+          if (idUnidadReal) {
+            const [unidadExists] = await connection.query(
+              "SELECT id_unidad FROM unidades_curso WHERE id_unidad = ? AND id_curso = ?",
+              [idUnidadReal, id_curso]
+            );
+            
+            if (unidadExists.length === 0) {
+              console.warn(`⚠️ Unidad ID ${idUnidadReal} no encontrada para la práctica ${index}`);
+              idUnidadReal = null;
+            }
+          }
+        }
+
+        // Buscar ID real del subtema si existe
+        if (practica.id_subtema && idUnidadReal) {
+          idSubtemaReal = parseInt(practica.id_subtema);
+          
+          if (idSubtemaReal) {
+            const [subtemaExists] = await connection.query(
+              "SELECT id_subtema FROM subtemas_unidad WHERE id_subtema = ? AND id_unidad = ?",
+              [idSubtemaReal, idUnidadReal]
+            );
+            
+            if (subtemaExists.length === 0) {
+              console.warn(`⚠️ Subtema ID ${idSubtemaReal} no encontrado para la práctica ${index}`);
+              idSubtemaReal = null;
+            }
+          }
+        }
+
+        console.log('DEBUG: Práctica', index, {
+          id_unidad: practica.id_unidad,
+          id_unidad_real: idUnidadReal,
+          id_subtema: practica.id_subtema,
+          id_subtema_real: idSubtemaReal
+        });
+
         const [actividad] = await connection.query(
           `INSERT INTO calificaciones_actividades (
-            id_calificaciones_curso, nombre, tipo_actividad, 
-            instrucciones, fecha_limite, max_archivos, max_tamano_mb, 
-            tipos_archivo_permitidos
-          ) VALUES (?, ?, 'actividad', ?, NULL, 5, 10, ?)`,
+        id_calificaciones_curso, nombre, tipo_actividad, 
+        instrucciones, fecha_limite, max_archivos, max_tamano_mb, 
+        tipos_archivo_permitidos, id_unidad, id_subtema
+      ) VALUES (?, ?, 'actividad', ?, NULL, 5, 10, ?, ?, ?)`,
           [
             id_calificaciones_curso,
             `Actividad ${index + 1}`,
             practica.descripcion,
-            JSON.stringify(["pdf", "link"]),
+            JSON.stringify(['pdf', 'link']),
+            idUnidadReal,
+            idSubtemaReal
           ]
         );
 
@@ -142,13 +237,14 @@ const guardarPlaneacion = async (req, res) => {
             actividad.insertId,
             id_curso,
             practica.materiales,
-            id_usuario
+            id_usuario,
+            'actividad'
           );
         }
       }
     }
 
-    // 5. Guardar proyecto
+    // 7. Guardar proyecto
     if (proyecto) {
       const [proyectoActividad] = await connection.query(
         `INSERT INTO calificaciones_actividades (
@@ -169,51 +265,38 @@ const guardarPlaneacion = async (req, res) => {
           proyectoActividad.insertId,
           id_curso,
           proyecto.materiales,
-          id_usuario
+          id_usuario,
+          'actividad'
         );
       }
     }
 
-    // 6. Guardar temario CON COMPETENCIAS
-    await connection.query("DELETE FROM unidades_curso WHERE id_curso = ?", [
-      id_curso,
-    ]);
+    // 8. Guardar fuentes de información
+    if (fuentes && fuentes.length > 0) {
+      // Eliminar fuentes existentes
+      await connection.query(
+        `DELETE FROM material_curso 
+         WHERE id_curso = ? 
+         AND categoria_material = 'referencias' 
+         AND tipo_archivo = 'texto'`,
+        [id_curso]
+      );
 
-    if (temario && temario.length > 0) {
-      for (const [index, tema] of temario.entries()) {
-        const [temaInsertado] = await connection.query(
-          `INSERT INTO unidades_curso (
-            id_curso, nombre_unidad, descripcion_unidad, 
-            competenciasEspecificas, competenciasGenericas, orden
-          ) VALUES (?, ?, ?, ?, ?, ?)`,
+      for (const fuente of fuentes) {
+        await connection.query(
+          `INSERT INTO material_curso (
+            id_curso, nombre_archivo, tipo_archivo, 
+            categoria_material, es_enlace, url_enlace, 
+            descripcion, subido_por
+          ) VALUES (?, ?, ?, 'referencias', 0, NULL, ?, ?)`,
           [
             id_curso,
-            tema.nombre,
-            tema.descripcion || null,
-            tema.competenciasEspecificas ||
-            tema.competencias_especificas ||
-            null,
-            tema.competenciasGenericas || tema.competencias_genericas || null,
-            index,
+            fuente.referencia?.substring(0, 100) || 'Referencia',
+            'texto',
+            fuente.referencia || '',
+            id_usuario
           ]
         );
-
-        // Guardar subtemas si existen
-        if (tema.subtemas && tema.subtemas.length > 0) {
-          for (const [subIndex, subtema] of tema.subtemas.entries()) {
-            await connection.query(
-              `INSERT INTO subtemas_unidad (
-                id_unidad, nombre_subtema, descripcion_subtema, orden
-              ) VALUES (?, ?, ?, ?)`,
-              [
-                temaInsertado.insertId,
-                subtema.nombre,
-                subtema.descripcion || null,
-                subIndex,
-              ]
-            );
-          }
-        }
       }
     }
 
@@ -242,13 +325,15 @@ const guardarMateriales = async (
   id_actividad,
   id_curso,
   materiales,
-  id_usuario
+  id_usuario,
+  categoria = 'actividad'
 ) => {
   console.log("DEBUG guardarMateriales:", {
     id_actividad,
     id_curso,
     id_usuario,
     materialesCount: materiales?.length,
+    categoria
   });
   if (!materiales || !Array.isArray(materiales)) return;
 
@@ -260,7 +345,7 @@ const guardarMateriales = async (
   for (const material of materiales) {
     // Mapear 'referencias' a 'texto' para coincidir con el enum de la base de datos
     const tipoArchivo =
-      material.tipo === "referencias"
+      material.tipo === "referencias" || material.tipo === "referencia"
         ? "texto"
         : material.tipo || (material.url ? "enlace" : "pdf");
 
@@ -269,12 +354,13 @@ const guardarMateriales = async (
         id_curso, nombre_archivo, ruta_archivo, tipo_archivo, 
         categoria_material, es_enlace, url_enlace, 
         descripcion, subido_por, id_actividad
-      ) VALUES (?, ?, ?, ?, 'actividad', ?, ?, ?, ?, ?)`,
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id_curso,
         material.nombre || (material.url ? "Enlace" : "Archivo adjunto"),
         material.ruta || null,
         tipoArchivo,
+        categoria,
         material.url ? 1 : 0,
         material.url || null,
         material.descripcion || "",
@@ -313,15 +399,13 @@ const obtenerPlaneacion = async (req, res) => {
        WHERE id_curso = ?`,
       [id_curso]
     );
-    console.log('DEBUG: cursoData =', cursoData);
-    console.log('DEBUG: cursoData[0] =', cursoData[0]);
 
     const curso = cursoData[0] || {};
-    console.log('DEBUG: Valores recuperados del curso:', {
-      caracterizacion: curso.caracterizacion,
-      intencion_didactica: curso.intencion_didactica,
-      competencias_desarrollar: curso.competencias_desarrollar,
-      competencias_previas: curso.competencias_previas
+    console.log('DEBUG: Valores recuperados del proyecto:', {
+      fundamentacion: curso.proyecto_fundamentacion,
+      planeacion: curso.proyecto_planeacion,
+      ejecucion: curso.proyecto_ejecucion,
+      evaluacion: curso.proyecto_evaluacion
     });
 
     // 2. Obtener configuración de calificaciones
@@ -356,13 +440,57 @@ const obtenerPlaneacion = async (req, res) => {
       }
     }
 
-    // 4. Obtener actividades (prácticas y proyecto)
+    // 4. Obtener temario CON COMPETENCIAS
+    const [temas] = await pool.query(
+      `
+      SELECT 
+        id_unidad as id,
+        nombre_unidad as nombre,
+        descripcion_unidad as descripcion,
+        competenciasEspecificas as competencias_especificas,
+        competenciasGenericas as competencias_genericas
+      FROM unidades_curso 
+      WHERE id_curso = ? 
+      ORDER BY orden
+    `,
+      [id_curso]
+    );
+
+    // 5. Obtener subtemas de cada tema
+    const temario = await Promise.all(
+      temas.map(async (tema) => {
+        const [subtemas] = await pool.query(
+          `SELECT 
+            id_subtema as id,
+            nombre_subtema as nombre,
+            descripcion_subtema as descripcion
+           FROM subtemas_unidad 
+           WHERE id_unidad = ? 
+           ORDER BY orden`,
+          [tema.id]
+        );
+        return {
+          ...tema,
+          subtemas,
+        };
+      })
+    );
+
+    // 6. Obtener actividades (prácticas y proyecto) con sus materiales
     const actividadesConMateriales = [];
     if (califCurso.length > 0) {
       const [actividades] = await pool.query(
-        `SELECT * FROM calificaciones_actividades 
-         WHERE id_calificaciones_curso = ? 
-         ORDER BY tipo_actividad, id_actividad`,
+        `SELECT 
+          ca.*,
+          uc.id_unidad,
+          uc.nombre_unidad,
+          su.id_subtema,
+          su.nombre_subtema
+        FROM calificaciones_actividades ca
+        LEFT JOIN unidades_curso uc ON ca.id_unidad = uc.id_unidad
+        LEFT JOIN subtemas_unidad su ON ca.id_subtema = su.id_subtema
+        WHERE ca.id_calificaciones_curso = ?
+        ORDER BY ca.tipo_actividad DESC, ca.id_actividad`,
         [califCurso[0].id_calificaciones]
       );
 
@@ -382,8 +510,12 @@ const obtenerPlaneacion = async (req, res) => {
         );
 
         const materialesMapeados = materiales.map((m) => ({
-          ...m,
+          id_material: m.id_material,
+          nombre: m.nombre,
           tipo: m.tipo === "texto" ? "referencias" : m.tipo,
+          es_enlace: m.es_enlace,
+          url: m.url,
+          descripcion: m.descripcion,
         }));
 
         actividadesConMateriales.push({
@@ -393,62 +525,26 @@ const obtenerPlaneacion = async (req, res) => {
       }
     }
 
-    // 5. Obtener temario CON COMPETENCIAS
-    const [temas] = await pool.query(
-      `
-      SELECT 
-        id_unidad as id,
-        nombre_unidad as nombre,
-        descripcion_unidad as descripcion,
-        competenciasEspecificas,
-        competenciasGenericas
-      FROM unidades_curso 
-      WHERE id_curso = ? 
-      ORDER BY orden
-    `,
-      [id_curso]
-    );
-
-    // 6. Obtener subtemas de cada tema
-    const temario = await Promise.all(
-      temas.map(async (tema) => {
-        const [subtemas] = await pool.query(
-          `SELECT 
-            id_subtema as id,
-            nombre_subtema,
-            descripcion_subtema as descripcion
-           FROM subtemas_unidad 
-           WHERE id_unidad = ? 
-           ORDER BY orden`,
-          [tema.id]
-        );
-        return {
-          ...tema,
-          subtemas,
-          competencias_especificas: tema.competenciasEspecificas,
-          competencias_genericas: tema.competenciasGenericas,
-        };
-      })
-    );
-
     // 7. Separar prácticas y proyecto
     const practicas = actividadesConMateriales
-      .filter((a) => a.tipo_actividad === "actividad")
+      .filter((a) => a.tipo_actividad === 'actividad')
       .map((p) => ({
-        ...p,
-        id_temporal: p.id_actividad,
+        id_actividad: p.id_actividad,
         descripcion: p.instrucciones || "",
         materiales: p.materiales || [],
+        id_unidad: p.id_unidad ? String(p.id_unidad) : null,
+        id_subtema: p.id_subtema ? String(p.id_subtema) : null,
+        nombre_unidad: p.nombre_unidad || null,
+        nombre_subtema: p.nombre_subtema || null,
       }));
 
     const proyectoData = actividadesConMateriales.find(
-      (a) => a.tipo_actividad === "proyecto"
+      (a) => a.tipo_actividad === 'proyecto'
     );
 
     const proyecto = proyectoData
       ? {
-        ...proyectoData,
-        id_temporal: proyectoData.id_actividad,
+        id_actividad: proyectoData.id_actividad,
         instrucciones: proyectoData.instrucciones || "",
         fundamentacion: curso.proyecto_fundamentacion || "",
         planeacion: curso.proyecto_planeacion || "",
@@ -456,18 +552,17 @@ const obtenerPlaneacion = async (req, res) => {
         evaluacion: curso.proyecto_evaluacion || "",
         materiales: (proyectoData.materiales || []).map((m) => ({
           ...m,
-          id_temporal: m.id_material,
         })),
       }
       : null;
 
-    // 8. Obtener fuentes de información (de la tabla material_curso con categoría específica)
+    // 8. Obtener fuentes de información
     const [fuentesResult] = await pool.query(
       `SELECT 
         id_material,
-        nombre_archivo as nombre,
+        nombre_archivo as referencia,
         tipo_archivo as tipo,
-        descripcion as referencia
+        descripcion
        FROM material_curso 
        WHERE id_curso = ? 
          AND categoria_material = 'referencias'
@@ -477,9 +572,9 @@ const obtenerPlaneacion = async (req, res) => {
     );
 
     const fuentes = fuentesResult.map((f) => ({
-      id_temporal: f.id_material,
-      tipo: "referencias",
-      referencia: f.referencia || f.nombre,
+      id_material: f.id_material,
+      tipo: f.tipo === "texto" ? "referencias" : f.tipo,
+      referencia: f.descripcion || f.referencia,
     }));
 
     res.status(200).json({
@@ -498,6 +593,7 @@ const obtenerPlaneacion = async (req, res) => {
       evaluacion_competencias: curso.evaluacion_competencias || "",
       // Datos de convocatoria
       convocatoria: convocatoriaData,
+      convocatoria_id: curso.id_convocatoria || null,
       universidades_participantes: universidadesParticipantes,
       // Fuentes
       fuentes: fuentes,

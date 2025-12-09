@@ -11,9 +11,6 @@ CREATE TABLE `convocatoria_universidades` (
 ) ENGINE=InnoDB AUTO_INCREMENT=42 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
 
 CREATE TABLE `material_curso` (
   `id_material` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -126,10 +123,6 @@ CREATE TABLE `curso` (
 ) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
-
-
-
-
 CREATE TABLE `unidades_curso` (
   `id_unidad` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `id_curso` int(10) unsigned NOT NULL,
@@ -154,6 +147,9 @@ CREATE TABLE `subtemas_unidad` (
   PRIMARY KEY (`id_subtema`),
   KEY `idx_unidad_orden` (`id_unidad`,`orden`),
   CONSTRAINT `subtemas_unidad_ibfk_1` FOREIGN KEY (`id_unidad`) REFERENCES `unidades_curso` (`id_unidad`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
 
 
 CREATE TABLE `calificaciones_actividades` (
@@ -189,3 +185,4 @@ CREATE TABLE `calificaciones_curso` (
   CONSTRAINT `fk_calificaciones_curso` FOREIGN KEY (`id_curso`) REFERENCES `curso` (`id_curso`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=142 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
+

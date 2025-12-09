@@ -178,63 +178,7 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
               : prev.id_carrera,
         }));
 
-        // Cargar datos de convocatoria y universidades si existen
-        if (data.convocatoria || data.universidades_participantes) {
-          if (
-            data.universidades_participantes &&
-            data.universidades_participantes.length > 0
-          ) {
-            setUniversidadesParticipantes(data.universidades_participantes);
-          }
-        }
-
-        // 2. Cargar temario
-        if (data.temario) {
-          setTemario(
-            data.temario.map((tema) => ({
-              id_temporal: Date.now() + Math.random(),
-              nombre_tema: tema.nombre_unidad || tema.nombre,
-              descripcion: tema.descripcion_unidad || "",
-              competencias_especificas:
-                tema.competenciasEspecificas || "",
-              competencias_genericas:
-                tema.competenciasGenericas || tema.competenciasGenericas || "",
-              subtemas: (tema.subtemas || []).map((subtema) => ({
-                id_temporal: Date.now() + Math.random(),
-                nombre_subtema: subtema.nombre_subtema || subtema.nombre,
-                descripcion: subtema.descripcion_subtema || "",
-              })),
-            }))
-          );
-        }
-        console.log("Temario cargado:", temario);
-        console.log("Primer tema competencias_especificas:", temario[0]?.competencias_especificas);
-        console.log("Primer tema competencias_genericas:", temario[0]?.competencias_genericas);
-
-        // 3. Cargar porcentajes
-        if (data.porcentaje_actividades || data.porcentaje_practicas) {
-          setPorcentajePracticas(
-            data.porcentaje_actividades || data.porcentaje_practicas
-          );
-        }
-        if (data.porcentaje_proyecto) {
-          setPorcentajeProyecto(data.porcentaje_proyecto);
-        }
-
-        // 4. Cargar prácticas
-        if (data.practicas) {
-          setPracticas(
-            data.practicas.map((p, i) => ({
-              id_temporal: Date.now() + i,
-              descripcion_practica: p.descripcion || p.instrucciones || "",
-              materiales: p.materiales || [],
-              id_tema: p.id_tema || "",
-              id_subtema: p.id_subtema || "",
-            }))
-          );
-        }
-
-        // 5. Cargar proyecto
+        // 2. Cargar datos del proyecto (AHORA DESDE data.proyecto)
         if (data.proyecto) {
           setProyecto({
             instrucciones: data.proyecto.instrucciones || "",
@@ -246,25 +190,65 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
           });
         }
 
-        // 6. Cargar fuentes (si vienen en la respuesta)
-        if (data.fuentes) {
-          setFuentes(
-            data.fuentes.map((fuente, i) => ({
-              id_temporal: Date.now() + i,
-              tipo: fuente.tipo || "libro",
-              referencia: fuente.referencia || fuente.nombre || "",
+        // 3. Cargar temario (USAR IDs REALES)
+        if (data.temario) {
+          setTemario(
+            data.temario.map((tema, index) => ({
+              id: tema.id, // ID REAL de la base de datos
+              numero_tema: index + 1,
+              nombre_tema: tema.nombre,
+              descripcion: tema.descripcion || "",
+              competencias_especificas: tema.competencias_especificas || "",
+              competencias_genericas: tema.competencias_genericas || "",
+              subtemas: (tema.subtemas || []).map((subtema, subIndex) => ({
+                id: subtema.id, // ID REAL de la base de datos
+                numero_subtema: `${index + 1}.${subIndex + 1}`,
+                nombre_subtema: subtema.nombre,
+                descripcion: subtema.descripcion || "",
+              })),
             }))
           );
         }
 
-        // 7. Cargar universidades participantes (si vienen)
-        if (data.universidades_participantes) {
-          setUniversidadesParticipantes(data.universidades_participantes);
+        // 4. Cargar porcentajes
+        if (data.porcentaje_practicas || data.porcentaje_actividades) {
+          setPorcentajePracticas(
+            data.porcentaje_practicas || data.porcentaje_actividades
+          );
+        }
+        if (data.porcentaje_proyecto) {
+          setPorcentajeProyecto(data.porcentaje_proyecto);
         }
 
-        // 8. Cargar convocatoria (si viene)
-        if (data.convocatoria) {
-          // Ya se actualizó en setPlaneacion
+        // 5. Cargar prácticas (USAR IDs REALES)
+        if (data.practicas) {
+          setPracticas(
+            data.practicas.map((p, i) => ({
+              id_actividad: p.id_actividad, // ID REAL
+              descripcion_practica: p.descripcion || "",
+              materiales: p.materiales || [],
+              id_unidad: p.id_unidad ? String(p.id_unidad) : "", // ID REAL como string
+              id_subtema: p.id_subtema ? String(p.id_subtema) : "", // ID REAL como string
+              nombre_unidad: p.nombre_unidad || null,
+              nombre_subtema: p.nombre_subtema || null,
+            }))
+          );
+        }
+
+        // 6. Cargar fuentes
+        if (data.fuentes) {
+          setFuentes(
+            data.fuentes.map((fuente) => ({
+              id_material: fuente.id_material,
+              tipo: fuente.tipo || "referencias",
+              referencia: fuente.referencia || "",
+            }))
+          );
+        }
+
+        // 7. Cargar universidades participantes
+        if (data.universidades_participantes) {
+          setUniversidadesParticipantes(data.universidades_participantes);
         }
       }
     } catch (err) {
@@ -278,13 +262,15 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
   // --- FUNCIONES PARA TEMARIO ---
   const handleAddTema = () => {
     const nuevoTema = {
-      id_temporal: Date.now(),
+      id: null, // null porque es nuevo, el backend asignará ID
       numero_tema: temario.length + 1,
       nombre_tema: "",
       subtemas: [],
+      competencias_especificas: "",
+      competencias_genericas: "",
     };
     setTemario([...temario, nuevoTema]);
-    setTemasExpandidos({ ...temasExpandidos, [nuevoTema.id_temporal]: true });
+    setTemasExpandidos({ ...temasExpandidos, [temario.length]: true });
   };
 
   const handleRemoveTema = (index) => {
@@ -303,10 +289,11 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
     setTemario(nuevosTemarios);
   };
 
-  const toggleTemaExpansion = (idTemporal) => {
+  const toggleTemaExpansion = (tema) => {
+    const temaId = tema.id_temporal || tema.id_tema;
     setTemasExpandidos({
       ...temasExpandidos,
-      [idTemporal]: !temasExpandidos[idTemporal],
+      [temaId]: !temasExpandidos[temaId]
     });
   };
 
@@ -315,7 +302,7 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
     const nuevosTemarios = [...temario];
     const subtemas = nuevosTemarios[temaIndex].subtemas || [];
     const nuevoSubtema = {
-      id_temporal: Date.now(),
+      id_temporal: Date.now() + Math.floor(Math.random() * 1000),
       numero_subtema: `${nuevosTemarios[temaIndex].numero_tema}.${subtemas.length + 1
         }`,
       nombre_subtema: "",
@@ -363,11 +350,13 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
     setPracticas([
       ...practicas,
       {
-        id_temporal: Date.now(),
+        id_actividad: null,
         descripcion_practica: "",
         materiales: [],
-        id_tema: "",
+        id_unidad: "",
         id_subtema: "",
+        nombre_unidad: null,
+        nombre_subtema: null,
       },
     ]);
   };
@@ -409,30 +398,35 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
     return grupos;
   };
 
+  const obtenerValorSelect = (practica) => {
+    if (!practica.id_unidad && !practica.id_subtema) return "";
+
+    if (practica.id_subtema) {
+      return `${practica.id_unidad}_subtema_${practica.id_subtema}`;
+    }
+
+    return practica.id_unidad;
+  };
+
   const obtenerNombreCompleto = (practica) => {
-    if (!practica.id_tema) return "Sin tema asignado";
+    if (!practica.id_unidad) return "Sin tema asignado";
 
-    const tema = temario.find(
-      (t) =>
-        t.id_temporal?.toString() === practica.id_tema?.toString() ||
-        t.id_tema?.toString() === practica.id_tema?.toString()
-    );
+    const tema = temario.find((t) => String(t.id) === String(practica.id_unidad));
+    if (!tema) return "Tema no encontrado";
 
-    if (!tema) return "Sin tema asignado";
+    const numeroTema = tema.numero_tema || (temario.indexOf(tema) + 1);
 
     // Si tiene subtema seleccionado
     if (practica.id_subtema && tema.subtemas) {
       const subtema = tema.subtemas.find(
-        (s) =>
-          s.id_temporal?.toString() === practica.id_subtema?.toString() ||
-          s.id_subtema?.toString() === practica.id_subtema?.toString()
+        (s) => String(s.id) === String(practica.id_subtema)
       );
       if (subtema) {
-        return `${tema.numero_tema}. ${tema.nombre_tema} → ${subtema.numero_subtema} ${subtema.nombre_subtema}`;
+        return `Tema ${numeroTema}: ${tema.nombre_tema} → ${subtema.numero_subtema} ${subtema.nombre_subtema}`;
       }
     }
 
-    return `${tema.numero_tema}. ${tema.nombre_tema}`;
+    return `Tema ${numeroTema}: ${tema.nombre_tema}`;
   };
 
   // --- FUNCIONES PARA MANEJAR MATERIALES ---
@@ -544,6 +538,8 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
         practicas: practicas.map((p) => ({
           descripcion: p.descripcion_practica,
           materiales: p.materiales || [],
+          id_unidad: p.id_unidad ? parseInt(p.id_unidad) : null, // ENVIAR COMO NÚMERO
+          id_subtema: p.id_subtema ? parseInt(p.id_subtema) : null, // ENVIAR COMO NÚMERO
         })),
         proyecto: {
           instrucciones: proyecto.instrucciones,
@@ -560,14 +556,11 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
         competencias_previas: planeacion.competencias_previas,
         evaluacion_competencias: planeacion.evaluacion_competencias,
         convocatoria_id: planeacion.convocatoria_id,
-        // Si el frontend separa el proyecto
-        proyecto_fundamentacion: proyecto.fundamentacion,
-        proyecto_planeacion: proyecto.planeacion,
-        proyecto_ejecucion: proyecto.ejecucion,
-        proyecto_evaluacion: proyecto.evaluacion,
         // Fuentes
         fuentes: fuentes,
       };
+
+      console.log("Payload enviado:", JSON.stringify(payload, null, 2));
 
       const response = await fetch(
         `${API_BASE_URL}/api/cursos/${curso.id_curso}/planeacion`,
@@ -597,6 +590,7 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
       setLoading(false);
     }
   };
+
 
   // useMemo para obtener la carrera seleccionada
   const carreraSeleccionada = useMemo(
@@ -816,7 +810,7 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                 <div
                   className={styles.temaHeader}
                   onClick={() =>
-                    toggleTemaExpansion(tema.id_temporal || tema.id_tema)
+                    toggleTemaExpansion(tema)
                   }
                 >
                   <div className={styles.temaHeaderContent}>
@@ -987,7 +981,7 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
 
             {practicas.map((practica, pIndex) => (
               <div
-                key={practica.id_temporal || pIndex}
+                key={practica.id_actividad || `practica-${pIndex}`}
                 className={styles.practicaItem}
               >
                 <div className={styles.practicaHeader}>
@@ -1006,43 +1000,52 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                   </label>
                   <select
                     className={styles.select}
-                    value={practica.id_subtema || practica.id_tema || ""}
+                    value={obtenerValorSelect(practica)}
                     onChange={(e) => {
                       const value = e.target.value;
                       const nuevasPracticas = [...practicas];
 
-                      // Verificar si es un subtema (formato: "tema_X_subtema_Y")
                       if (value.includes("_subtema_")) {
                         const [temaId, subtemaId] = value.split("_subtema_");
-                        nuevasPracticas[pIndex].id_tema = temaId;
+                        nuevasPracticas[pIndex].id_unidad = temaId;
                         nuevasPracticas[pIndex].id_subtema = subtemaId;
-                      } else {
-                        // Es un tema
-                        nuevasPracticas[pIndex].id_tema = value;
+                      } else if (value) {
+                        nuevasPracticas[pIndex].id_unidad = value;
                         nuevasPracticas[pIndex].id_subtema = "";
+                      } else {
+                        nuevasPracticas[pIndex].id_unidad = "";
+                        nuevasPracticas[pIndex].id_subtema = "";
+                      }
+
+                      // Actualizar nombres para mostrar
+                      if (temaId) {
+                        const tema = temario.find(t => String(t.id) === String(temaId));
+                        nuevasPracticas[pIndex].nombre_unidad = tema?.nombre_tema || null;
+                      }
+                      if (subtemaId && temaId) {
+                        const tema = temario.find(t => String(t.id) === String(temaId));
+                        const subtema = tema?.subtemas?.find(s => String(s.id) === String(subtemaId));
+                        nuevasPracticas[pIndex].nombre_subtema = subtema?.nombre_subtema || null;
                       }
 
                       setPracticas(nuevasPracticas);
                     }}
                   >
                     <option value="">Seleccionar tema...</option>
-                    {temario.map((tema) => (
+                    {temario.map((tema, temaIndex) => (
                       <optgroup
-                        key={tema.id_temporal || tema.id_tema}
-                        label={`${tema.numero_tema}. ${tema.nombre_tema}`}
+                        key={tema.id || `tema-${temaIndex}`}
+                        className={styles.temaItem}
                       >
-                        <option value={tema.id_temporal || tema.id_tema}>
-                          {tema.numero_tema}. {tema.nombre_tema}
+                        <option value={tema.id || ""}>
+                          Tema {tema.numero_tema}: {tema.nombre_tema || "Sin nombre"}
                         </option>
                         {tema.subtemas?.map((subtema) => (
                           <option
-                            key={subtema.id_temporal || subtema.id_subtema}
-                            value={`${tema.id_temporal || tema.id_tema
-                              }_subtema_${subtema.id_temporal || subtema.id_subtema
-                              }`}
+                            key={subtema.id || subtema.numero_subtema}
+                            value={`${tema.id}_subtema_${subtema.id}`}
                           >
-                            &nbsp;&nbsp;&nbsp;&nbsp;↳ {subtema.numero_subtema}{" "}
-                            {subtema.nombre_subtema}
+                            &nbsp;&nbsp;&nbsp;&nbsp;↳ {subtema.numero_subtema} {subtema.nombre_subtema}
                           </option>
                         ))}
                       </optgroup>
@@ -1342,7 +1345,7 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
             <h3 className={styles.sectionTitle}>📖 Fuentes de Información</h3>
             {fuentes.map((fuente, index) => (
               <div
-                key={fuente.id_temporal || fuente.id_fuente}
+                key={fuente.id_material || `fuente-${index}`}
                 className={styles.practicaItem}
               >
                 <span className={styles.practicaNumber}>{index + 1}</span>
