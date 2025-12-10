@@ -152,7 +152,7 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
 
       if (response.ok) {
         const data = await response.json();
-        console.log("Datos recibidos del servidor:", data);
+        console.log("Datos completos recibidos del backend:", JSON.stringify(data, null, 2));
 
         // 1. ACTUALIZAR DATOS DEL CURSO
         setPlaneacion((prev) => ({
@@ -190,18 +190,18 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
           });
         }
 
-        // 3. Cargar temario (USAR IDs REALES)
+        // 3. Cargar temario (USAR IDs REALES) - CAMBIO 3 APLICADO
         if (data.temario) {
           setTemario(
             data.temario.map((tema, index) => ({
-              id: tema.id, // ID REAL de la base de datos
+              id: tema.id, // ✅ ID REAL de la base de datos
               numero_tema: index + 1,
               nombre_tema: tema.nombre,
               descripcion: tema.descripcion || "",
               competencias_especificas: tema.competencias_especificas || "",
               competencias_genericas: tema.competencias_genericas || "",
               subtemas: (tema.subtemas || []).map((subtema, subIndex) => ({
-                id: subtema.id, // ID REAL de la base de datos
+                id: subtema.id, // ✅ ID REAL de la base de datos
                 numero_subtema: `${index + 1}.${subIndex + 1}`,
                 nombre_subtema: subtema.nombre,
                 descripcion: subtema.descripcion || "",
@@ -220,19 +220,69 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
           setPorcentajeProyecto(data.porcentaje_proyecto);
         }
 
-        // 5. Cargar prácticas (USAR IDs REALES)
+        // 5. Cargar prácticas
         if (data.practicas) {
-          setPracticas(
-            data.practicas.map((p, i) => ({
-              id_actividad: p.id_actividad, // ID REAL
+          console.log('Prácticas recibidas del backend:', data.practicas);
+
+          const practicasConNombres = data.practicas.map((p) => {
+            // Inicializar con valores por defecto
+            const practica = {
+              id_actividad: p.id_actividad,
               descripcion_practica: p.descripcion || "",
               materiales: p.materiales || [],
-              id_unidad: p.id_unidad ? String(p.id_unidad) : "", // ID REAL como string
-              id_subtema: p.id_subtema ? String(p.id_subtema) : "", // ID REAL como string
-              nombre_unidad: p.nombre_unidad || null,
-              nombre_subtema: p.nombre_subtema || null,
-            }))
-          );
+              id_unidad: p.id_unidad ? String(p.id_unidad) : "",
+              id_subtema: p.id_subtema ? String(p.id_subtema) : "",
+              nombre_unidad: null,
+              nombre_subtema: null
+            };
+            console.log('Práctica procesada:', {
+              id_actividad: practica.id_actividad,
+              id_unidad: practica.id_unidad,
+              nombre_unidad: practica.nombre_unidad,
+              id_subtema: practica.id_subtema,
+              nombre_subtema: practica.nombre_subtema
+            });
+
+            // Solo buscar nombres si hay un ID de unidad
+            if (p.id_unidad && data.temario) {
+              const unidad = data.temario.find(t => t.id === parseInt(p.id_unidad));
+              if (unidad) {
+                practica.nombre_unidad = unidad.nombre;
+                console.log(`✅ Unidad encontrada: ${unidad.nombre} para práctica ${p.id_actividad}`);
+              } else {
+                console.warn(`❌ No se encontró unidad con ID: ${p.id_unidad} para práctica ${p.id_actividad}`);
+              }
+            }
+
+            // Solo buscar subtema si hay un ID de subtema
+            if (p.id_subtema && data.temario) {
+              for (const tema of data.temario) {
+                if (tema.subtemas) {
+                  const subtema = tema.subtemas.find(s => s.id === parseInt(p.id_subtema));
+                  if (subtema) {
+                    practica.nombre_subtema = subtema.nombre;
+                    console.log(`✅ Subtema encontrado: ${subtema.nombre} para práctica ${p.id_actividad}`);
+                    break;
+                  }
+                }
+              }
+              if (!practica.nombre_subtema) {
+                console.warn(`❌ No se encontró subtema con ID: ${p.id_subtema} para práctica ${p.id_actividad}`);
+              }
+            }
+
+            console.log('Práctica procesada:', {
+              id_actividad: practica.id_actividad,
+              id_unidad: practica.id_unidad,
+              nombre_unidad: practica.nombre_unidad,
+              id_subtema: practica.id_subtema,
+              nombre_subtema: practica.nombre_subtema
+            });
+
+            return practica;
+          });
+
+          setPracticas(practicasConNombres);
         }
 
         // 6. Cargar fuentes
@@ -524,11 +574,13 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
       const payload = {
         id_curso: curso.id_curso,
         temario: temario.map((tema) => ({
+          id: tema.id,
           nombre: tema.nombre_tema,
           descripcion: tema.descripcion || "",
           competenciasEspecificas: tema.competencias_especificas || "",
           competenciasGenericas: tema.competencias_genericas || "",
           subtemas: (tema.subtemas || []).map((subtema) => ({
+            id:subtema.id,
             nombre: subtema.nombre_subtema,
             descripcion: subtema.descripcion || "",
           })),
@@ -1001,15 +1053,20 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                   <select
                     className={styles.select}
                     value={obtenerValorSelect(practica)}
+                    // CAMBIO 1: onChange corregido
                     onChange={(e) => {
                       const value = e.target.value;
                       const nuevasPracticas = [...practicas];
 
+                      let temaId = null;
+                      let subtemaId = null;
+
                       if (value.includes("_subtema_")) {
-                        const [temaId, subtemaId] = value.split("_subtema_");
+                        [temaId, subtemaId] = value.split("_subtema_");
                         nuevasPracticas[pIndex].id_unidad = temaId;
                         nuevasPracticas[pIndex].id_subtema = subtemaId;
                       } else if (value) {
+                        temaId = value;
                         nuevasPracticas[pIndex].id_unidad = value;
                         nuevasPracticas[pIndex].id_subtema = "";
                       } else {
@@ -1031,24 +1088,22 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                       setPracticas(nuevasPracticas);
                     }}
                   >
+                    {/* CAMBIO 2: Renderizado del select con keys apropiados */}
                     <option value="">Seleccionar tema...</option>
                     {temario.map((tema, temaIndex) => (
-                      <optgroup
-                        key={tema.id || `tema-${temaIndex}`}
-                        className={styles.temaItem}
-                      >
-                        <option value={tema.id || ""}>
+                      <>
+                        <option key={`tema-${tema.id || temaIndex}`} value={tema.id || ""}>
                           Tema {tema.numero_tema}: {tema.nombre_tema || "Sin nombre"}
                         </option>
-                        {tema.subtemas?.map((subtema) => (
+                        {tema.subtemas?.map((subtema, subIndex) => (
                           <option
-                            key={subtema.id || subtema.numero_subtema}
+                            key={`subtema-${subtema.id || `${temaIndex}-${subIndex}`}`}
                             value={`${tema.id}_subtema_${subtema.id}`}
                           >
                             &nbsp;&nbsp;&nbsp;&nbsp;↳ {subtema.numero_subtema} {subtema.nombre_subtema}
                           </option>
                         ))}
-                      </optgroup>
+                      </>
                     ))}
                   </select>
                   {(practica.id_tema || practica.id_subtema) && (

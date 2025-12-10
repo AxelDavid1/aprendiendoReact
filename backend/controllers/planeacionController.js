@@ -25,7 +25,7 @@ const guardarPlaneacion = async (req, res) => {
     proyecto_ejecucion,
     proyecto_evaluacion,
     convocatoria_id,
-    fuentes, // Añadido para fuentes
+    fuentes,
   } = req.body;
 
   const { id_usuario } = req.user;
@@ -112,99 +112,199 @@ const guardarPlaneacion = async (req, res) => {
       [id_curso]
     );
 
-    // 4. Eliminar temario existente para recrearlo
-    await connection.query("DELETE FROM unidades_curso WHERE id_curso = ?", [
-      id_curso,
-    ]);
+    // 4. NUEVA LÓGICA: ACTUALIZAR O CREAR TEMARIO (NO ELIMINAR)
+    // Obtener unidades existentes
+    const [unidadesExistentes] = await connection.query(
+      "SELECT id_unidad, nombre_unidad, orden FROM unidades_curso WHERE id_curso = ?",
+      [id_curso]
+    );
 
-    // 5. Guardar temario CON COMPETENCIAS (PRIMERO para tener IDs reales)
+    const unidadesExistentesMap = new Map(
+      unidadesExistentes.map(u => [u.id_unidad, u])
+    );
+
+    // IDs de unidades que vienen del frontend
+    const unidadesRecibidas = new Set();
     const unidadesMap = {}; // { índice_tema: id_unidad_real }
-    
+
     if (temario && temario.length > 0) {
       for (const [index, tema] of temario.entries()) {
-        const [temaInsertado] = await connection.query(
-          `INSERT INTO unidades_curso (
-        id_curso, nombre_unidad, descripcion_unidad, 
-        competenciasEspecificas, competenciasGenericas, orden
-      ) VALUES (?, ?, ?, ?, ?, ?)`,
-          [
-            id_curso,
-            tema.nombre,
-            tema.descripcion || null,
-            tema.competenciasEspecificas || tema.competencias_especificas || null,
-            tema.competenciasGenericas || tema.competencias_genericas || null,
-            index,
-          ]
-        );
+        let idUnidadReal = null;
 
-        const idUnidadReal = temaInsertado.insertId;
+        // **CAMBIOS AQUÍ: Verificar si el tema tiene ID**
+        if (tema.id && unidadesExistentesMap.has(parseInt(tema.id))) {
+          // Si tiene ID y existe en BD, ACTUALIZAR
+          idUnidadReal = parseInt(tema.id);
+          await connection.query(
+            `UPDATE unidades_curso SET
+          nombre_unidad = ?,
+          descripcion_unidad = ?,
+          competenciasEspecificas = ?,
+          competenciasGenericas = ?,
+          orden = ?
+        WHERE id_unidad = ? AND id_curso = ?`,
+            [
+              tema.nombre,
+              tema.descripcion || null,
+              tema.competenciasEspecificas || tema.competencias_especificas || null,
+              tema.competenciasGenericas || tema.competencias_genericas || null,
+              index,
+              idUnidadReal,
+              id_curso,
+            ]
+          );
+          console.log(`✅ Unidad ID ${idUnidadReal} actualizada`);
+        } else {
+          // Si NO tiene ID o no existe, CREAR
+          const [temaInsertado] = await connection.query(
+            `INSERT INTO unidades_curso (
+          id_curso, nombre_unidad, descripcion_unidad, 
+          competenciasEspecificas, competenciasGenericas, orden
+        ) VALUES (?, ?, ?, ?, ?, ?)`,
+            [
+              id_curso,
+              tema.nombre,
+              tema.descripcion || null,
+              tema.competenciasEspecificas || tema.competencias_especificas || null,
+              tema.competenciasGenericas || tema.competencias_genericas || null,
+              index,
+            ]
+          );
+          idUnidadReal = temaInsertado.insertId;
+          console.log(`✅ Unidad ID ${idUnidadReal} creada`);
+        }
+
+        unidadesRecibidas.add(idUnidadReal);
         unidadesMap[index] = { idUnidad: idUnidadReal, subtemasMap: {} };
 
-        // Crear subtemas y guardar sus IDs reales
+        // SUBTEMAS: Obtener existentes
+        const [subtemasExistentes] = await connection.query(
+          "SELECT id_subtema, nombre_subtema, orden FROM subtemas_unidad WHERE id_unidad = ?",
+          [idUnidadReal]
+        );
+
+        const subtemasExistentesMap = new Map(
+          subtemasExistentes.map(s => [s.id_subtema, s])
+        );
+
+        const subtemasRecibidos = new Set();
+
+        // Crear o actualizar subtemas
         if (tema.subtemas && tema.subtemas.length > 0) {
           for (const [subIndex, subtema] of tema.subtemas.entries()) {
-            const [subtemaInsertado] = await connection.query(
-              `INSERT INTO subtemas_unidad (
-            id_unidad, nombre_subtema, descripcion_subtema, orden
-          ) VALUES (?, ?, ?, ?)`,
-              [
-                idUnidadReal,
-                subtema.nombre,
-                subtema.descripcion || null,
-                subIndex,
-              ]
-            );
+            let idSubtemaReal = null;
 
-            const idSubtemaReal = subtemaInsertado.insertId;
+            // **CAMBIOS AQUÍ: Verificar si el subtema tiene ID**
+            if (subtema.id && subtemasExistentesMap.has(parseInt(subtema.id))) {
+              // Si el subtema tiene ID y existe en BD, ACTUALIZAR
+              idSubtemaReal = parseInt(subtema.id);
+              await connection.query(
+                `UPDATE subtemas_unidad SET
+              nombre_subtema = ?,
+              descripcion_subtema = ?,
+              orden = ?
+            WHERE id_subtema = ? AND id_unidad = ?`,
+                [
+                  subtema.nombre,
+                  subtema.descripcion || null,
+                  subIndex,
+                  idSubtemaReal,
+                  idUnidadReal,
+                ]
+              );
+              console.log(`✅ Subtema ID ${idSubtemaReal} actualizado`);
+            } else {
+              // Si NO tiene ID o no existe, CREAR
+              const [subtemaInsertado] = await connection.query(
+                `INSERT INTO subtemas_unidad (
+              id_unidad, nombre_subtema, descripcion_subtema, orden
+            ) VALUES (?, ?, ?, ?)`,
+                [
+                  idUnidadReal,
+                  subtema.nombre,
+                  subtema.descripcion || null,
+                  subIndex,
+                ]
+              );
+              idSubtemaReal = subtemaInsertado.insertId;
+              console.log(`✅ Subtema ID ${idSubtemaReal} creado`);
+            }
+
+            subtemasRecibidos.add(idSubtemaReal);
             unidadesMap[index].subtemasMap[subIndex] = idSubtemaReal;
+          }
+        }
+
+        // Eliminar subtemas que ya no están en el frontend
+        for (const [idSubtemaExistente] of subtemasExistentesMap) {
+          if (!subtemasRecibidos.has(idSubtemaExistente)) {
+            await connection.query(
+              "DELETE FROM subtemas_unidad WHERE id_subtema = ?",
+              [idSubtemaExistente]
+            );
+            console.log(`🗑️ Subtema ID ${idSubtemaExistente} eliminado`);
           }
         }
       }
     }
 
-    console.log('DEBUG: Mapa de unidades creadas:', JSON.stringify(unidadesMap, null, 2));
+    // Eliminar unidades que ya no están en el frontend
+    for (const [idUnidadExistente] of unidadesExistentesMap) {
+      if (!unidadesRecibidas.has(idUnidadExistente)) {
+        await connection.query(
+          "DELETE FROM unidades_curso WHERE id_unidad = ?",
+          [idUnidadExistente]
+        );
+        console.log(`🗑️ Unidad ID ${idUnidadExistente} eliminada`);
+      }
+    }
+
+    console.log('DEBUG: Mapa de unidades procesadas:', JSON.stringify(unidadesMap, null, 2));
 
     // 6. Guardar prácticas usando IDs reales
     if (practicas && practicas.length > 0) {
       const porcentajePorActividad = porcentaje_actividades / practicas.length;
 
       for (const [index, practica] of practicas.entries()) {
+        console.log(`Guardando práctica ${index}:`, {
+          id_unidad: practica.id_unidad,
+          id_subtema: practica.id_subtema
+        });
         let idUnidadReal = null;
         let idSubtemaReal = null;
 
         // Usar IDs reales directamente del frontend
-        // El frontend debe enviar id_unidad e id_subtema como números reales
         if (practica.id_unidad) {
           idUnidadReal = parseInt(practica.id_unidad);
-          
+
           // Verificar que la unidad exista
-          if (idUnidadReal) {
-            const [unidadExists] = await connection.query(
-              "SELECT id_unidad FROM unidades_curso WHERE id_unidad = ? AND id_curso = ?",
-              [idUnidadReal, id_curso]
-            );
-            
-            if (unidadExists.length === 0) {
-              console.warn(`⚠️ Unidad ID ${idUnidadReal} no encontrada para la práctica ${index}`);
-              idUnidadReal = null;
-            }
+          const [unidadExists] = await connection.query(
+            "SELECT id_unidad FROM unidades_curso WHERE id_unidad = ? AND id_curso = ?",
+            [idUnidadReal, id_curso]
+          );
+
+          if (unidadExists.length === 0) {
+            console.warn(`⚠️ Unidad ID ${idUnidadReal} no encontrada para la práctica ${index}`);
+            idUnidadReal = null;
+          } else {
+            console.log(`✅ Unidad ID ${idUnidadReal} encontrada para la práctica ${index}`);
           }
         }
 
         // Buscar ID real del subtema si existe
         if (practica.id_subtema && idUnidadReal) {
           idSubtemaReal = parseInt(practica.id_subtema);
-          
-          if (idSubtemaReal) {
-            const [subtemaExists] = await connection.query(
-              "SELECT id_subtema FROM subtemas_unidad WHERE id_subtema = ? AND id_unidad = ?",
-              [idSubtemaReal, idUnidadReal]
-            );
-            
-            if (subtemaExists.length === 0) {
-              console.warn(`⚠️ Subtema ID ${idSubtemaReal} no encontrado para la práctica ${index}`);
-              idSubtemaReal = null;
-            }
+
+          const [subtemaExists] = await connection.query(
+            "SELECT id_subtema FROM subtemas_unidad WHERE id_subtema = ? AND id_unidad = ?",
+            [idSubtemaReal, idUnidadReal]
+          );
+
+          if (subtemaExists.length === 0) {
+            console.warn(`⚠️ Subtema ID ${idSubtemaReal} no encontrado para la práctica ${index}`);
+            idSubtemaReal = null;
+          } else {
+            console.log(`✅ Subtema ID ${idSubtemaReal} encontrado para la práctica ${index}`);
           }
         }
 
@@ -217,17 +317,17 @@ const guardarPlaneacion = async (req, res) => {
 
         const [actividad] = await connection.query(
           `INSERT INTO calificaciones_actividades (
-        id_calificaciones_curso, nombre, tipo_actividad, 
-        instrucciones, fecha_limite, max_archivos, max_tamano_mb, 
-        tipos_archivo_permitidos, id_unidad, id_subtema
-      ) VALUES (?, ?, 'actividad', ?, NULL, 5, 10, ?, ?, ?)`,
+            id_calificaciones_curso, nombre, tipo_actividad, 
+            instrucciones, fecha_limite, max_archivos, max_tamano_mb, 
+            tipos_archivo_permitidos, id_unidad, id_subtema
+          ) VALUES (?, ?, 'actividad', ?, NULL, 5, 10, ?, ?, ?)`,
           [
             id_calificaciones_curso,
             `Actividad ${index + 1}`,
-            practica.descripcion,
+            practica.descripcion || '',
             JSON.stringify(['pdf', 'link']),
-            idUnidadReal,
-            idSubtemaReal
+            idUnidadReal || null,
+            idSubtemaReal || null
           ]
         );
 
@@ -244,7 +344,7 @@ const guardarPlaneacion = async (req, res) => {
       }
     }
 
-    // 7. Guardar proyecto
+    // 7. Guardar proyecto (sin cambios)
     if (proyecto) {
       const [proyectoActividad] = await connection.query(
         `INSERT INTO calificaciones_actividades (
@@ -271,9 +371,8 @@ const guardarPlaneacion = async (req, res) => {
       }
     }
 
-    // 8. Guardar fuentes de información
+    // 8. Guardar fuentes de información (sin cambios)
     if (fuentes && fuentes.length > 0) {
-      // Eliminar fuentes existentes
       await connection.query(
         `DELETE FROM material_curso 
          WHERE id_curso = ? 
@@ -493,6 +592,7 @@ const obtenerPlaneacion = async (req, res) => {
         ORDER BY ca.tipo_actividad DESC, ca.id_actividad`,
         [califCurso[0].id_calificaciones]
       );
+      console.log('Resultado de la consulta de actividades:', actividadesConMateriales);
 
       // Obtener materiales de cada actividad
       for (const actividad of actividades) {
