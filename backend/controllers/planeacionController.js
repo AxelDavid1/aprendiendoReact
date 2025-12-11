@@ -371,27 +371,57 @@ const guardarPlaneacion = async (req, res) => {
       }
     }
 
-    // 8. Guardar fuentes de información (sin cambios)
+    // 8. Guardar fuentes de información (CAMBIOS IMPORTANTES)
     if (fuentes && fuentes.length > 0) {
+      // Primero eliminar las fuentes existentes de este curso
       await connection.query(
         `DELETE FROM material_curso 
-         WHERE id_curso = ? 
-         AND categoria_material = 'referencias' 
-         AND tipo_archivo = 'texto'`,
+        WHERE id_curso = ? 
+        AND categoria_material = 'planeacion'`,
         [id_curso]
       );
 
       for (const fuente of fuentes) {
+        // Mapear tipo del frontend a tipo_archivo de la BD
+        let tipoArchivoBD;
+        let esEnlace = 0;
+        let urlEnlace = null;
+        let nombreArchivo = fuente.referencia?.substring(0, 100) || 'Referencia';
+
+        switch (fuente.tipo) {
+          case 'referencias':
+            tipoArchivoBD = 'texto';
+            esEnlace = 0;
+            break;
+          case 'enlace':
+            tipoArchivoBD = 'enlace';
+            esEnlace = 1;
+            // Si es un enlace, la referencia podría ser la URL
+            if (fuente.referencia?.startsWith('http')) {
+              urlEnlace = fuente.referencia;
+            }
+            break;
+          case 'pdf':
+            tipoArchivoBD = 'pdf';
+            esEnlace = 0;
+            break;
+          default:
+            tipoArchivoBD = 'texto';
+            esEnlace = 0;
+        }
+
         await connection.query(
           `INSERT INTO material_curso (
             id_curso, nombre_archivo, tipo_archivo, 
             categoria_material, es_enlace, url_enlace, 
             descripcion, subido_por
-          ) VALUES (?, ?, ?, 'referencias', 0, NULL, ?, ?)`,
+          ) VALUES (?, ?, ?, 'planeacion', ?, ?, ?, ?)`,
           [
             id_curso,
-            fuente.referencia?.substring(0, 100) || 'Referencia',
-            'texto',
+            nombreArchivo,
+            tipoArchivoBD,
+            esEnlace,
+            urlEnlace,
             fuente.referencia || '',
             id_usuario
           ]
@@ -662,20 +692,41 @@ const obtenerPlaneacion = async (req, res) => {
         id_material,
         nombre_archivo as referencia,
         tipo_archivo as tipo,
-        descripcion
-       FROM material_curso 
-       WHERE id_curso = ? 
-         AND categoria_material = 'referencias'
-         AND tipo_archivo = 'texto'
-       ORDER BY fecha_subida`,
+        descripcion,
+        es_enlace,
+        url_enlace
+      FROM material_curso 
+      WHERE id_curso = ? 
+        AND categoria_material = 'planeacion'
+      ORDER BY fecha_subida`,
       [id_curso]
     );
 
-    const fuentes = fuentesResult.map((f) => ({
-      id_material: f.id_material,
-      tipo: f.tipo === "texto" ? "referencias" : f.tipo,
-      referencia: f.descripcion || f.referencia,
-    }));
+    const fuentes = fuentesResult.map((f) => {
+      // Mapear tipo_archivo de BD a tipo del frontend
+      let tipoFrontend;
+      switch (f.tipo) {
+        case 'texto':
+          tipoFrontend = 'referencias';
+          break;
+        case 'enlace':
+          tipoFrontend = 'enlace';
+          break;
+        case 'pdf':
+          tipoFrontend = 'pdf';
+          break;
+        default:
+          tipoFrontend = 'referencias';
+      }
+
+      return {
+        id_material: f.id_material,
+        tipo: tipoFrontend,
+        referencia: f.descripcion || f.referencia,
+        // Si es un enlace, usar la URL
+        url: f.es_enlace ? f.url_enlace : null,
+      };
+    });
 
     res.status(200).json({
       temario,

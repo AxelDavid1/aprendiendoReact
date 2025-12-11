@@ -292,6 +292,7 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
               id_material: fuente.id_material,
               tipo: fuente.tipo || "referencias",
               referencia: fuente.referencia || "",
+              url: fuente.url || "",
             }))
           );
         }
@@ -536,8 +537,9 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
       ...fuentes,
       {
         id_temporal: Date.now(),
-        tipo: "libro",
+        tipo: "referencias",
         referencia: "",
+        url: "",
       },
     ]);
   };
@@ -549,6 +551,16 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
   const handleFuenteChange = (index, field, value) => {
     const nuevasFuentes = [...fuentes];
     nuevasFuentes[index][field] = value;
+
+    // Si cambia el tipo a enlace, limpiar la referencia
+    if (field === 'tipo' && value === 'enlace') {
+      nuevasFuentes[index].referencia = "";
+    }
+    // Si cambia el tipo a referencias/pdf, limpiar la URL
+    if (field === 'tipo' && (value === 'referencias' || value === 'pdf')) {
+      nuevasFuentes[index].url = "";
+    }
+
     setFuentes(nuevasFuentes);
   };
 
@@ -580,7 +592,7 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
           competenciasEspecificas: tema.competencias_especificas || "",
           competenciasGenericas: tema.competencias_genericas || "",
           subtemas: (tema.subtemas || []).map((subtema) => ({
-            id:subtema.id,
+            id: subtema.id,
             nombre: subtema.nombre_subtema,
             descripcion: subtema.descripcion || "",
           })),
@@ -1414,15 +1426,25 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                   >
                     <option value="referencias">📚 Referencias APA</option>
                     <option value="enlace">🌐 Sitio Web</option>
-                    <option value="pdf">📄 Otro</option>
+                    <option value="pdf">📄 Pdf</option>
                   </select>
                   <textarea
                     className={styles.textareaSmall}
-                    value={fuente.referencia}
-                    onChange={(e) =>
-                      handleFuenteChange(index, "referencia", e.target.value)
+                    value={
+                      fuente.tipo === 'enlace' ? fuente.url : fuente.referencia
                     }
-                    placeholder="Formato: Autor(es). (Año). Título. Editorial/Revista/URL."
+                    onChange={(e) =>
+                      handleFuenteChange(
+                        index,
+                        fuente.tipo === 'enlace' ? 'url' : 'referencia',
+                        e.target.value
+                      )
+                    }
+                    placeholder={
+                      fuente.tipo === 'enlace'
+                        ? "URL del sitio web"
+                        : "Formato: Autor(es). (Año). Título. Editorial/Revista/URL."
+                    }
                     rows={2}
                   />
                 </div>
