@@ -264,6 +264,113 @@ const subirMaterial = async (req, res) => {
   }
 };
 
+// @desc    Subir PDF para materiales de planeación (prácticas/proyecto/fuentes)
+// @route   POST /api/material/planeacion
+// @access  Private (Maestro)
+const subirMaterialPlaneacion = async (req, res) => {
+  try {
+    const {
+      id_curso,
+      categoria_material, // 'planeacion' siempre
+      tipo_material, // 'practica' | 'proyecto' | 'fuente'
+      id_actividad, // Opcional, para prácticas/proyecto
+      descripcion,
+    } = req.body;
+
+    const subido_por = req.user.id_usuario;
+
+    // Validaciones
+    if (!id_curso || !req.file) {
+      return res.status(400).json({
+        error: "El ID del curso y el archivo PDF son obligatorios.",
+      });
+    }
+
+    // Verificar permisos del maestro
+    const isAdmin =
+      req.user.tipo_usuario === "admin_sedeq" ||
+      req.user.tipo_usuario === "admin_universidad" ||
+      req.user.tipo_usuario === "maestro";
+
+    let tienePermisos = isAdmin;
+
+    if (!isAdmin) {
+      const [cursoRows] = await pool.query(
+        `SELECT c.id_curso FROM curso c
+         INNER JOIN maestro m ON c.id_maestro = m.id_maestro
+         WHERE c.id_curso = ? AND m.id_usuario = ?`,
+        [id_curso, subido_por]
+      );
+      tienePermisos = cursoRows.length > 0;
+    }
+
+    if (!tienePermisos) {
+      return res.status(403).json({
+        error: "No tienes permisos para subir material a este curso.",
+      });
+    }
+
+    // Mover archivo a carpeta correcta
+    const finalPath = path.join(__dirname, "../uploads/material", "planeacion");
+    if (!fs.existsSync(finalPath)) {
+      fs.mkdirSync(finalPath, { recursive: true });
+    }
+
+    const finalFileName = path.basename(req.file.filename);
+    const finalFilePath = path.join(finalPath, finalFileName);
+    fs.renameSync(req.file.path, finalFilePath);
+
+    // Insertar en BD
+    const [result] = await pool.query(
+      `INSERT INTO material_curso (
+        id_curso,
+        nombre_archivo,
+        ruta_archivo,
+        tipo_archivo,
+        categoria_material,
+        es_enlace,
+        tamaño_archivo,
+        descripcion,
+        subido_por,
+        id_actividad
+      ) VALUES (?, ?, ?, 'pdf', 'planeacion', 0, ?, ?, ?, ?)`,
+      [
+        id_curso,
+        req.file.originalname,
+        finalFilePath,
+        req.file.size,
+        descripcion || null,
+        subido_por,
+        id_actividad || null,
+      ]
+    );
+
+    logger.info(`PDF subido para planeación: ID ${result.insertId}, Curso: ${id_curso}`);
+
+    res.status(201).json({
+      success: true,
+      message: "PDF subido exitosamente",
+      material: {
+        id_material: result.insertId,
+        nombre_archivo: req.file.originalname,
+        tipo_archivo: "pdf",
+        categoria_material: "planeacion",
+        ruta_descarga: `/api/material/download/${result.insertId}`,
+      },
+    });
+  } catch (error) {
+    logger.error(`Error al subir PDF de planeación: ${error.message}`);
+    res.status(500).json({
+      error: "Error al subir el PDF",
+    });
+  }
+};
+
+module.exports = {
+  // ... exports existentes
+  subirMaterialPlaneacion,
+};
+
 // @desc    Obtener todo el material de un curso
 // @route   GET /api/material/curso/:id_curso
 // @access  Private (Alumno/Maestro)
@@ -648,6 +755,7 @@ const fixTableStructure = async (req, res) => {
 module.exports = {
   upload,
   subirMaterial,
+  subirMaterialPlaneacion,
   getMaterialCurso,
   descargarMaterial,
   actualizarMaterial,

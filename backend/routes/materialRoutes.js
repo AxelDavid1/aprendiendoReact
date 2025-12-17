@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   upload,
   subirMaterial,
+  subirMaterialPlaneacion,
   getMaterialCurso,
   descargarMaterial,
   actualizarMaterial,
@@ -15,7 +16,17 @@ const { protect } = require("../middleware/authMiddleware");
 // @route   POST /api/material
 // @desc    Subir nuevo material del curso
 // @access  Private (Maestro)
-router.post("/", protect, upload.single("archivo"), subirMaterial);
+router.post("/", protect, upload.single("file"), subirMaterial);
+
+// @route   POST /api/material/planeacion
+// @desc    Subir PDF para materiales de planeación
+// @access  Private (Maestro)
+router.post(
+  "/planeacion",
+  protect,
+  upload.single("file"),
+  subirMaterialPlaneacion
+);
 
 // @route   GET /api/material/curso/:id_curso
 // @desc    Obtener todo el material de un curso

@@ -549,6 +549,54 @@
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
+/* Added inputFile styles for PDF upload */
+.inputFile {
+  width: 100%;
+  padding: 12px;
+  border: 2px dashed #4f46e5;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  background-color: #f8f9fa;
+  transition: all 0.3s ease;
+  font-family: inherit;
+  color: #1f2937;
+}
+
+.inputFile:hover {
+  background-color: #ede9fe;
+  border-color: #6366f1;
+}
+
+.inputFile::file-selector-button {
+  padding: 8px 16px;
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  margin-right: 12px;
+  transition: all 0.2s ease;
+}
+
+.inputFile::file-selector-button:hover {
+  background: linear-gradient(135deg, #4338ca 0%, #4f46e5 100%);
+}
+
+.uploadedBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background-color: #d4edda;
+  color: #155724;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-top: 8px;
+}
+
 .inputRow {
   display: grid;
   grid-template-columns: 1fr 1fr;

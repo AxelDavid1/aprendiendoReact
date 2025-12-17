@@ -472,31 +472,40 @@ const guardarMateriales = async (
   }
 
   for (const material of materiales) {
-    // Mapear 'referencias' a 'texto' para coincidir con el enum de la base de datos
-    const tipoArchivo =
-      material.tipo === "referencias" || material.tipo === "referencia"
-        ? "texto"
-        : material.tipo || (material.url ? "enlace" : "pdf");
+    // Si tiene id_material, significa que ya fue subido
+    if (material.id_material) {
+      // Solo actualizar la relación con la actividad
+      await connection.query(
+        `UPDATE material_curso SET id_actividad = ? WHERE id_material = ?`,
+        [id_actividad, material.id_material]
+      );
+      console.log(`✅ Material ID ${material.id_material} vinculado a actividad ${id_actividad}`);
+    } else {
+      // Crear nuevo material (para enlaces y referencias)
+      const tipoArchivo =
+        material.tipo === "referencias" ? "texto" : 
+        material.tipo === "enlace" ? "enlace" : "pdf";
 
-    await connection.query(
-      `INSERT INTO material_curso (
-        id_curso, nombre_archivo, ruta_archivo, tipo_archivo, 
-        categoria_material, es_enlace, url_enlace, 
-        descripcion, subido_por, id_actividad
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        id_curso,
-        material.nombre || (material.url ? "Enlace" : "Archivo adjunto"),
-        material.ruta || null,
-        tipoArchivo,
-        categoria,
-        material.url ? 1 : 0,
-        material.url || null,
-        material.descripcion || "",
-        id_usuario,
-        id_actividad,
-      ]
-    );
+      await connection.query(
+        `INSERT INTO material_curso (
+          id_curso, nombre_archivo, tipo_archivo, 
+          categoria_material, es_enlace, url_enlace, 
+          descripcion, subido_por, id_actividad
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id_curso,
+          material.nombre || material.referencia || "Material",
+          tipoArchivo,
+          categoria,
+          material.url ? 1 : 0,
+          material.url || null,
+          material.referencia || material.descripcion || "",
+          id_usuario,
+          id_actividad,
+        ]
+      );
+      console.log(`✅ Material nuevo creado: ${material.nombre || material.referencia}`);
+    }
   }
 };
 

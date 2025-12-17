@@ -85,7 +85,7 @@ function CategoriasCursos() {
       const response = await fetch(`${API_URL}/area/${idArea}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error("Error al obtener las categorías.");
+      if (!response.ok) throw new Error("Error al obtener las habilidades.");
       const data = await response.json();
       setCategoriesByArea((prev) => ({
         ...prev,
@@ -93,7 +93,7 @@ function CategoriasCursos() {
       }));
     } catch (err) {
       console.error(err);
-      showToast(`Error al cargar categorías: ${err.message}`, "error");
+      showToast(`Error al cargar habilidades: ${err.message}`, "error");
     }
   }, []);
 
@@ -176,7 +176,7 @@ function CategoriasCursos() {
     } else if (modalType === "category") {
       // Validación básica en frontend
       if (!formState.nombre_categoria.trim()) {
-        showToast("El nombre de la categoría es requerido.", "error");
+        showToast("El nombre de la habilidad es requerido.", "error");
         return;
       }
       url = isEditing
@@ -185,8 +185,8 @@ function CategoriasCursos() {
       method = isEditing ? "PUT" : "POST";
       body = { ...formState, id_area: currentAreaId };
       successMessage = isEditing
-        ? "Categoría actualizada con éxito"
-        : "Categoría creada con éxito";
+        ? "Habilidad actualizada con éxito"
+        : "Habilidad creada con éxito";
     } else {
       return;
     }
@@ -283,7 +283,7 @@ function CategoriasCursos() {
       return (
         <div className={styles.loadingState}>
           <div className={styles.spinner}></div>
-          <p>Cargando Categorías...</p>
+          <p>Cargando Habilidades...</p>
         </div>
       );
     }
@@ -304,7 +304,7 @@ function CategoriasCursos() {
           <FontAwesomeIcon icon={faFolderOpen} size="2x" />
           <h3>No hay áreas de conocimiento</h3>
           <p>
-            Comienza agregando una nueva categoría para organizar los cursos.
+            Comienza agregando una nueva habilidad para organizar los cursos.
           </p>
           <button
             onClick={() => handleOpenModal()}
@@ -340,8 +340,8 @@ function CategoriasCursos() {
                   className={styles.toggleButton}
                 >
                   {categoriesByArea[area.id_area]
-                    ? "Ocultar Categorías"
-                    : "Mostrar Categorías"}
+                    ? "Ocultar Habilidades"
+                    : "Mostrar Habilidades"}
                 </button>
                 <button
                   onClick={() =>
@@ -349,7 +349,7 @@ function CategoriasCursos() {
                   }
                   className={styles.addButton}
                 >
-                  <FontAwesomeIcon icon={faPlus} /> Agregar Categoría
+                  <FontAwesomeIcon icon={faPlus} /> Agregar Habilidad
                 </button>
               </div>
             </div>
@@ -416,7 +416,7 @@ function CategoriasCursos() {
     <div className={styles.container}>
       <header className={styles.header}>
         <div className={styles.headerContent}>
-          <h1 className={styles.title}>Gestión de Áreas y Categorías</h1>
+          <h1 className={styles.title}>SubGrupo Operador y Habilidades Clave</h1>
         </div>
       </header>
       <main className={styles.main}>

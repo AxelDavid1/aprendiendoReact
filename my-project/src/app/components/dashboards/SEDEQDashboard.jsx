@@ -45,7 +45,7 @@ function SEDEQDashboard({ userId }) {
       label: "Contenido Educativo",
       icon: "📚",
       modules: [
-        { id: "areas", label: "Áreas de Conocimiento", icon: "🗂️" },
+        { id: "areas", label: "Subgrupo y Habilidades Clave", icon: "🗂️" },
         { id: "cursos", label: "Gestión de Cursos", icon: "📝" },
         { id: "credenciales", label: "Credenciales de Cursos", icon: "🎖️" },
       ],
