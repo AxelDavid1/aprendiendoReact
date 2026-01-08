@@ -7,10 +7,23 @@ const {
   createHabilidad,
   updateHabilidad,
   deleteHabilidad,
+  getHabilidadSubgrupos,
+  getAvailableSubgruposForHabilidad,
+  addSubgrupoToHabilidad,
+  removeSubgrupoFromHabilidad,
 } = require("../controllers/habilidadClaveController");
 
 // Todas las rutas requieren autenticación
 router.use(protect);
+
+// @route   GET /api/habilidades-clave/:id/subgrupos
+router.get("/:id/subgrupos", getHabilidadSubgrupos);
+// @route   GET /api/habilidades-clave/:id/subgrupos-disponibles
+router.get("/:id/subgrupos-disponibles", getAvailableSubgruposForHabilidad);
+// @route   POST /api/habilidades-clave/:id/subgrupos
+router.post("/:id/subgrupos", addSubgrupoToHabilidad);
+// @route   DELETE /api/habilidades-clave/:id/subgrupos/:idSubgrupo
+router.delete("/:id/subgrupos/:idSubgrupo", removeSubgrupoFromHabilidad);
 
 // @route   GET /api/habilidades-clave
 router.get("/", getAllHabilidades);
