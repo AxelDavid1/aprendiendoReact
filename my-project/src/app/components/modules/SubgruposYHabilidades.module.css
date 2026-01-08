@@ -533,13 +533,21 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* Improved layout to prevent button wrapping issues */
 .subgrupoHeader {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   padding: 1rem;
   background: #f9fafb;
   border-bottom: 1px solid #e5e7eb;
+  gap: 1rem;
+}
+
+.subgrupoInfo {
+  flex: 1;
+  min-width: 0;
+  max-width: 60%;
 }
 
 .subgrupoInfo h3 {
@@ -547,18 +555,27 @@
   font-size: 1.125rem;
   font-weight: 600;
   color: #111827;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  line-height: 1.4;
 }
 
 .subgrupoInfo p {
   margin: 0;
   color: #6b7280;
   font-size: 0.875rem;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
 .subgrupoActions {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
+  flex-shrink: 0;
+  align-items: flex-start;
+  justify-content: flex-end;
+  min-width: fit-content;
 }
 
 .toggleButton {
