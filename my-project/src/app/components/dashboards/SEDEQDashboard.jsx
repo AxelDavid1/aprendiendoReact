@@ -5,7 +5,7 @@ import ManejoUniversidades from "../modules/ManejoUniversidades"
 import CarrerasUniversidades from "../modules/CarrerasUniversidades"
 import GestionMaestros from "../modules/GestionMaestros"
 import GestionCursos from "../modules/GestionCursos"
-import CategoriasCursos from "../modules/CategoriasCursos"
+import SubgruposYHabilidades from "../modules/SubgruposYHabilidades"
 import CredencialesCursos from "../modules/CredencialesCursos"
 import Inscripciones from "../modules/Inscripciones"
 import Dominios from "../modules/Dominios"
@@ -101,7 +101,7 @@ function SEDEQDashboard({ userId }) {
       case "areas":
         return (
           <div className={styles.moduleContainer}>
-            <CategoriasCursos />
+            <SubgruposYHabilidades />
           </div>
         )
       case "cursos":

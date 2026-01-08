@@ -119,7 +119,7 @@ const inscripcionRoutes = require("./routes/inscripcionRoutes");
 const domainRoutes = require("./routes/domainRoutes");
 const convocatoriaRoutes = require("./routes/convocatoriaRoutes");
 const areaConocimientoRoutes = require("./routes/areaConocimientoRoutes");
-const horarioRoutes = require("./routes/horarioRoutes"); // <-- 1. IMPORTAMOS LAS NUEVAS RUTAS
+const horarioRoutes = require("./routes/horarioRoutes");
 const unidadesRoutes = require("./routes/unidadesRoutes");
 const calificacionesRoutes = require("./routes/calificacionesRoutes");
 const entregasRoutes = require("./routes/entregasRoutes");
@@ -128,6 +128,8 @@ const firmasRoutes = require("./routes/firmasRoutes");
 const certificadoConstanciaRoutes = require("./routes/certificadoConstanciaRoutes");
 const verificacionHomeConstanciasYcertificadosRoutes = require("./routes/verificacionHomeConstanciasYcertificadosRoutes");
 const publicFilesRoutes = require("./routes/publicFilesRoutes");
+const subgrupoOperadorRoutes = require("./routes/subgrupoOperadorRoutes");
+const habilidadClaveRoutes = require("./routes/habilidadClaveRoutes");
 
 log(`✅ Rutas importadas correctamente`);
 
@@ -153,6 +155,8 @@ app.use("/api/entregas", entregasRoutes);
 app.use("/api/material", materialRoutes);
 app.use("/api/firmas", firmasRoutes);
 app.use("/api/alumno", certificadoConstanciaRoutes);
+app.use("/api/subgrupos-operadores", subgrupoOperadorRoutes);
+app.use("/api/habilidades-clave", habilidadClaveRoutes);
 log(`🔌 Rutas configuradas en la aplicación`);
 
 log(`💾 Conectando a la base de datos...`);
