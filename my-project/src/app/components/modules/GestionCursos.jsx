@@ -18,7 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 
 const API_URL = "http://localhost:5000/api/cursos";
 const API_URL_UNIVERSIDADES = "http://localhost:5000/api/universidades";
-const API_URL_AREAS = "http://localhost:5000/api/areas-conocimiento";
+const API_URL_SUBGRUPOS = "http://localhost:5000/api/subgrupos-operadores";
 const API_URL_FACULTADES = "http://localhost:5000/api/facultades";
 const API_URL_CARRERAS = "http://localhost:5000/api/carreras";
 const API_URL_MAESTROS = "http://localhost:5000/api/maestros";
@@ -27,8 +27,8 @@ const API_URL_MAESTROS = "http://localhost:5000/api/maestros";
 const initialCourseState = {
   nombre_curso: "",
   descripcion: "",
-  id_area: "",
-  id_categoria: "",
+  id_subgrupo: "",
+  id_habilidades: [],
   id_maestro: "",
   id_universidad: "",
   id_facultad: "",
@@ -58,13 +58,13 @@ function CourseManagement({ userId }) {
   const [selectedCarrera, setSelectedCarrera] = useState("");
   const [isFacultadesLoading, setIsFacultadesLoading] = useState(false);
   // Estados para Areas y Categorías
-  const [areas, setAreas] = useState([]);
-  const [selectedArea, setSelectedArea] = useState("");
-  const [isCategoriesLoading, setIsCategoriesLoading] = useState(false);
+  const [subgrupos, setSubgrupos] = useState([]);
+  const [selectedSubgrupo, setSelectedSubgrupo] = useState("");
+  const [habilidadesSubgrupo, setHabilidadesSubgrupo] = useState([]);
+  const [isHabilidadesLoading, setIsHabilidadesLoading] = useState(false);
   const [isCarrerasLoading, setIsCarrerasLoading] = useState(false);
   const [isTeachersLoading, setIsTeachersLoading] = useState(false);
   const [courses, setCourses] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [teachers, setTeachers] = useState([]); // Estado para la lista de maestros
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -153,46 +153,51 @@ function CourseManagement({ userId }) {
     }
   }, [userId]);
 
-  // Obtener Áreas de Conocimiento
-  const fetchAreas = useCallback(async () => {
+  // Obtener Subgrupos Operadores
+  const fetchSubgrupos = useCallback(async () => {
     try {
-      const response = await fetch(API_URL_AREAS);
-      if (!response.ok) throw new Error("No se pudieron cargar las áreas");
+      const token = localStorage.getItem("token");
+      const response = await fetch(API_URL_SUBGRUPOS, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!response.ok) throw new Error("No se pudieron cargar los subgrupos");
       const data = await response.json();
-      setAreas(data || []);
+      setSubgrupos(data || []);
     } catch (err) {
-      console.error("Error al cargar áreas de conocimiento:", err.message);
+      console.error("Error al cargar subgrupos operadores:", err.message);
     }
   }, []);
 
-  // Obtener Categorías por Área
-  const fetchCategoriesByArea = useCallback(async (idArea) => {
-    if (!idArea) {
-      setCategories([]);
+  // Obtener Habilidades por Subgrupo
+  const fetchHabilidadesBySubgrupo = useCallback(async (idSubgrupo) => {
+    if (!idSubgrupo) {
+      setHabilidadesSubgrupo([]);
       return;
     }
-    setIsCategoriesLoading(true);
-    setCategories([]);
+    setIsHabilidadesLoading(true);
+    setHabilidadesSubgrupo([]);
     try {
-      const token = localStorage.getItem("token"); // Obtener el token
+      const token = localStorage.getItem("token");
       const response = await fetch(
-        `http://localhost:5000/api/categorias/area/${idArea}`,
+        `${API_URL_SUBGRUPOS}/${idSubgrupo}/habilidades`,
         {
           headers: {
-            Authorization: `Bearer ${token}`, // Añadir el header de autorización
+            Authorization: `Bearer ${token}`,
           },
         },
       );
       if (!response.ok)
         throw new Error(
-          "No se pudieron cargar las categorías para el área seleccionada",
+          "No se pudieron cargar las habilidades para el subgrupo seleccionado",
         );
       const data = await response.json();
-      setCategories(data || []);
+      setHabilidadesSubgrupo(data || []);
     } catch (err) {
-      console.error("Error al cargar categorías por área:", err.message);
+      console.error("Error al cargar habilidades por subgrupo:", err.message);
     } finally {
-      setIsCategoriesLoading(false);
+      setIsHabilidadesLoading(false);
     }
   }, []);
 
@@ -289,9 +294,9 @@ function CourseManagement({ userId }) {
   // Efecto para cargar datos iniciales
   useEffect(() => {
     fetchCourses();
-    fetchAreas(); // Cargamos las áreas en lugar de todas las categorías
+    fetchSubgrupos(); // Cargamos las áreas en lugar de todas las categorías
     fetchUniversidades();
-  }, [fetchCourses, fetchAreas, fetchUniversidades]);
+  }, [fetchCourses, fetchSubgrupos, fetchUniversidades]);
 
   // Función para mostrar notificaciones toast
   const showToast = (message, type = "success") => {
@@ -365,8 +370,6 @@ function CourseManagement({ userId }) {
       // Aseguramos que los valores nulos se conviertan a strings vacíos para los selects
       const stateReadyCourse = {
         ...formattedCourse,
-        id_area: formattedCourse.id_area || "",
-        id_categoria: formattedCourse.id_categoria || "",
         id_universidad: formattedCourse.id_universidad || "",
         id_facultad: formattedCourse.id_facultad || "",
         id_carrera: formattedCourse.id_carrera || "",
@@ -374,9 +377,9 @@ function CourseManagement({ userId }) {
       };
       setFormState(stateReadyCourse);
 
-      if (course.id_area) {
-        setSelectedArea(course.id_area);
-        fetchCategoriesByArea(course.id_area);
+      if (course.id_subgrupo) {
+        setSelectedSubgrupo(course.id_subgrupo);
+        fetchHabilidadesBySubgrupo(course.id_subgrupo);
       }
 
       if (course.id_universidad) {
@@ -399,8 +402,6 @@ function CourseManagement({ userId }) {
       setIsEditing(false);
       const presetMaestro = isMaestroUser && userId ? String(userId) : "";
       setFormState({ ...initialCourseState, id_maestro: presetMaestro });
-      setSelectedArea("");
-      setCategories([]);
       setSelectedUniversidad("");
       setSelectedFacultad("");
       setSelectedCarrera("");
@@ -416,8 +417,6 @@ function CourseManagement({ userId }) {
     setIsEditing(false);
     setFormState(initialCourseState);
     setSelectedUniversidad("");
-    setSelectedArea("");
-    setCategories([]);
     setSelectedFacultad("");
     setSelectedCarrera("");
     setFacultades([]);
@@ -474,15 +473,15 @@ function CourseManagement({ userId }) {
     }
   };
 
-  const handleAreaChange = (e) => {
-    const areaId = e.target.value;
-    setSelectedArea(areaId);
+  const handleSubgrupoChange = (e) => {
+    const subgrupoId = e.target.value;
+    setSelectedSubgrupo(subgrupoId);
     setFormState((prev) => ({
       ...prev,
-      id_area: areaId,
-      id_categoria: "", // Reseteamos la categoría al cambiar de área
+      id_subgrupo: subgrupoId,
+      id_habilidades: [], // Reseteamos las habilidades al cambiar de subgrupo
     }));
-    fetchCategoriesByArea(areaId);
+    fetchHabilidadesBySubgrupo(subgrupoId);
   };
 
   const handleUniversidadChange = async (e) => {
@@ -985,47 +984,45 @@ function CourseManagement({ userId }) {
                   />
                 </div>
                 <div className={styles.formGroup}>
-                  <label htmlFor="id_area">Área de Conocimiento</label>
+                  <label htmlFor="id_subgrupo">Subgrupo Operador</label>
                   <select
-                    id="id_area"
-                    name="id_area"
-                    value={selectedArea}
-                    onChange={handleAreaChange}
+                    id="id_subgrupo"
+                    name="id_subgrupo"
+                    value={selectedSubgrupo}
+                    onChange={handleSubgrupoChange}
                     required
                   >
-                    <option value="">Seleccione un área</option>
-                    {areas.map((area) => (
-                      <option key={area.id_area} value={area.id_area}>
-                        {area.nombre_area}
+                    <option value="">Seleccione un subgrupo</option>
+                    {subgrupos.map((subgrupo) => (
+                      <option key={subgrupo.id_subgrupo} value={subgrupo.id_subgrupo}>
+                        {subgrupo.nombre_subgrupo}
                       </option>
                     ))}
                   </select>
                 </div>
-                {isCategoriesLoading ? (
+                {isHabilidadesLoading ? (
                   <div className={styles.formGroup}>
-                    <label>Categoría</label>
+                    <label>Habilidades Clave</label>
                     <select disabled>
-                      <option>Cargando categorías...</option>
+                      <option>Cargando habilidades...</option>
                     </select>
                   </div>
                 ) : (
                   <div className={styles.formGroup}>
-                    <label htmlFor="id_categoria">Categoría</label>
-                    <select
-                      id="id_categoria"
-                      name="id_categoria"
-                      value={formState.id_categoria}
-                      onChange={handleFormChange}
-                      disabled={!selectedArea || categories.length === 0}
-                      required
-                    >
-                      <option value="">Seleccione una categoría</option>
-                      {categories.map((cat) => (
-                        <option key={cat.id_categoria} value={cat.id_categoria}>
-                          {cat.nombre_categoria}
-                        </option>
-                      ))}
-                    </select>
+                    <label>Habilidades Clave</label>
+                    <div className={styles.habilidadesDisplay}>
+                      {habilidadesSubgrupo.length === 0 ? (
+                        <p className={styles.noHabilidades}>Seleccione un subgrupo para ver sus habilidades</p>
+                      ) : (
+                        <div className={styles.habilidadesList}>
+                          {habilidadesSubgrupo.map((habilidad) => (
+                            <span key={habilidad.id_habilidad} className={styles.habilidadTag}>
+                              {habilidad.nombre_habilidad}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
                 <div className={styles.formGroup}>
