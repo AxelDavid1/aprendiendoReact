@@ -836,7 +836,7 @@ function SubgruposYHabilidades() {
               </button>
             </div>
 
-            <div className={styles.modalContent} style={{ flex: 1, overflow: "auto", padding: "1.5rem" }}>
+            <div className={styles.modalContent} style={{ flex: 1, overflow: "auto", padding: "1rem" }}>
               {availableHabilidades.length === 0 ? (
                 <div className={styles.emptyModalState}>
                   <div className={styles.emptyModalIcon}>
