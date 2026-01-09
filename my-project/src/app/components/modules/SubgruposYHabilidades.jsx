@@ -46,6 +46,8 @@ function SubgruposYHabilidades() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
+  const [subgruposSearchTerm, setSubgruposSearchTerm] = useState("")
+
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
@@ -357,6 +359,12 @@ function SubgruposYHabilidades() {
       (habilidad.descripcion && habilidad.descripcion.toLowerCase().includes(searchTerm.toLowerCase())),
   )
 
+  const filteredSubgrupos = subgrupos.filter(
+    (subgrupo) =>
+      subgrupo.nombre_subgrupo.toLowerCase().includes(subgruposSearchTerm.toLowerCase()) ||
+      (subgrupo.descripcion && subgrupo.descripcion.toLowerCase().includes(subgruposSearchTerm.toLowerCase())),
+  )
+
   const handleFormChange = (e) => {
     const { name, value } = e.target
     setFormState((prev) => ({ ...prev, [name]: value }))
@@ -495,94 +503,130 @@ function SubgruposYHabilidades() {
 
       return (
         <div className={styles.subgruposContainer}>
-          {subgrupos.map((subgrupo) => (
-            <div key={subgrupo.id_subgrupo} className={styles.subgrupoCard}>
-              <div className={styles.subgrupoHeader}>
-                <div className={styles.subgrupoInfo}>
-                  <h3>{subgrupo.nombre_subgrupo}</h3>
-                  <p>{subgrupo.descripcion || "Sin descripción"}</p>
-                </div>
-                <div className={styles.subgrupoActions}>
-                  <button
-                    onClick={() => handleOpenModal(subgrupo)}
-                    className={styles.editButton}
-                    title="Editar subgrupo"
-                  >
-                    <FontAwesomeIcon icon={faEdit} />
-                  </button>
-                  <button
-                    onClick={() => handleOpenDeleteModal(subgrupo)}
-                    className={styles.deleteButton}
-                    title="Eliminar subgrupo"
-                  >
-                    <FontAwesomeIcon icon={faTrash} />
-                  </button>
-                  <button
-                    onClick={() => toggleSubgrupoHabilidades(subgrupo.id_subgrupo)}
-                    className={styles.toggleButton}
-                    title={subgrupoHabilidades[subgrupo.id_subgrupo] ? "Ocultar habilidades" : "Mostrar habilidades"}
-                  >
-                    {subgrupoHabilidades[subgrupo.id_subgrupo] ? (
-                      <>
-                        <FontAwesomeIcon icon={faChevronUp} /> Ocultar Habilidades
-                      </>
-                    ) : (
-                      <>
-                        <FontAwesomeIcon icon={faChevronDown} /> Mostrar Habilidades
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => handleOpenHabilidadesModal(subgrupo)}
-                    className={styles.addButton}
-                    title="Agregar habilidades"
-                  >
-                    <FontAwesomeIcon icon={faPlus} /> Agregar Habilidades
-                  </button>
-                </div>
-              </div>
-
-              {subgrupoHabilidades[subgrupo.id_subgrupo] !== undefined && (
-                <div className={styles.habilidadesSection}>
-                  <h4>Habilidades Asociadas ({subgrupoHabilidades[subgrupo.id_subgrupo]?.length || 0})</h4>
-
-                  {loadingHabilidades[subgrupo.id_subgrupo] ? (
-                    <div className={styles.habilidadesLoading}>
-                      <FontAwesomeIcon icon={faSpinner} spin /> Cargando habilidades...
-                    </div>
-                  ) : subgrupoHabilidades[subgrupo.id_subgrupo]?.length === 0 ? (
-                    <p className={styles.noHabilidades}>Este subgrupo no tiene habilidades asignadas</p>
-                  ) : (
-                    <div className={styles.habilidadesList}>
-                      {subgrupoHabilidades[subgrupo.id_subgrupo].map((habilidad) => (
-                        <div key={habilidad.id_habilidad} className={styles.habilidadItem}>
-                          <div className={styles.habilidadInfo}>
-                            <span className={styles.habilidadName}>{habilidad.nombre_habilidad}</span>
-                            {habilidad.descripcion && (
-                              <span className={styles.habilidadDesc}>{habilidad.descripcion}</span>
-                            )}
-                          </div>
-                          <button
-                            onClick={() =>
-                              handleOpenRemoveHabilidadModal(
-                                subgrupo.id_subgrupo,
-                                habilidad.id_habilidad,
-                                habilidad.nombre_habilidad,
-                              )
-                            }
-                            className={styles.removeHabilidadButton}
-                            title="Eliminar habilidad del subgrupo"
-                          >
-                            <FontAwesomeIcon icon={faTrash} />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+          <div className={styles.searchBarContainer}>
+            <div className={styles.searchContainer}>
+              <FontAwesomeIcon icon={faSearch} className={styles.searchIcon} />
+              <input
+                type="text"
+                placeholder="Buscar por nombre o descripción..."
+                value={subgruposSearchTerm}
+                onChange={(e) => setSubgruposSearchTerm(e.target.value)}
+                className={styles.searchInput}
+              />
+              {subgruposSearchTerm && (
+                <button
+                  onClick={() => setSubgruposSearchTerm("")}
+                  className={styles.clearSearchButton}
+                  title="Limpiar búsqueda"
+                >
+                  <FontAwesomeIcon icon={faTimes} />
+                </button>
               )}
             </div>
-          ))}
+            {subgruposSearchTerm && (
+              <p className={styles.searchResults}>{filteredSubgrupos.length} resultado(s) encontrado(s)</p>
+            )}
+          </div>
+
+          {filteredSubgrupos.length === 0 ? (
+            <div className={styles.noSearchResults}>
+              <FontAwesomeIcon icon={faSearch} size="2x" color="#9ca3af" />
+              <h3>No se encontraron resultados</h3>
+              <p>No hay subgrupos que coincidan con tu búsqueda "{subgruposSearchTerm}"</p>
+              <button onClick={() => setSubgruposSearchTerm("")} className={styles.emptyStateButton}>
+                Limpiar búsqueda
+              </button>
+            </div>
+          ) : (
+            filteredSubgrupos.map((subgrupo) => (
+              <div key={subgrupo.id_subgrupo} className={styles.subgrupoCard}>
+                <div className={styles.subgrupoHeader}>
+                  <div className={styles.subgrupoInfo}>
+                    <h3>{subgrupo.nombre_subgrupo}</h3>
+                    <p>{subgrupo.descripcion || "Sin descripción"}</p>
+                  </div>
+                  <div className={styles.subgrupoActions}>
+                    <button
+                      onClick={() => handleOpenModal(subgrupo)}
+                      className={styles.editButton}
+                      title="Editar subgrupo"
+                    >
+                      <FontAwesomeIcon icon={faEdit} />
+                    </button>
+                    <button
+                      onClick={() => handleOpenDeleteModal(subgrupo)}
+                      className={styles.deleteButton}
+                      title="Eliminar subgrupo"
+                    >
+                      <FontAwesomeIcon icon={faTrash} />
+                    </button>
+                    <button
+                      onClick={() => toggleSubgrupoHabilidades(subgrupo.id_subgrupo)}
+                      className={styles.toggleButton}
+                      title={subgrupoHabilidades[subgrupo.id_subgrupo] ? "Ocultar habilidades" : "Mostrar habilidades"}
+                    >
+                      {subgrupoHabilidades[subgrupo.id_subgrupo] ? (
+                        <>
+                          <FontAwesomeIcon icon={faChevronUp} /> Ocultar Habilidades
+                        </>
+                      ) : (
+                        <>
+                          <FontAwesomeIcon icon={faChevronDown} /> Mostrar Habilidades
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleOpenHabilidadesModal(subgrupo)}
+                      className={styles.addButton}
+                      title="Agregar habilidades"
+                    >
+                      <FontAwesomeIcon icon={faPlus} /> Agregar Habilidades
+                    </button>
+                  </div>
+                </div>
+
+                {subgrupoHabilidades[subgrupo.id_subgrupo] !== undefined && (
+                  <div className={styles.habilidadesSection}>
+                    <h4>Habilidades Asociadas ({subgrupoHabilidades[subgrupo.id_subgrupo]?.length || 0})</h4>
+
+                    {loadingHabilidades[subgrupo.id_subgrupo] ? (
+                      <div className={styles.habilidadesLoading}>
+                        <FontAwesomeIcon icon={faSpinner} spin /> Cargando habilidades...
+                      </div>
+                    ) : subgrupoHabilidades[subgrupo.id_subgrupo]?.length === 0 ? (
+                      <p className={styles.noHabilidades}>Este subgrupo no tiene habilidades asignadas</p>
+                    ) : (
+                      <div className={styles.habilidadesList}>
+                        {subgrupoHabilidades[subgrupo.id_subgrupo].map((habilidad) => (
+                          <div key={habilidad.id_habilidad} className={styles.habilidadItem}>
+                            <div className={styles.habilidadInfo}>
+                              <span className={styles.habilidadName}>{habilidad.nombre_habilidad}</span>
+                              {habilidad.descripcion && (
+                                <span className={styles.habilidadDesc}>{habilidad.descripcion}</span>
+                              )}
+                            </div>
+                            <button
+                              onClick={() =>
+                                handleOpenRemoveHabilidadModal(
+                                  subgrupo.id_subgrupo,
+                                  habilidad.id_habilidad,
+                                  habilidad.nombre_habilidad,
+                                )
+                              }
+                              className={styles.removeHabilidadButton}
+                              title="Eliminar habilidad del subgrupo"
+                            >
+                              <FontAwesomeIcon icon={faTrash} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
       )
     }
