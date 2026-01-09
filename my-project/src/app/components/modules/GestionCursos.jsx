@@ -1,5 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
-import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+"use client"
+
+import { useState, useEffect, useCallback } from "react"
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import {
   faBook,
   faEdit,
@@ -9,19 +11,19 @@ import {
   faListCheck,
   faDownload,
   faClock,
-} from "@fortawesome/free-solid-svg-icons";
-import styles from "./GestionCursos.module.css";
-import GestionHorarios from "./GestionHorarios";
-import PlaneacionCurso from "./PlaneacionCurso";
-import MaterialADescargar from "./MaterialADescargar";
-import { useAuth } from "@/hooks/useAuth";
+} from "@fortawesome/free-solid-svg-icons"
+import styles from "./GestionCursos.module.css"
+import GestionHorarios from "./GestionHorarios"
+import PlaneacionCurso from "./PlaneacionCurso"
+import MaterialADescargar from "./MaterialADescargar"
+import { useAuth } from "@/hooks/useAuth"
 
-const API_URL = "http://localhost:5000/api/cursos";
-const API_URL_UNIVERSIDADES = "http://localhost:5000/api/universidades";
-const API_URL_SUBGRUPOS = "http://localhost:5000/api/subgrupos-operadores";
-const API_URL_FACULTADES = "http://localhost:5000/api/facultades";
-const API_URL_CARRERAS = "http://localhost:5000/api/carreras";
-const API_URL_MAESTROS = "http://localhost:5000/api/maestros";
+const API_URL = "http://localhost:5000/api/cursos"
+const API_URL_UNIVERSIDADES = "http://localhost:5000/api/universidades"
+const API_URL_SUBGRUPOS = "http://localhost:5000/api/subgrupos-operadores"
+const API_URL_FACULTADES = "http://localhost:5000/api/facultades"
+const API_URL_CARRERAS = "http://localhost:5000/api/carreras"
+const API_URL_MAESTROS = "http://localhost:5000/api/maestros"
 
 // Estado inicial para el formulario del curso
 const initialCourseState = {
@@ -46,327 +48,309 @@ const initialCourseState = {
   codigo_curso: "",
   tipo_costo: "gratuito",
   costo: null,
-};
+}
 
 function CourseManagement({ userId }) {
-  const [universidades, setUniversidades] = useState([]);
-  const [facultades, setFacultades] = useState([]);
-  const [carreras, setCarreras] = useState([]);
+  const [universidades, setUniversidades] = useState([])
+  const [facultades, setFacultades] = useState([])
+  const [carreras, setCarreras] = useState([])
   // Estados para los filtros de maestro
-  const [selectedUniversidad, setSelectedUniversidad] = useState("");
-  const [selectedFacultad, setSelectedFacultad] = useState("");
-  const [selectedCarrera, setSelectedCarrera] = useState("");
-  const [isFacultadesLoading, setIsFacultadesLoading] = useState(false);
+  const [selectedUniversidad, setSelectedUniversidad] = useState("")
+  const [selectedFacultad, setSelectedFacultad] = useState("")
+  const [selectedCarrera, setSelectedCarrera] = useState("")
+  const [isFacultadesLoading, setIsFacultadesLoading] = useState(false)
   // Estados para Areas y Categorías
-  const [subgrupos, setSubgrupos] = useState([]);
-  const [selectedSubgrupo, setSelectedSubgrupo] = useState("");
-  const [habilidadesSubgrupo, setHabilidadesSubgrupo] = useState([]);
-  const [isHabilidadesLoading, setIsHabilidadesLoading] = useState(false);
-  const [isCarrerasLoading, setIsCarrerasLoading] = useState(false);
-  const [isTeachersLoading, setIsTeachersLoading] = useState(false);
-  const [courses, setCourses] = useState([]);
-  const [teachers, setTeachers] = useState([]); // Estado para la lista de maestros
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [openPlaneacionCurso, setOpenPlaneacionCurso] = useState(false);
-  const [cursoPlaneacion, setCursoPlaneacion] = useState(null);
-  const [openMaterialModal, setOpenMaterialModal] = useState(false);
-  const [cursoMaterial, setCursoMaterial] = useState(null);
-  const [openHorariosModal, setOpenHorariosModal] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-  const { token } = useAuth();
-  const [formState, setFormState] = useState(initialCourseState);
-  const [isEditing, setIsEditing] = useState(false);
-  const [courseToDelete, setCourseToDelete] = useState(null);
-  const [toast, setToast] = useState({ show: false, message: "", type: "" });
+  const [subgrupos, setSubgrupos] = useState([])
+  const [selectedSubgrupo, setSelectedSubgrupo] = useState("")
+  const [habilidadesSubgrupo, setHabilidadesSubgrupo] = useState([])
+  const [isHabilidadesLoading, setIsHabilidadesLoading] = useState(false)
+  const [isCarrerasLoading, setIsCarrerasLoading] = useState(false)
+  const [isTeachersLoading, setIsTeachersLoading] = useState(false)
+  const [courses, setCourses] = useState([])
+  const [teachers, setTeachers] = useState([]) // Estado para la lista de maestros
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [openPlaneacionCurso, setOpenPlaneacionCurso] = useState(false)
+  const [cursoPlaneacion, setCursoPlaneacion] = useState(null)
+  const [openMaterialModal, setOpenMaterialModal] = useState(false)
+  const [cursoMaterial, setCursoMaterial] = useState(null)
+  const [openHorariosModal, setOpenHorariosModal] = useState(false)
+  const [currentUser, setCurrentUser] = useState(null)
+  const { token } = useAuth()
+  const [formState, setFormState] = useState(initialCourseState)
+  const [isEditing, setIsEditing] = useState(false)
+  const [courseToDelete, setCourseToDelete] = useState(null)
+  const [toast, setToast] = useState({ show: false, message: "", type: "" })
   const [confirmModal, setConfirmModal] = useState({
     show: false,
     title: "",
     message: "",
     onConfirm: null,
     type: "warning",
-  });
+  })
 
   useEffect(() => {
     try {
-      const storedUser = localStorage.getItem("user");
+      const storedUser = localStorage.getItem("user")
       if (storedUser) {
-        setCurrentUser(JSON.parse(storedUser));
+        setCurrentUser(JSON.parse(storedUser))
       } else {
-        setCurrentUser(null);
+        setCurrentUser(null)
       }
     } catch (error) {
-      console.error("Error al leer usuario desde localStorage:", error);
-      setCurrentUser(null);
+      console.error("Error al leer usuario desde localStorage:", error)
+      setCurrentUser(null)
     }
-  }, []);
+  }, [])
 
-  const isMaestroUser = currentUser?.tipo_usuario === "maestro";
-  const isAdminSedeq = currentUser?.tipo_usuario === "admin_sedeq";
-  const canAssignTeacher = isEditing && !!selectedUniversidad && !!selectedFacultad;
+  const isMaestroUser = currentUser?.tipo_usuario === "maestro"
+  const isAdminSedeq = currentUser?.tipo_usuario === "admin_sedeq"
+  const canAssignTeacher = isEditing && !!selectedUniversidad && !!selectedFacultad
 
   // Función para obtener los cursos
   const fetchCourses = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    setLoading(true)
+    setError(null)
     try {
-      const token = localStorage.getItem("token");
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
+      const token = localStorage.getItem("token")
+      const user = JSON.parse(localStorage.getItem("user") || "{}")
 
-      let url = API_URL;
-      const params = new URLSearchParams();
-      params.append("exclude_assigned", "false");
+      let url = API_URL
+      const params = new URLSearchParams()
+      params.append("exclude_assigned", "false")
 
       // Solo filtrar por maestro si NO es admin_sedeq
-      if (user.tipo_usuario !== 'admin_sedeq' && userId) {
-        params.append("id_maestro", userId);
+      if (user.tipo_usuario !== "admin_sedeq" && userId) {
+        params.append("id_maestro", userId)
       }
 
-      url += `?${params.toString()}`;
+      url += `?${params.toString()}`
 
-      console.log("Fetching courses from:", url); // DEBUG
+      console.log("Fetching courses from:", url) // DEBUG
 
       const response = await fetch(url, {
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
 
       if (!response.ok) {
-        const errData = await response.json();
-        console.error("Error response:", errData); // DEBUG
-        throw new Error(errData.error || "Error al obtener los cursos");
+        const errData = await response.json()
+        console.error("Error response:", errData) // DEBUG
+        throw new Error(errData.error || "Error al obtener los cursos")
       }
 
-      const data = await response.json();
-      console.log("Courses loaded:", data); // DEBUG
-      setCourses(data.cursos || []);
+      const data = await response.json()
+      console.log("Courses loaded:", data) // DEBUG
+      setCourses(data.cursos || [])
     } catch (err) {
-      console.error("Fetch error:", err); // DEBUG
-      setError(err.message);
-      setCourses([]);
+      console.error("Fetch error:", err) // DEBUG
+      setError(err.message)
+      setCourses([])
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  }, [userId]);
+  }, [userId])
 
   // Obtener Subgrupos Operadores
   const fetchSubgrupos = useCallback(async () => {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("token")
       const response = await fetch(API_URL_SUBGRUPOS, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-      });
-      if (!response.ok) throw new Error("No se pudieron cargar los subgrupos");
-      const data = await response.json();
-      setSubgrupos(data || []);
+      })
+      if (!response.ok) throw new Error("No se pudieron cargar los subgrupos")
+      const data = await response.json()
+      setSubgrupos(data || [])
     } catch (err) {
-      console.error("Error al cargar subgrupos operadores:", err.message);
+      console.error("Error al cargar subgrupos operadores:", err.message)
     }
-  }, []);
+  }, [])
 
   // Obtener Habilidades por Subgrupo
   const fetchHabilidadesBySubgrupo = useCallback(async (idSubgrupo) => {
     if (!idSubgrupo) {
-      setHabilidadesSubgrupo([]);
-      return;
+      setHabilidadesSubgrupo([])
+      return
     }
-    setIsHabilidadesLoading(true);
-    setHabilidadesSubgrupo([]);
+    setIsHabilidadesLoading(true)
+    setHabilidadesSubgrupo([])
     try {
-      const token = localStorage.getItem("token");
-      const response = await fetch(
-        `${API_URL_SUBGRUPOS}/${idSubgrupo}/habilidades`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      const token = localStorage.getItem("token")
+      const response = await fetch(`${API_URL_SUBGRUPOS}/${idSubgrupo}/habilidades`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
         },
-      );
-      if (!response.ok)
-        throw new Error(
-          "No se pudieron cargar las habilidades para el subgrupo seleccionado",
-        );
-      const data = await response.json();
-      setHabilidadesSubgrupo(data || []);
+      })
+      if (!response.ok) throw new Error("No se pudieron cargar las habilidades para el subgrupo seleccionado")
+      const data = await response.json()
+      setHabilidadesSubgrupo(data || [])
     } catch (err) {
-      console.error("Error al cargar habilidades por subgrupo:", err.message);
+      console.error("Error al cargar habilidades por subgrupo:", err.message)
     } finally {
-      setIsHabilidadesLoading(false);
+      setIsHabilidadesLoading(false)
     }
-  }, []);
+  }, [])
 
   const fetchUniversidades = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL_UNIVERSIDADES}?limit=9999`);
-      if (!response.ok)
-        throw new Error("No se pudieron cargar las universidades");
-      const data = await response.json();
-      setUniversidades(data.universities || []);
+      const response = await fetch(`${API_URL_UNIVERSIDADES}?limit=9999`)
+      if (!response.ok) throw new Error("No se pudieron cargar las universidades")
+      const data = await response.json()
+      setUniversidades(data.universities || [])
     } catch (err) {
-      console.error("Error al cargar universidades:", err.message);
+      console.error("Error al cargar universidades:", err.message)
     }
-  }, []);
+  }, [])
 
   const fetchFacultades = useCallback(async (idUniversidad) => {
     if (!idUniversidad) {
-      setFacultades([]);
-      setCarreras([]);
-      setTeachers([]);
-      return;
+      setFacultades([])
+      setCarreras([])
+      setTeachers([])
+      return
     }
-    setIsFacultadesLoading(true);
-    setFacultades([]);
-    setCarreras([]);
-    setTeachers([]);
+    setIsFacultadesLoading(true)
+    setFacultades([])
+    setCarreras([])
+    setTeachers([])
     try {
-      const response = await fetch(
-        `${API_URL_FACULTADES}/universidad/${idUniversidad}`,
-      );
-      const data = await response.json();
-      setFacultades(data.data || []);
+      const response = await fetch(`${API_URL_FACULTADES}/universidad/${idUniversidad}`)
+      const data = await response.json()
+      setFacultades(data.data || [])
     } catch (err) {
-      console.error("Error al cargar facultades:", err);
+      console.error("Error al cargar facultades:", err)
     } finally {
-      setIsFacultadesLoading(false);
+      setIsFacultadesLoading(false)
     }
-  }, []);
+  }, [])
 
   const fetchCarreras = useCallback(async (idFacultad) => {
     if (!idFacultad) {
-      setCarreras([]);
-      setTeachers([]);
-      return;
+      setCarreras([])
+      setTeachers([])
+      return
     }
-    setIsCarrerasLoading(true);
-    setCarreras([]);
-    setTeachers([]);
+    setIsCarrerasLoading(true)
+    setCarreras([])
+    setTeachers([])
     try {
-      const response = await fetch(
-        `${API_URL_CARRERAS}/facultad/${idFacultad}`,
-      );
-      const data = await response.json();
-      setCarreras(data.data || []);
+      const response = await fetch(`${API_URL_CARRERAS}/facultad/${idFacultad}`)
+      const data = await response.json()
+      setCarreras(data.data || [])
     } catch (err) {
-      console.error("Error al cargar carreras:", err);
+      console.error("Error al cargar carreras:", err)
     } finally {
-      setIsCarrerasLoading(false);
+      setIsCarrerasLoading(false)
     }
-  }, []);
+  }, [])
 
-  const fetchTeachers = useCallback(
-    async ({ universidadId, facultadId, carreraId = null }) => {
-      if (!universidadId || !facultadId) {
-        setTeachers([]);
-        return;
+  const fetchTeachers = useCallback(async ({ universidadId, facultadId, carreraId = null }) => {
+    if (!universidadId || !facultadId) {
+      setTeachers([])
+      return
+    }
+
+    setIsTeachersLoading(true)
+    setTeachers([])
+
+    try {
+      const params = new URLSearchParams({
+        id_universidad: universidadId,
+        id_facultad: facultadId,
+      })
+
+      if (carreraId) {
+        params.append("id_carrera", carreraId)
       }
 
-      setIsTeachersLoading(true);
-      setTeachers([]);
-
-      try {
-        const params = new URLSearchParams({
-          id_universidad: universidadId,
-          id_facultad: facultadId,
-        });
-
-        if (carreraId) {
-          params.append("id_carrera", carreraId);
-        }
-
-        const response = await fetch(`${API_URL_MAESTROS}?${params.toString()}`);
-        const data = await response.json();
-        setTeachers(data.maestros || []);
-      } catch (err) {
-        console.error("Error al cargar maestros:", err);
-      } finally {
-        setIsTeachersLoading(false);
-      }
-    },
-    [],
-  );
+      const response = await fetch(`${API_URL_MAESTROS}?${params.toString()}`)
+      const data = await response.json()
+      setTeachers(data.maestros || [])
+    } catch (err) {
+      console.error("Error al cargar maestros:", err)
+    } finally {
+      setIsTeachersLoading(false)
+    }
+  }, [])
 
   // Efecto para cargar datos iniciales
   useEffect(() => {
-    fetchCourses();
-    fetchSubgrupos(); // Cargamos las áreas en lugar de todas las categorías
-    fetchUniversidades();
-  }, [fetchCourses, fetchSubgrupos, fetchUniversidades]);
+    fetchCourses()
+    fetchSubgrupos()
+    fetchUniversidades()
+  }, [fetchCourses, fetchSubgrupos, fetchUniversidades])
 
   // Función para mostrar notificaciones toast
   const showToast = (message, type = "success") => {
-    setToast({ show: true, message, type });
+    setToast({ show: true, message, type })
     setTimeout(() => {
-      setToast({ show: false, message: "", type: "" });
-    }, 3000);
-  };
+      setToast({ show: false, message: "", type: "" })
+    }, 3000)
+  }
 
   const showConfirmModal = (title, message, onConfirm, type = "warning") => {
-    setConfirmModal({ show: true, title, message, onConfirm, type });
-  };
+    setConfirmModal({ show: true, title, message, onConfirm, type })
+  }
 
   const closeConfirmModal = () => {
-    setConfirmModal({ show: false, title: "", message: "", onConfirm: null, type: "warning" });
-  };
+    setConfirmModal({ show: false, title: "", message: "", onConfirm: null, type: "warning" })
+  }
 
   const openPlaneacion = (curso) => {
     // Enriquecer el objeto curso con información de la carrera seleccionada
-    const carreraSeleccionada = carreras.find(c => c.id_carrera === curso.id_carrera);
+    const carreraSeleccionada = carreras.find((c) => c.id_carrera === curso.id_carrera)
 
     const cursoEnriquecido = {
       ...curso,
       nombre_carrera: carreraSeleccionada?.nombre || curso.nombre_carrera || null,
       clave_carrera: carreraSeleccionada?.clave_carrera || curso.clave_carrera || null,
-    };
+    }
 
-    setCursoPlaneacion(cursoEnriquecido);
-    setOpenPlaneacionCurso(true);
-  };
+    setCursoPlaneacion(cursoEnriquecido)
+    setOpenPlaneacionCurso(true)
+  }
 
   const closePlaneacion = () => {
-    setOpenPlaneacionCurso(false);
-    setCursoPlaneacion(null);
-  };
+    setOpenPlaneacionCurso(false)
+    setCursoPlaneacion(null)
+  }
 
   const openMaterial = (curso) => {
-    setCursoMaterial(curso);
-    setOpenMaterialModal(true);
-  };
+    setCursoMaterial(curso)
+    setOpenMaterialModal(true)
+  }
 
   const closeMaterial = (shouldReload = false) => {
-    setOpenMaterialModal(false);
-    setCursoMaterial(null);
+    setOpenMaterialModal(false)
+    setCursoMaterial(null)
     if (shouldReload) {
-      fetchCourses();
+      fetchCourses()
     }
-  };
+  }
 
   const openHorarios = () => {
-    setOpenHorariosModal(true);
-  };
+    setOpenHorariosModal(true)
+  }
 
   const closeHorarios = () => {
-    setOpenHorariosModal(false);
-  };
+    setOpenHorariosModal(false)
+  }
 
   // Abrir modal para agregar/editar
   const handleOpenModal = async (course = null) => {
     if (course) {
-      setIsEditing(true);
+      setIsEditing(true)
       const formattedCourse = {
         ...course,
-        fecha_inicio: course.fecha_inicio
-          ? new Date(course.fecha_inicio).toISOString().split("T")[0]
-          : "",
-        fecha_fin: course.fecha_fin
-          ? new Date(course.fecha_fin).toISOString().split("T")[0]
-          : "",
-      };
+        fecha_inicio: course.fecha_inicio ? new Date(course.fecha_inicio).toISOString().split("T")[0] : "",
+        fecha_fin: course.fecha_fin ? new Date(course.fecha_fin).toISOString().split("T")[0] : "",
+      }
       // Aseguramos que los valores nulos se conviertan a strings vacíos para los selects
       const stateReadyCourse = {
         ...formattedCourse,
@@ -374,193 +358,184 @@ function CourseManagement({ userId }) {
         id_facultad: formattedCourse.id_facultad || "",
         id_carrera: formattedCourse.id_carrera || "",
         id_maestro: formattedCourse.id_maestro ? String(formattedCourse.id_maestro) : "",
-      };
-      setFormState(stateReadyCourse);
+      }
+      setFormState(stateReadyCourse)
 
       if (course.id_subgrupo) {
-        setSelectedSubgrupo(course.id_subgrupo);
-        fetchHabilidadesBySubgrupo(course.id_subgrupo);
+        setSelectedSubgrupo(course.id_subgrupo)
+        fetchHabilidadesBySubgrupo(course.id_subgrupo)
       }
 
       if (course.id_universidad) {
-        setSelectedUniversidad(course.id_universidad);
-        await fetchFacultades(course.id_universidad);
+        setSelectedUniversidad(course.id_universidad)
+        await fetchFacultades(course.id_universidad)
       }
       if (course.id_facultad) {
-        setSelectedFacultad(course.id_facultad);
-        await fetchCarreras(course.id_facultad);
+        setSelectedFacultad(course.id_facultad)
+        await fetchCarreras(course.id_facultad)
       }
       if (course.id_carrera || course.id_facultad) {
-        setSelectedCarrera(course.id_carrera || "");
+        setSelectedCarrera(course.id_carrera || "")
         await fetchTeachers({
           universidadId: course.id_universidad,
           facultadId: course.id_facultad,
-          carreraId: course.id_carrera || null
-        });
+          carreraId: course.id_carrera || null,
+        })
       }
     } else {
-      setIsEditing(false);
-      const presetMaestro = isMaestroUser && userId ? String(userId) : "";
-      setFormState({ ...initialCourseState, id_maestro: presetMaestro });
-      setSelectedUniversidad("");
-      setSelectedFacultad("");
-      setSelectedCarrera("");
-      setFacultades([]);
-      setCarreras([]);
-      setTeachers([]);
+      setIsEditing(false)
+      const presetMaestro = isMaestroUser && userId ? String(userId) : ""
+      setFormState({ ...initialCourseState, id_maestro: presetMaestro })
+      setSelectedUniversidad("")
+      setSelectedFacultad("")
+      setSelectedCarrera("")
+      setFacultades([])
+      setCarreras([])
+      setTeachers([])
     }
-    setIsModalOpen(true);
-  };
+    setIsModalOpen(true)
+  }
 
   const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setIsEditing(false);
-    setFormState(initialCourseState);
-    setSelectedUniversidad("");
-    setSelectedFacultad("");
-    setSelectedCarrera("");
-    setFacultades([]);
-    setCarreras([]);
-    setTeachers([]);
-  };
+    setIsModalOpen(false)
+    setIsEditing(false)
+    setFormState(initialCourseState)
+    setSelectedUniversidad("")
+    setSelectedFacultad("")
+    setSelectedCarrera("")
+    setFacultades([])
+    setCarreras([])
+    setTeachers([])
+    setSelectedSubgrupo("")
+    setHabilidadesSubgrupo([])
+  }
 
   const handleOpenDeleteModal = (course) => {
-    setCourseToDelete(course);
-    setIsDeleteModalOpen(true);
-  };
+    setCourseToDelete(course)
+    setIsDeleteModalOpen(true)
+  }
 
-  const handleCloseDeleteModal = () => setIsDeleteModalOpen(false);
+  const handleCloseDeleteModal = () => setIsDeleteModalOpen(false)
 
   const handleFormChange = (e) => {
-    const { name, value } = e.target;
+    const { name, value } = e.target
 
     if (name === "horas_teoria" || name === "horas_practica") {
-      const totalHoras = parseInt(formState.duracion_horas, 10) || 0;
-      const valorActual = parseInt(value, 10) || 0;
+      const totalHoras = Number.parseInt(formState.duracion_horas, 10) || 0
+      const valorActual = Number.parseInt(value, 10) || 0
 
       const otrasHoras =
         name === "horas_teoria"
-          ? parseInt(formState.horas_practica, 10) || 0
-          : parseInt(formState.horas_teoria, 10) || 0;
+          ? Number.parseInt(formState.horas_practica, 10) || 0
+          : Number.parseInt(formState.horas_teoria, 10) || 0
 
       // Si el valor actual excede el total, no hacemos nada (o mostramos un toast)
       if (valorActual > totalHoras) {
-        showToast("Las horas no pueden exceder la duración total.", "error");
-        return;
+        showToast("Las horas no pueden exceder la duración total.", "error")
+        return
       }
 
       // Si la suma excede el total, no actualizamos el estado
       if (valorActual + otrasHoras > totalHoras) {
-        showToast(
-          "La suma de horas de teoría y práctica no puede exceder la duración total.",
-          "error",
-        );
-        return;
+        showToast("La suma de horas de teoría y práctica no puede exceder la duración total.", "error")
+        return
       }
     }
 
     setFormState((prev) => ({
       ...prev,
       [name]: value,
-    }));
+    }))
 
     // Si el tipo de costo cambia a gratuito, reseteamos el costo.
     if (name === "tipo_costo" && value === "gratuito") {
       setFormState((prev) => ({
         ...prev,
         costo: "",
-      }));
+      }))
     }
-  };
+  }
 
   const handleSubgrupoChange = (e) => {
-    const subgrupoId = e.target.value;
-    setSelectedSubgrupo(subgrupoId);
+    const subgrupoId = e.target.value
+    setSelectedSubgrupo(subgrupoId)
     setFormState((prev) => ({
       ...prev,
       id_subgrupo: subgrupoId,
       id_habilidades: [], // Reseteamos las habilidades al cambiar de subgrupo
-    }));
-    fetchHabilidadesBySubgrupo(subgrupoId);
-  };
+    }))
+    fetchHabilidadesBySubgrupo(subgrupoId)
+  }
 
   const handleUniversidadChange = async (e) => {
-    const uniId = e.target.value;
-    setSelectedUniversidad(uniId);
-    setSelectedFacultad("");
-    setSelectedCarrera("");
+    const uniId = e.target.value
+    setSelectedUniversidad(uniId)
+    setSelectedFacultad("")
+    setSelectedCarrera("")
     setFormState((prev) => ({
       ...prev,
       id_universidad: uniId,
       id_facultad: "",
       id_carrera: "",
       id_maestro: "",
-    }));
-    setFacultades([]);
-    setCarreras([]);
-    setTeachers([]);
-    await fetchFacultades(uniId);
-  };
+    }))
+    setFacultades([])
+    setCarreras([])
+    setTeachers([])
+    await fetchFacultades(uniId)
+  }
 
   const handleFacultadChange = async (e) => {
-    const facId = e.target.value;
-    setSelectedFacultad(facId);
-    setSelectedCarrera("");
+    const facId = e.target.value
+    setSelectedFacultad(facId)
+    setSelectedCarrera("")
     setFormState((prev) => ({
       ...prev,
       id_facultad: facId,
       id_carrera: "",
       id_maestro: "",
-    }));
-    setCarreras([]);
-    setTeachers([]);
-    await fetchCarreras(facId);
-  };
+    }))
+    setCarreras([])
+    setTeachers([])
+    await fetchCarreras(facId)
+  }
 
   const handleCarreraChange = async (e) => {
-    const carId = e.target.value;
-    setSelectedCarrera(carId);
+    const carId = e.target.value
+    setSelectedCarrera(carId)
     setFormState((prev) => ({
       ...prev,
       id_carrera: carId,
       id_maestro: "",
-    }));
-    setTeachers([]);
+    }))
+    setTeachers([])
     if (isEditing) {
       await fetchTeachers({
         universidadId: selectedUniversidad,
         facultadId: selectedFacultad,
-        carreraId: carId
-      });
+        carreraId: carId,
+      })
     }
-  };
+  }
 
   const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    const method = isEditing ? "PUT" : "POST";
-    const url = isEditing ? `${API_URL}/${formState.id_curso}` : API_URL;
-    const successMessage = isEditing
-      ? "Curso actualizado con éxito."
-      : "Curso creado con éxito.";
+    e.preventDefault()
+    const method = isEditing ? "PUT" : "POST"
+    const url = isEditing ? `${API_URL}/${formState.id_curso}` : API_URL
+    const successMessage = isEditing ? "Curso actualizado con éxito." : "Curso creado con éxito."
 
     // --- VALIDACIÓN FINAL EN FRONTEND ---
-    const totalHoras = parseInt(formState.duracion_horas, 10) || 0;
-    const teoriaHoras = parseInt(formState.horas_teoria, 10) || 0;
-    const practicaHoras = parseInt(formState.horas_practica, 10) || 0;
+    const totalHoras = Number.parseInt(formState.duracion_horas, 10) || 0
+    const teoriaHoras = Number.parseInt(formState.horas_teoria, 10) || 0
+    const practicaHoras = Number.parseInt(formState.horas_practica, 10) || 0
 
     if (totalHoras > 0 && (teoriaHoras === 0 || practicaHoras === 0)) {
-      showToast(
-        "Un curso debe tener al menos 1 hora de teoría y 1 de práctica.",
-        "error",
-      );
-      return;
+      showToast("Un curso debe tener al menos 1 hora de teoría y 1 de práctica.", "error")
+      return
     }
     if (totalHoras > 0 && teoriaHoras + practicaHoras !== totalHoras) {
-      showToast(
-        "La suma de horas de teoría y práctica debe ser igual a la duración total.",
-        "error",
-      );
-      return;
+      showToast("La suma de horas de teoría y práctica debe ser igual a la duración total.", "error")
+      return
     }
 
     // Aseguramos que los IDs de la jerarquía de universidad se incluyan
@@ -570,10 +545,16 @@ function CourseManagement({ userId }) {
       id_facultad: selectedFacultad || formState.id_facultad || null,
       id_carrera: selectedCarrera || formState.id_carrera || null,
       id_maestro: formState.id_maestro || null, // Asegurar null si no se selecciona
-    };
+    }
 
-    if (!isEditing) {
-      delete bodyToSend.codigo_curso;
+    // Remueve codigo_curso si no está editando, para evitar errores en el backend
+    if (!isEditing && bodyToSend.codigo_curso) {
+      delete bodyToSend.codigo_curso
+    }
+
+    // Asegura que los valores vacíos sean null si no son requeridos
+    if (bodyToSend.costo === "") {
+      bodyToSend.costo = null
     }
 
     try {
@@ -581,36 +562,36 @@ function CourseManagement({ userId }) {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(bodyToSend),
-      });
-      const result = await response.json();
+      })
+      const result = await response.json()
       if (!response.ok) {
-        throw new Error(result.error || "Ocurrió un error desconocido.");
+        throw new Error(result.error || "Ocurrió un error desconocido.")
       }
-      showToast(successMessage, "success");
-      handleCloseModal();
-      fetchCourses();
+      showToast(successMessage, "success")
+      handleCloseModal()
+      fetchCourses()
     } catch (err) {
-      showToast(`Error: ${err.message}`, "error");
+      showToast(`Error: ${err.message}`, "error")
     }
-  };
+  }
 
   const handleConfirmDelete = async () => {
-    if (!courseToDelete) return;
+    if (!courseToDelete) return
     try {
       const response = await fetch(`${API_URL}/${courseToDelete.id_curso}`, {
         method: "DELETE",
-      });
+      })
       if (!response.ok) {
-        const result = await response.json();
-        throw new Error(result.error || "La eliminación falló.");
+        const result = await response.json()
+        throw new Error(result.error || "La eliminación falló.")
       }
-      showToast("Curso eliminado con éxito.", "success");
-      handleCloseDeleteModal();
-      fetchCourses();
+      showToast("Curso eliminado con éxito.", "success")
+      handleCloseDeleteModal()
+      fetchCourses()
     } catch (err) {
-      showToast(`Error: ${err.message}`, "error");
+      showToast(`Error: ${err.message}`, "error")
     }
-  };
+  }
 
   const renderContent = () => {
     if (loading) {
@@ -619,7 +600,7 @@ function CourseManagement({ userId }) {
           <div className={styles.spinner}></div>
           <p>Cargando cursos...</p>
         </div>
-      );
+      )
     }
     if (error) {
       return (
@@ -631,7 +612,7 @@ function CourseManagement({ userId }) {
             Intentar de nuevo
           </button>
         </div>
-      );
+      )
     }
     if (courses.length === 0) {
       return (
@@ -639,61 +620,100 @@ function CourseManagement({ userId }) {
           <FontAwesomeIcon icon={faBook} size="3x" />
           <h3>No se encontraron cursos</h3>
           <p>Comienza agregando un nuevo curso para empezar.</p>
-          <button
-            onClick={() => handleOpenModal()}
-            className={styles.emptyStateButton}
-          >
+          <button onClick={() => handleOpenModal()} className={styles.emptyStateButton}>
             <i className="fas fa-plus"></i> Agregar Curso
           </button>
         </div>
-      );
+      )
     }
+
     return (
-      <div className={styles.desktopView}>
-        <table className={styles.table}>
-          <thead>
-            <tr>
-              <th>Nombre</th>
-              <th>Código</th>
-              <th>Universidad</th>
-              <th>Nivel</th>
-              <th>Duración (horas)</th>
-              <th>Credencial</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {courses.map((course) => (
-              <tr key={course.id_curso}>
-                <td>{course.nombre_curso}</td>
-                <td>{course.codigo_curso}</td>
-                <td>{course.nombre_universidad || "N/A"}</td>
-                <td>{course.nivel}</td>
-                <td>{course.duracion_horas}</td>
-                <td>{course.nombre_credencial || ""}</td>
-                <td>
-                  <div className={styles.tableActions}>
-                    <button
-                      onClick={() => handleOpenModal(course)}
-                      className={styles.editButton}
-                    >
-                      <FontAwesomeIcon icon={faEdit} />
-                    </button>
-                    <button
-                      onClick={() => handleOpenDeleteModal(course)}
-                      className={styles.deleteButton}
-                    >
-                      <FontAwesomeIcon icon={faTrash} />
-                    </button>
-                  </div>
-                </td>
+      <>
+        {/* Vista móvil - Tarjetas */}
+        <div className={styles.mobileView}>
+          {courses.map((course) => (
+            <div key={course.id_curso} className={styles.courseCard}>
+              <div className={styles.cardContent}>
+                <h3 className={styles.courseName}>{course.nombre_curso}</h3>
+                <p className={styles.courseInfo}>
+                  <strong>Código:</strong> {course.codigo_curso || "N/A"}
+                </p>
+                <p className={styles.courseInfo}>
+                  <strong>Universidad:</strong> {course.nombre_universidad || "N/A"}
+                </p>
+                <p className={styles.courseInfo}>
+                  <strong>Nivel:</strong> {course.nivel}
+                </p>
+                <p className={styles.courseInfo}>
+                  <strong>Duración:</strong> {course.duracion_horas} horas
+                </p>
+                {course.nombre_credencial && (
+                  <p className={styles.courseInfo}>
+                    <strong>Credencial:</strong> {course.nombre_credencial}
+                  </p>
+                )}
+                <div className={styles.cardActions}>
+                  <button
+                    onClick={() => handleOpenModal(course)}
+                    className={styles.editButton}
+                    title="Editar curso"
+                  >
+                    <FontAwesomeIcon icon={faEdit} />
+                  </button>
+                  <button
+                    onClick={() => handleOpenDeleteModal(course)}
+                    className={styles.deleteButton}
+                    title="Eliminar curso"
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Vista desktop - Tabla */}
+        <div className={styles.desktopView}>
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Código</th>
+                <th>Universidad</th>
+                <th>Nivel</th>
+                <th>Duración (horas)</th>
+                <th>Credencial</th>
+                <th>Acciones</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    );
-  };
+            </thead>
+            <tbody>
+              {courses.map((course) => (
+                <tr key={course.id_curso}>
+                  <td>{course.nombre_curso}</td>
+                  <td>{course.codigo_curso}</td>
+                  <td>{course.nombre_universidad || "N/A"}</td>
+                  <td>{course.nivel}</td>
+                  <td>{course.duracion_horas}</td>
+                  <td>{course.nombre_credencial || ""}</td>
+                  <td>
+                    <div className={styles.tableActions}>
+                      <button onClick={() => handleOpenModal(course)} className={styles.editButton}>
+                        <FontAwesomeIcon icon={faEdit} />
+                      </button>
+                      <button onClick={() => handleOpenDeleteModal(course)} className={styles.deleteButton}>
+                        <FontAwesomeIcon icon={faTrash} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </>
+    )
+  }
 
   return (
     <div className={styles.container}>
@@ -704,10 +724,7 @@ function CourseManagement({ userId }) {
       </header>
       <main className={styles.main}>
         <div className={styles.toolbar}>
-          <button
-            onClick={() => handleOpenModal()}
-            className={styles.addButton}
-          >
+          <button onClick={() => handleOpenModal()} className={styles.addButton}>
             <FontAwesomeIcon icon={faPlus} /> Agregar Curso
           </button>
         </div>
@@ -739,10 +756,7 @@ function CourseManagement({ userId }) {
                     >
                       <option value="">Seleccione una universidad</option>
                       {universidades.map((uni) => (
-                        <option
-                          key={uni.id_universidad}
-                          value={uni.id_universidad}
-                        >
+                        <option key={uni.id_universidad} value={uni.id_universidad}>
                           {uni.nombre}
                         </option>
                       ))}
@@ -753,9 +767,7 @@ function CourseManagement({ userId }) {
                     <p>Cargando facultades...</p>
                   ) : (
                     selectedUniversidad && (
-                      <div
-                        className={`${styles.formGroup} ${styles.fullWidth}`}
-                      >
+                      <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                         <label htmlFor="facultad">Facultad</label>
                         <select
                           id="facultad"
@@ -766,10 +778,7 @@ function CourseManagement({ userId }) {
                         >
                           <option value="">Seleccione una facultad</option>
                           {facultades.map((fac) => (
-                            <option
-                              key={fac.id_facultad}
-                              value={fac.id_facultad}
-                            >
+                            <option key={fac.id_facultad} value={fac.id_facultad}>
                               {fac.nombre}
                             </option>
                           ))}
@@ -782,22 +791,12 @@ function CourseManagement({ userId }) {
                     <p>Cargando carreras...</p>
                   ) : (
                     selectedFacultad && (
-                      <div
-                        className={`${styles.formGroup} ${styles.fullWidth}`}
-                      >
+                      <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                         <label htmlFor="carrera">Carrera</label>
-                        <select
-                          id="carrera"
-                          name="carrera"
-                          value={selectedCarrera}
-                          onChange={handleCarreraChange}
-                        >
+                        <select id="carrera" name="carrera" value={selectedCarrera} onChange={handleCarreraChange}>
                           <option value="">Seleccione una carrera</option>
                           {carreras.map((car) => (
-                            <option
-                              key={car.id_carrera}
-                              value={car.id_carrera}
-                            >
+                            <option key={car.id_carrera} value={car.id_carrera}>
                               {car.nombre}
                             </option>
                           ))}
@@ -812,9 +811,7 @@ function CourseManagement({ userId }) {
                         <p>Cargando maestros...</p>
                       ) : (
                         selectedFacultad && (
-                          <div
-                            className={`${styles.formGroup} ${styles.fullWidth}`}
-                          >
+                          <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                             <label htmlFor="id_maestro">Maestro (Opcional)</label>
                             <select
                               id="id_maestro"
@@ -824,10 +821,7 @@ function CourseManagement({ userId }) {
                             >
                               <option value="">Seleccione un maestro (opcional)</option>
                               {teachers.map((teacher) => (
-                                <option
-                                  key={teacher.id_maestro}
-                                  value={teacher.id_maestro}
-                                >
+                                <option key={teacher.id_maestro} value={teacher.id_maestro}>
                                   {teacher.nombre_completo}
                                 </option>
                               ))}
@@ -924,9 +918,9 @@ function CourseManagement({ userId }) {
                       />
                       <small className={styles.formHint}>
                         Asignadas:{" "}
-                        {(parseInt(formState.horas_teoria, 10) || 0) +
-                          (parseInt(formState.horas_practica, 10) || 0)}{" "}
-                        de {parseInt(formState.duracion_horas, 10) || 0} horas.
+                        {(Number.parseInt(formState.horas_teoria, 10) || 0) +
+                          (Number.parseInt(formState.horas_practica, 10) || 0)}{" "}
+                        de {Number.parseInt(formState.duracion_horas, 10) || 0} horas.
                       </small>
                     </div>
                   </>
@@ -1001,18 +995,22 @@ function CourseManagement({ userId }) {
                   </select>
                 </div>
                 {isHabilidadesLoading ? (
-                  <div className={styles.formGroup}>
+                  <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                     <label>Habilidades Clave</label>
                     <select disabled>
                       <option>Cargando habilidades...</option>
                     </select>
                   </div>
                 ) : (
-                  <div className={styles.formGroup}>
+                  <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                     <label>Habilidades Clave</label>
                     <div className={styles.habilidadesDisplay}>
                       {habilidadesSubgrupo.length === 0 ? (
-                        <p className={styles.noHabilidades}>Seleccione un subgrupo para ver sus habilidades</p>
+                        <p className={styles.noHabilidades}>
+                          {selectedSubgrupo
+                            ? "No hay habilidades disponibles para este subgrupo"
+                            : "Seleccione un subgrupo para ver sus habilidades"}
+                        </p>
                       ) : (
                         <div className={styles.habilidadesList}>
                           {habilidadesSubgrupo.map((habilidad) => (
@@ -1027,13 +1025,7 @@ function CourseManagement({ userId }) {
                 )}
                 <div className={styles.formGroup}>
                   <label htmlFor="nivel">Nivel</label>
-                  <select
-                    id="nivel"
-                    name="nivel"
-                    value={formState.nivel}
-                    onChange={handleFormChange}
-                    required
-                  >
+                  <select id="nivel" name="nivel" value={formState.nivel} onChange={handleFormChange} required>
                     <option value="basico">Básico</option>
                     <option value="intermedio">Intermedio</option>
                     <option value="avanzado">Avanzado</option>
@@ -1080,24 +1072,21 @@ function CourseManagement({ userId }) {
                     <option value="presencial">Presencial</option>
                     <option value="mixto">Semipresencial/Mixto</option>
                     <option value="virtual">Virtual</option>
-                    <option value="virtual_autogestiva">
-                      Virtual Autogestiva
-                    </option>
+                    <option value="virtual_autogestiva">Virtual Autogestiva</option>
                     <option value="virtual_mixta">Virtual Mixta</option>
                     <option value="virtual-presencial">Virtual</option>
                   </select>
                 </div>
               </div>{" "}
               {/* Cierre de formGrid */}
-
               {isEditing && (
                 <div className={styles.managementGrid}>
                   <button
                     type="button"
                     onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      openPlaneacion(formState);
+                      e.preventDefault()
+                      e.stopPropagation()
+                      openPlaneacion(formState)
                     }}
                     className={styles.managementButton}
                   >
@@ -1108,9 +1097,9 @@ function CourseManagement({ userId }) {
                   <button
                     type="button"
                     onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      openMaterial(formState);
+                      e.preventDefault()
+                      e.stopPropagation()
+                      openMaterial(formState)
                     }}
                     className={styles.managementButton}
                   >
@@ -1121,9 +1110,9 @@ function CourseManagement({ userId }) {
                   <button
                     type="button"
                     onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      openHorarios();
+                      e.preventDefault()
+                      e.stopPropagation()
+                      openHorarios()
                     }}
                     className={styles.managementButton}
                   >
@@ -1132,13 +1121,12 @@ function CourseManagement({ userId }) {
                   </button>
                 </div>
               )}
-
               <div className={styles.formActions}>
                 <button
                   type="button"
                   onClick={(e) => {
-                    e.stopPropagation();
-                    handleCloseModal();
+                    e.stopPropagation()
+                    handleCloseModal()
                   }}
                   className={styles.cancelButton}
                 >
@@ -1147,9 +1135,9 @@ function CourseManagement({ userId }) {
                 <button
                   type="button"
                   onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleFormSubmit(e);
+                    e.preventDefault()
+                    e.stopPropagation()
+                    handleFormSubmit(e)
                   }}
                   className={styles.saveButton}
                 >
@@ -1157,7 +1145,6 @@ function CourseManagement({ userId }) {
                 </button>
               </div>
             </div>
-
           </div>
         </div>
       )}
@@ -1167,8 +1154,8 @@ function CourseManagement({ userId }) {
           token={token}
           onClose={() => closePlaneacion()}
           onSave={() => {
-            showToast("Planeación guardada correctamente", "success");
-            closePlaneacion();
+            showToast("Planeación guardada correctamente", "success")
+            closePlaneacion()
           }}
         />
       )}
@@ -1190,10 +1177,7 @@ function CourseManagement({ userId }) {
               </button>
             </div>
             <div className={styles.modalBody}>
-              <GestionHorarios
-                key={`horarios-${formState.id_curso}`}
-                cursoId={formState.id_curso}
-              />
+              <GestionHorarios key={`horarios-${formState.id_curso}`} cursoId={formState.id_curso} />
             </div>
           </div>
         </div>
@@ -1203,11 +1187,7 @@ function CourseManagement({ userId }) {
           <div className={styles.deleteModal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.deleteModalContent}>
               <div className={`${styles.deleteIcon} ${styles[confirmModal.type] || styles.warning}`}>
-                {confirmModal.type === "success"
-                  ? "✅"
-                  : confirmModal.type === "error"
-                    ? "❌"
-                    : "⚠️"}
+                {confirmModal.type === "success" ? "✅" : confirmModal.type === "error" ? "❌" : "⚠️"}
               </div>
               <h3>{confirmModal.title}</h3>
               <p>{confirmModal.message}</p>
@@ -1219,8 +1199,8 @@ function CourseManagement({ userId }) {
               {confirmModal.onConfirm && (
                 <button
                   onClick={() => {
-                    confirmModal.onConfirm();
-                    closeConfirmModal();
+                    confirmModal.onConfirm()
+                    closeConfirmModal()
                   }}
                   className={styles.confirmDeleteButton}
                 >
@@ -1233,32 +1213,22 @@ function CourseManagement({ userId }) {
       )}
       {isDeleteModalOpen && (
         <div className={styles.modalBackdrop} onClick={handleCloseDeleteModal}>
-          <div
-            className={styles.deleteModal}
-            onClick={(e) => e.stopPropagation()}
-          >
+          <div className={styles.deleteModal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.deleteModalContent}>
               <div className={styles.deleteIcon}>
                 <i className="fas fa-trash-alt"></i>
               </div>
               <h3>Confirmar Eliminación</h3>
               <p>
-                ¿Estás seguro de que quieres eliminar el curso{" "}
-                <strong>{courseToDelete?.nombre_curso}</strong>? Esta acción no
-                se puede deshacer.
+                ¿Estás seguro de que quieres eliminar el curso <strong>{courseToDelete?.nombre_curso}</strong>? Esta
+                acción no se puede deshacer.
               </p>
             </div>
             <div className={styles.deleteActions}>
-              <button
-                onClick={handleCloseDeleteModal}
-                className={styles.cancelButton}
-              >
+              <button onClick={handleCloseDeleteModal} className={styles.cancelButton}>
                 Cancelar
               </button>
-              <button
-                onClick={handleConfirmDelete}
-                className={styles.confirmDeleteButton}
-              >
+              <button onClick={handleConfirmDelete} className={styles.confirmDeleteButton}>
                 Confirmar Eliminación
               </button>
             </div>
@@ -1267,18 +1237,14 @@ function CourseManagement({ userId }) {
       )}
       {toast.show && (
         <div className={styles.toast}>
-          <div
-            className={`${styles.toastContent} ${styles[toast.type] || styles.success}`}
-          >
-            <i
-              className={`fas ${toast.type === "success" ? "fa-check-circle" : "fa-exclamation-circle"}`}
-            ></i>
+          <div className={`${styles.toastContent} ${styles[toast.type] || styles.success}`}>
+            <i className={`fas ${toast.type === "success" ? "fa-check-circle" : "fa-exclamation-circle"}`}></i>
             <p>{toast.message}</p>
           </div>
         </div>
       )}
     </div>
-  );
+  )
 }
 
-export default CourseManagement;
+export default CourseManagement
