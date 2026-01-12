@@ -180,6 +180,7 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
           setTemario(
             data.temario.map((tema, index) => ({
               id: tema.id, // ✅ ID REAL de la base de datos
+              id_temporal: tema.id || `tema-temp-${Date.now()}-${index}`, // Añadir id_temporal para manejo en frontend
               numero_tema: index + 1,
               nombre_tema: tema.nombre,
               descripcion: tema.descripcion || "",
@@ -187,6 +188,7 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
               competencias_genericas: tema.competencias_genericas || "",
               subtemas: (tema.subtemas || []).map((subtema, subIndex) => ({
                 id: subtema.id, // ✅ ID REAL de la base de datos
+                id_temporal: subtema.id || `subtema-temp-${Date.now()}-${index}-${subIndex}`, // Añadir id_temporal
                 numero_subtema: `${index + 1}.${subIndex + 1}`,
                 nombre_subtema: subtema.nombre,
                 descripcion: subtema.descripcion || "",
@@ -301,6 +303,7 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
   const handleAddTema = () => {
     const nuevoTema = {
       id: null, // null porque es nuevo, el backend asignará ID
+      id_temporal: Date.now() + Math.floor(Math.random() * 1000), // ID temporal único
       numero_tema: temario.length + 1,
       nombre_tema: "",
       subtemas: [],
@@ -308,7 +311,7 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
       competencias_genericas: "",
     }
     setTemario([...temario, nuevoTema])
-    setTemasExpandidos({ ...temasExpandidos, [temario.length]: true })
+    setTemasExpandidos({ ...temasExpandidos, [nuevoTema.id_temporal]: true })
   }
 
   const handleRemoveTema = (index) => {
@@ -328,7 +331,7 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
   }
 
   const toggleTemaExpansion = (tema) => {
-    const temaId = tema.id_temporal || tema.id_tema
+    const temaId = tema.id || tema.id_temporal
     setTemasExpandidos({
       ...temasExpandidos,
       [temaId]: !temasExpandidos[temaId],
@@ -964,7 +967,7 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
             <h3 className={styles.sectionTitle}>📚 Temario</h3>
 
             {temario.map((tema, temaIndex) => (
-              <div key={tema.id_temporal || tema.id_tema} className={styles.temaItem}>
+              <div key={tema.id_temporal || tema.id} className={styles.temaItem}>
                 <div className={styles.temaHeader} onClick={() => toggleTemaExpansion(tema)}>
                   <div className={styles.temaHeaderContent}>
                     <span className={styles.temaNumero}>Tema {tema.numero_tema}</span>
@@ -981,13 +984,13 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                       <FontAwesomeIcon icon={faTrash} />
                     </button>
                     <FontAwesomeIcon
-                      icon={temasExpandidos[tema.id_temporal || tema.id_tema] ? faChevronUp : faChevronDown}
+                      icon={temasExpandidos[tema.id_temporal || tema.id] ? faChevronUp : faChevronDown}
                       className={styles.chevronIcon}
                     />
                   </div>
                 </div>
 
-                {temasExpandidos[tema.id_temporal || tema.id_tema] && (
+                {temasExpandidos[tema.id_temporal || tema.id] && (
                   <div className={styles.temaContent}>
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Nombre del Tema *</label>
@@ -1004,7 +1007,7 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                     <div className={styles.formGroup}>
                       <label className={styles.label}>Subtemas</label>
                       {(tema.subtemas || []).map((subtema, subtemaIndex) => (
-                        <div key={subtema.id_temporal || subtema.id_subtema} className={styles.subtemaItem}>
+                        <div key={subtema.id_temporal || subtema.id} className={styles.subtemaItem}>
                           <span className={styles.subtemaNumero}>{subtema.numero_subtema}</span>
                           <input
                             type="text"
@@ -1138,13 +1141,13 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                     {/* CAMBIO 2: Renderizado del select con keys apropiados */}
                     <option value="">Seleccionar tema...</option>
                     {temario.map((tema, temaIndex) => (
-                      <React.Fragment key={`tema-fragment-${tema.id || temaIndex}`}>
+                      <React.Fragment key={`tema-fragment-${tema.id || tema.id_temporal}`}>
                         <option value={tema.id || ""}>
                           Tema {tema.numero_tema}: {tema.nombre_tema || "Sin nombre"}
                         </option>
                         {tema.subtemas?.map((subtema, subIndex) => (
                           <option
-                            key={`subtema-${subtema.id || `${temaIndex}-${subIndex}`}`}
+                            key={`subtema-${subtema.id || subtema.id_temporal}`}
                             value={`${tema.id}_subtema_${subtema.id}`}
                           >
                             &nbsp;&nbsp;&nbsp;&nbsp;↳ {subtema.numero_subtema} {subtema.nombre_subtema}
@@ -1153,7 +1156,7 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                       </React.Fragment>
                     ))}
                   </select>
-                  {(practica.id_tema || practica.id_subtema) && (
+                  {(practica.id_unidad || practica.id_subtema) && (
                     <div className={styles.temaAsignado}>📌 Asignado a: {obtenerNombreCompleto(practica)}</div>
                   )}
                 </div>
@@ -1175,7 +1178,7 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
                   </div>
 
                   {practica.materiales?.map((material, mIndex) => (
-                    <div key={material.id_temporal || mIndex} className={styles.materialItem}>
+                    <div key={material.id_temporal || `material-${mIndex}`} className={styles.materialItem}>
                       <select
                         className={styles.selectSmall}
                         value={material.tipo}
