@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import styles from "./CertificadosYConstancias.module.css";
-import { useAuth } from "@/hooks/useAuth"; // Importamos el hook de autenticación
+import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
 
-// Iconos de FontAwesome
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faUpload,
@@ -16,27 +15,23 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
-// SERVER_URL para archivos estáticos (sin /api)
 const SERVER_URL =
   process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:5000";
 
 const CertificadosYConstancias = () => {
-  const { user } = useAuth(); // Obtenemos el usuario del hook
+  const { user } = useAuth();
 
-  // Estados del componente
   const [selectedFile, setSelectedFile] = useState(null);
   const [filePreview, setFilePreview] = useState(null);
   const [signatures, setSignatures] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [signatureToDelete, setSignatureToDelete] = useState(null);
-  const [isProcessing, setIsProcessing] = useState(false); // Unifica isUploading y isApplying
+  const [isProcessing, setIsProcessing] = useState(false);
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
 
-  // Ref para el iframe
   const iframeRef = useRef(null);
 
-  // Estados para modal de reemplazo de firma
   const [showReplaceModal, setShowReplaceModal] = useState(false);
   const [firmaExistente, setFirmaExistente] = useState(null);
   const [pendingUploadData, setPendingUploadData] = useState(null);
@@ -53,13 +48,11 @@ const CertificadosYConstancias = () => {
   const [selectedUniversidadPreview, setSelectedUniversidadPreview] =
     useState("");
 
-  // Función para mostrar notificaciones
   const showAlert = (type, message) => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
   };
 
-  // Cargar las plantillas HTML
   useEffect(() => {
     fetch("/constancia.html")
       .then((res) => res.text())
@@ -72,20 +65,30 @@ const CertificadosYConstancias = () => {
       .catch((err) => console.error("Error cargando certificado.html", err));
   }, []);
 
-  // Cargar universidades para los selectores
+  // ✅ SOLUCIÓN 1: Obtener TODAS las universidades sin límite
   useEffect(() => {
     const fetchUniversidades = async () => {
       try {
         console.log("Fetching universidades from: /api/universidades");
-        const response = await axios.get("/api/universidades");
+        
+        // Intenta obtener todas las universidades sin límite de paginación
+        const response = await axios.get("/api/universidades", {
+          params: {
+            limit: 1000, // Solicita hasta 1000 universidades
+            // Si tu API usa otros parámetros, ajusta aquí:
+            // page_size: 1000,
+            // per_page: 1000,
+            // all: true,
+          }
+        });
+        
         console.log("Universidades response:", response.data);
 
-        // La respuesta puede ser un objeto con universidades o un array directo
         const universidadesData = response.data.universities || response.data;
         setUniversidades(
           Array.isArray(universidadesData) ? universidadesData : [],
         );
-        console.log("Universidades cargadas:", universidadesData);
+        console.log("Universidades cargadas:", universidadesData.length);
       } catch (error) {
         console.error("Error al cargar universidades:", error);
         console.error("Error details:", error.response?.data || error.message);
@@ -96,7 +99,6 @@ const CertificadosYConstancias = () => {
     fetchUniversidades();
   }, []);
 
-  // Cargar las firmas desde la API
   const fetchSignatures = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -115,12 +117,10 @@ const CertificadosYConstancias = () => {
 
   useEffect(() => {
     if (user) {
-      // Solo buscar firmas si el usuario está cargado
       fetchSignatures();
     }
   }, [user, fetchSignatures]);
 
-  // Configurar el formulario basado en el rol del usuario
   useEffect(() => {
     if (user && user.role === "admin_universidad") {
       setFormData((prev) => ({ ...prev, id_universidad: user.id_universidad }));
@@ -158,7 +158,6 @@ const CertificadosYConstancias = () => {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
   };
 
-  // Manejar la subida de una nueva firma
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (
@@ -170,7 +169,6 @@ const CertificadosYConstancias = () => {
       return;
     }
 
-    // Verificar si ya existe una firma del mismo tipo
     try {
       const token = localStorage.getItem("token");
       const params = new URLSearchParams({
@@ -186,7 +184,6 @@ const CertificadosYConstancias = () => {
       });
 
       if (response.data.exists) {
-        // Mostrar modal de confirmación
         setFirmaExistente(response.data.firma);
         setPendingUploadData({
           tipo_firma: formData.tipo_firma,
@@ -197,7 +194,6 @@ const CertificadosYConstancias = () => {
         return;
       }
 
-      // Si no existe, proceder con la subida normal
       await uploadFirma(false);
     } catch (error) {
       showAlert("error", "Error al verificar firma existente.");
@@ -205,7 +201,6 @@ const CertificadosYConstancias = () => {
     }
   };
 
-  // Función para subir la firma (nueva o reemplazo)
   const uploadFirma = async (isReplace = false) => {
     const uploadData = new FormData();
     uploadData.append("tipo_firma", formData.tipo_firma);
@@ -233,11 +228,10 @@ const CertificadosYConstancias = () => {
           : "Firma subida correctamente.",
       );
 
-      // Resetear formulario
       setFormData((prev) => ({ ...prev, tipo_firma: "" }));
       setSelectedFile(null);
       setFilePreview(null);
-      fetchSignatures(); // Recargar la lista de firmas
+      fetchSignatures();
     } catch (error) {
       showAlert("error", "Error al subir la firma.");
       console.error(error);
@@ -246,7 +240,6 @@ const CertificadosYConstancias = () => {
     }
   };
 
-  // Confirmar reemplazo de firma
   const handleConfirmReplace = async () => {
     setShowReplaceModal(false);
     await uploadFirma(true);
@@ -254,14 +247,12 @@ const CertificadosYConstancias = () => {
     setFirmaExistente(null);
   };
 
-  // Cancelar reemplazo de firma
   const handleCancelReplace = () => {
     setShowReplaceModal(false);
     setPendingUploadData(null);
     setFirmaExistente(null);
   };
 
-  // Manejar la eliminación de una firma
   const handleDelete = async () => {
     if (!signatureToDelete) return;
     setIsProcessing(true);
@@ -274,7 +265,7 @@ const CertificadosYConstancias = () => {
       showAlert("success", "Firma eliminada correctamente.");
       setShowDeleteModal(false);
       setSignatureToDelete(null);
-      fetchSignatures(); // Recargar la lista
+      fetchSignatures();
     } catch (error) {
       showAlert("error", "Error al eliminar la firma.");
       console.error("Error al eliminar firma:", error);
@@ -288,9 +279,8 @@ const CertificadosYConstancias = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Función para actualizar la vista previa con datos dinámicos
   const updateIframePreview = useCallback(() => {
-    console.log("🔄 updateIframePreview llamada");
+    console.log("📄 updateIframePreview llamada");
     console.log("📋 selectedUniversidadPreview:", selectedUniversidadPreview);
     console.log("📋 universidades disponibles:", universidades.length);
     console.log("📋 firmas disponibles:", signatures.length);
@@ -322,7 +312,6 @@ const CertificadosYConstancias = () => {
 
     console.log("✅ Universidad encontrada:", universidad.nombre);
 
-    // Actualizar logo de universidad
     const logoImgs = iframeDoc.querySelectorAll(
       '[data-field="logoUniversidad"]',
     );
@@ -330,7 +319,6 @@ const CertificadosYConstancias = () => {
     console.log("📋 Universidad completa:", universidad);
     logoImgs.forEach((img) => {
       if (universidad.logo_url) {
-        // Limpiar /api/ duplicado si existe
         let logoPath = universidad.logo_url;
         if (logoPath.startsWith("/api/")) {
           logoPath = logoPath.replace("/api/", "/");
@@ -350,19 +338,17 @@ const CertificadosYConstancias = () => {
       }
     });
 
-    // Actualizar nombre de universidad
     const nombreUnivElements = iframeDoc.querySelectorAll(
       '[data-field="nombreUniversidad"]',
     );
     console.log(
-      "📝 Elementos de nombre encontrados:",
+      "🏛 Elementos de nombre encontrados:",
       nombreUnivElements.length,
     );
     nombreUnivElements.forEach((el) => {
       el.textContent = universidad.nombre;
     });
 
-    // Obtener firmas de la universidad seleccionada
     const firmaSedeq = signatures.find((s) => s.tipo_firma === "sedeq");
     const firmaUniversidad = signatures.find(
       (s) =>
@@ -375,12 +361,11 @@ const CertificadosYConstancias = () => {
         String(s.id_universidad) === String(selectedUniversidadPreview),
     );
 
-    console.log("✍️ Firmas encontradas:");
+    console.log("✏️ Firmas encontradas:");
     console.log("  - SEDEQ:", !!firmaSedeq);
     console.log("  - Universidad:", !!firmaUniversidad);
     console.log("  - Coordinador:", !!firmaCoordinador);
 
-    // ===== PASO 1: LIMPIAR TODAS LAS FIRMAS PRIMERO =====
     console.log("🧹 Limpiando firmas anteriores...");
     const todasLasFirmas = iframeDoc.querySelectorAll("[data-firma]");
     todasLasFirmas.forEach((img) => {
@@ -388,8 +373,6 @@ const CertificadosYConstancias = () => {
       img.style.display = "none";
     });
 
-    // ===== PASO 2: INYECTAR SOLO LAS FIRMAS QUE EXISTEN =====
-    // Actualizar firma SEDEQ
     if (firmaSedeq && firmaSedeq.imagen_url) {
       const firmaSedeqImgs = iframeDoc.querySelectorAll('[data-firma="sedeq"]');
       console.log(
@@ -405,7 +388,6 @@ const CertificadosYConstancias = () => {
       console.log("  ⚠️ SEDEQ no disponible - permanece oculta");
     }
 
-    // Actualizar firma Universidad
     if (firmaUniversidad && firmaUniversidad.imagen_url) {
       const firmaUnivImgs = iframeDoc.querySelectorAll(
         '[data-firma="universidad"]',
@@ -423,7 +405,6 @@ const CertificadosYConstancias = () => {
       console.log("  ⚠️ Firma Universidad no disponible - permanece oculta");
     }
 
-    // Actualizar firma Coordinador
     if (firmaCoordinador && firmaCoordinador.imagen_url) {
       const firmaCoordImgs = iframeDoc.querySelectorAll(
         '[data-firma="coordinador"]',
@@ -444,24 +425,20 @@ const CertificadosYConstancias = () => {
     console.log("✅ updateIframePreview completado");
   }, [selectedUniversidadPreview, universidades, signatures]);
 
-  // Manejar la carga del iframe
   const handleIframeLoad = useCallback(() => {
-    console.log("🔄 Iframe cargado completamente");
-    // Pequeño delay para asegurar que el DOM está listo
+    console.log("📄 Iframe cargado completamente");
     setTimeout(() => {
       updateIframePreview();
     }, 100);
   }, [updateIframePreview]);
 
-  // Ejecutar actualización cuando cambie la selección o se carguen datos
   useEffect(() => {
     if (selectedUniversidadPreview) {
-      console.log("🔄 Universidad cambió, esperando iframe...");
+      console.log("📄 Universidad cambió, esperando iframe...");
       updateIframePreview();
     }
   }, [selectedUniversidadPreview, signatures, activeTab, updateIframePreview]);
 
-  // Renderizado del componente
   if (!user) {
     return (
       <div className={styles.loading}>
@@ -476,7 +453,6 @@ const CertificadosYConstancias = () => {
       <header className={styles.header}>
         <div className={styles.headerContent}>
           <h1 className={styles.title}>Gestión de Firmas Digitales</h1>
-          {/* Debug info - remover después */}
           <small style={{ fontSize: "12px", opacity: 0.8 }}>
             Universidades cargadas: {universidades.length}
           </small>
@@ -485,7 +461,6 @@ const CertificadosYConstancias = () => {
 
       <main className={styles.main}>
         <div className={styles.grid}>
-          {/* Tarjeta de Carga de Firmas */}
           <div className={`${styles.contentCard} ${styles.uploadCard}`}>
             <div className={styles.cardHeader}>
               <span>Cargar Nueva Firma</span>
@@ -518,12 +493,14 @@ const CertificadosYConstancias = () => {
                       Universidad{" "}
                       {universidades.length === 0 && "(Cargando...)"}
                     </label>
+                    {/* ✅ SOLUCIÓN 2: Select con scroll limitado */}
                     <select
                       name="id_universidad"
                       value={formData.id_universidad}
                       onChange={handleFormChange}
                       disabled={user.role === "admin_universidad"}
                       required
+                      className={styles.scrollableSelect}
                     >
                       <option value="">
                         {universidades.length === 0
@@ -593,7 +570,6 @@ const CertificadosYConstancias = () => {
             </div>
           </div>
 
-          {/* Galería de Firmas */}
           <div className={`${styles.contentCard} ${styles.galleryCard}`}>
             <div className={styles.cardHeader}>
               <span>Galería de Firmas</span>
@@ -653,7 +629,6 @@ const CertificadosYConstancias = () => {
             </div>
           </div>
 
-          {/* Vista Previa */}
           <div className={`${styles.contentCard} ${styles.previewCard}`}>
             <div className={styles.cardHeader}>
               <span>Vista Previa de Documentos</span>
@@ -661,11 +636,13 @@ const CertificadosYConstancias = () => {
             <div className={styles.cardBody}>
               <div className={styles.formGroup}>
                 <label>Seleccionar Universidad para Vista Previa</label>
+                {/* ✅ SOLUCIÓN 2: Select con scroll limitado */}
                 <select
                   value={selectedUniversidadPreview}
                   onChange={(e) =>
                     setSelectedUniversidadPreview(e.target.value)
                   }
+                  className={styles.scrollableSelect}
                 >
                   <option value="">Seleccionar universidad...</option>
                   {universidades.map((u) => (
@@ -712,7 +689,6 @@ const CertificadosYConstancias = () => {
         </div>
       </main>
 
-      {/* Modal de Eliminación */}
       {showDeleteModal && (
         <div
           className={styles.modalBackdrop}
@@ -751,7 +727,6 @@ const CertificadosYConstancias = () => {
         </div>
       )}
 
-      {/* Modal de Reemplazo de Firma */}
       {showReplaceModal && (
         <div
           className={styles.modalBackdrop}
@@ -811,7 +786,6 @@ const CertificadosYConstancias = () => {
         </div>
       )}
 
-      {/* Notificación Toast */}
       {toast.show && (
         <div className={styles.toast}>
           <div className={`${styles.toastContent} ${styles[toast.type]}`}>

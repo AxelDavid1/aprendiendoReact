@@ -1,17 +1,15 @@
 const Universidad = require("../models/universidadModel");
 const User = require("../models/userModel");
-const pool = require("../config/db"); // Import the pool for transactions
+const pool = require("../config/db");
 const fs = require("fs");
 const path = require("path");
 
-// Helper function for handling errors and transactions
 const handleError = async (res, error, message, connection) => {
   if (connection) {
     await connection.rollback();
     connection.release();
   }
   console.error(message, error);
-  // Avoid sending back detailed internal error messages in production
   const errorMessage =
     process.env.NODE_ENV === "production" && !(error && error.isOperational)
       ? "An unexpected error occurred."
@@ -22,17 +20,26 @@ const handleError = async (res, error, message, connection) => {
   res.status(statusCode).json({ error: errorMessage });
 };
 
+// ✅ SOLUCIÓN: Permitir obtener todas las universidades cuando limit sea muy alto
 // @desc    Get all universities with pagination and search
 // @route   GET /api/universidades
 // @access  Public
 exports.getAllUniversidades = async (req, res) => {
   try {
     const { searchTerm = "", page = 1, limit = 10 } = req.query;
+    
+    // Parsear el limit
+    const parsedLimit = parseInt(limit, 10);
+    
+    // Si el limit solicitado es mayor a 999, obtener TODAS las universidades sin límite
+    const finalLimit = parsedLimit > 999 ? null : parsedLimit;
+    
     const options = {
       searchTerm,
       page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
+      limit: finalLimit, // null = sin límite, o el valor parseado
     };
+    
     const result = await Universidad.findAll(options);
     res.status(200).json(result);
   } catch (error) {
@@ -75,8 +82,8 @@ exports.createUniversidad = async (req, res) => {
       telefono,
       email_contacto,
       ubicacion,
-      email_admin, // New field for admin user
-      password, // New field for admin user
+      email_admin,
+      password,
     } = req.body;
 
     if (!nombre || !clave_universidad) {
@@ -88,7 +95,6 @@ exports.createUniversidad = async (req, res) => {
       throw err;
     }
 
-    // 1. Create University
     const universityData = {
       nombre,
       clave_universidad,
@@ -103,7 +109,6 @@ exports.createUniversidad = async (req, res) => {
       connection,
     );
 
-    // 2. Create Admin User (if details are provided)
     if (email_admin && password) {
       await User.createOrUpdateAdmin(
         id_universidad,
@@ -119,7 +124,6 @@ exports.createUniversidad = async (req, res) => {
     const newUniversity = await Universidad.findById(id_universidad);
     res.status(201).json(newUniversity);
   } catch (error) {
-    // If a file was uploaded during a failed transaction, delete it.
     if (req.file) {
       fs.unlink(req.file.path, (err) => {
         if (err)
@@ -159,10 +163,8 @@ exports.updateUniversidad = async (req, res) => {
 
     const { email_admin, password, ...universityUpdateData } = req.body;
 
-    // Handle logo file update
     if (req.file) {
       universityUpdateData.logo_url = `/uploads/logos/${req.file.filename}`;
-      // Delete the old logo if it exists
       if (existingUniversity.logo_url) {
         const oldLogoPath = path.join(
           __dirname,
@@ -175,10 +177,8 @@ exports.updateUniversidad = async (req, res) => {
       }
     }
 
-    // 1. Update University Details
     await Universidad.update(id, universityUpdateData, connection);
 
-    // 2. Update/Create Admin User
     await User.createOrUpdateAdmin(id, email_admin, password, connection);
 
     await connection.commit();
@@ -220,7 +220,6 @@ exports.deleteUniversidad = async (req, res) => {
       throw err;
     }
 
-    // If DB deletion is successful, delete the associated logo file
     if (university.logo_url) {
       const logoPath = path.join(__dirname, "..", university.logo_url);
       fs.unlink(logoPath, (err) => {
@@ -240,9 +239,8 @@ exports.deleteUniversidad = async (req, res) => {
 exports.deleteUniversidadAdmin = async (req, res) => {
   let connection;
   try {
-    const { id } = req.params; // This is the university ID
+    const { id } = req.params;
 
-    // Ensure the university exists
     const university = await Universidad.findById(id);
     if (!university) {
       const err = new Error("University not found");

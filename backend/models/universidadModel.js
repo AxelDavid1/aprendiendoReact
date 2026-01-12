@@ -36,29 +36,48 @@ class Universidad {
 
   /**
    * Finds all universities with pagination, search, and the admin's email.
+   * ✅ CORREGIDO: Ahora soporta limit = null para obtener TODAS las universidades
    * @returns {Promise<object>} An object containing the list of universities and pagination info.
    */
   static async findAll({ searchTerm = "", page = 1, limit = 10 }) {
-    const offset = (page - 1) * limit;
     const searchTermWildcard = `%${searchTerm}%`;
+    
+    // ✅ Si limit es null, no aplicar límite ni offset
+    let query;
+    let queryParams;
+    
+    if (limit === null) {
+      // Sin límite - obtener TODAS las universidades
+      query = `
+        SELECT
+          uni.*,
+          usr.email AS email_admin
+        FROM universidad uni
+        LEFT JOIN usuario usr ON uni.id_universidad = usr.id_universidad AND usr.tipo_usuario = 'admin_universidad'
+        WHERE uni.nombre LIKE ? OR uni.ubicacion LIKE ?
+        ORDER BY uni.nombre ASC`;
+      
+      queryParams = [searchTermWildcard, searchTermWildcard];
+    } else {
+      // Con límite - paginación normal
+      const offset = (page - 1) * limit;
+      
+      query = `
+        SELECT
+          uni.*,
+          usr.email AS email_admin
+        FROM universidad uni
+        LEFT JOIN usuario usr ON uni.id_universidad = usr.id_universidad AND usr.tipo_usuario = 'admin_universidad'
+        WHERE uni.nombre LIKE ? OR uni.ubicacion LIKE ?
+        ORDER BY uni.nombre ASC
+        LIMIT ? OFFSET ?`;
+      
+      queryParams = [searchTermWildcard, searchTermWildcard, limit, offset];
+    }
 
-    const query = `
-      SELECT
-        uni.*,
-        usr.email AS email_admin
-      FROM universidad uni
-      LEFT JOIN usuario usr ON uni.id_universidad = usr.id_universidad AND usr.tipo_usuario = 'admin_universidad'
-      WHERE uni.nombre LIKE ? OR uni.ubicacion LIKE ?
-      ORDER BY uni.nombre ASC
-      LIMIT ? OFFSET ?`;
+    const [rows] = await pool.execute(query, queryParams);
 
-    const [rows] = await pool.execute(query, [
-      searchTermWildcard,
-      searchTermWildcard,
-      limit,
-      offset,
-    ]);
-
+    // Obtener el total de universidades
     const [[{ total }]] = await pool.execute(
       `SELECT COUNT(*) as total FROM universidad uni WHERE uni.nombre LIKE ? OR uni.ubicacion LIKE ?`,
       [searchTermWildcard, searchTermWildcard],
@@ -68,7 +87,7 @@ class Universidad {
       universities: rows,
       total,
       page: Number(page),
-      totalPages: Math.ceil(total / limit),
+      totalPages: limit === null ? 1 : Math.ceil(total / limit),
     };
   }
 
