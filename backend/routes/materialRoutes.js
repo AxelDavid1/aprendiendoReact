@@ -1,5 +1,6 @@
 const express = require("express");
 const router = express.Router();
+const logger = require("../config/logger");
 const {
   upload,
   subirMaterial,
@@ -18,13 +19,10 @@ const { protect } = require("../middleware/authMiddleware");
 // @access  Private (Maestro)
 router.post("/", protect, upload.single("file"), subirMaterial);
 
-// @route   POST /api/material/planeacion
-// @desc    Subir PDF para materiales de planeación
-// @access  Private (Maestro)
-router.post(
-  "/planeacion",
-  protect,
-  upload.single("file"),
+
+router.post('/planeacion', 
+  protect, 
+  upload.single('file'),
   subirMaterialPlaneacion
 );
 

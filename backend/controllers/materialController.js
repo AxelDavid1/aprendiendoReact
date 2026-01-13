@@ -265,28 +265,29 @@ const subirMaterial = async (req, res) => {
 };
 
 // @desc    Subir PDF para materiales de planeación (prácticas/proyecto/fuentes)
-// @route   POST /api/material/planeacion
-// @access  Private (Maestro)
 const subirMaterialPlaneacion = async (req, res) => {
+  let connection;
+  // Definimos rutas fuera del try para usarlas en el catch si es necesario borrar
+  let finalFilePathSystem = null; 
+
   try {
     const {
       id_curso,
-      categoria_material, // 'planeacion' siempre
-      tipo_material, // 'practica' | 'proyecto' | 'fuente'
-      id_actividad, // Opcional, para prácticas/proyecto
+      categoria_material, // 'planeacion' típicamente
+      id_actividad,       // Opcional: Si viene, vinculamos a la actividad
       descripcion,
     } = req.body;
 
     const subido_por = req.user.id_usuario;
 
-    // Validaciones
+    // 1. Validaciones básicas
     if (!id_curso || !req.file) {
       return res.status(400).json({
         error: "El ID del curso y el archivo PDF son obligatorios.",
       });
     }
 
-    // Verificar permisos del maestro
+    // 2. Verificar permisos (Lógica existente)
     const isAdmin =
       req.user.tipo_usuario === "admin_sedeq" ||
       req.user.tipo_usuario === "admin_universidad" ||
@@ -305,23 +306,38 @@ const subirMaterialPlaneacion = async (req, res) => {
     }
 
     if (!tienePermisos) {
+      // Si se subió el archivo temporal por Multer pero no tiene permisos, lo borramos
+      if (req.file && req.file.path) fs.unlinkSync(req.file.path);
       return res.status(403).json({
         error: "No tienes permisos para subir material a este curso.",
       });
     }
 
-    // Mover archivo a carpeta correcta
-    const finalPath = path.join(__dirname, "../uploads/material", "planeacion");
-    if (!fs.existsSync(finalPath)) {
-      fs.mkdirSync(finalPath, { recursive: true });
+    // 3. Obtener una conexión dedicada para la transacción
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    // 4. Mover archivo a carpeta definitiva
+    // Usamos path.join para el sistema operativo (funciona en Linux/Windows)
+    const uploadDir = path.join(__dirname, "../uploads/material/planeacion");
+    
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
     }
 
-    const finalFileName = path.basename(req.file.filename);
-    const finalFilePath = path.join(finalPath, finalFileName);
-    fs.renameSync(req.file.path, finalFilePath);
+    const finalFileName = `${Date.now()}-${req.file.originalname.replace(/\s+/g, '_')}`; // Nombre único y limpio
+    finalFilePathSystem = path.join(uploadDir, finalFileName);
+    
+    // Mover del temp de Multer a la carpeta final
+    fs.renameSync(req.file.path, finalFilePathSystem);
 
-    // Insertar en BD
-    const [result] = await pool.query(
+    // Ruta RELATIVA para guardar en BD (Esto es lo que el frontend usará o el servidor servirá)
+    // Ejemplo en BD: uploads/material/planeacion/1728392-archivo.pdf
+    const dbRelativePath = `uploads/material/planeacion/${finalFileName}`;
+
+    // 5. Insertar en material_curso (SIN id_actividad)
+    // IMPORTANTE: Usar 'connection.query', no 'pool.query' dentro de la transacción
+    const [result] = await connection.query(
       `INSERT INTO material_curso (
         id_curso,
         nombre_archivo,
@@ -331,38 +347,82 @@ const subirMaterialPlaneacion = async (req, res) => {
         es_enlace,
         tamaño_archivo,
         descripcion,
-        subido_por,
-        id_actividad
-      ) VALUES (?, ?, ?, 'pdf', 'planeacion', 0, ?, ?, ?, ?)`,
+        subido_por
+      ) VALUES (?, ?, ?, 'pdf', ?, 0, ?, ?, ?)`,
       [
         id_curso,
         req.file.originalname,
-        finalFilePath,
+        dbRelativePath, // <--- Guardamos ruta relativa
+        categoria_material || 'planeacion',
         req.file.size,
         descripcion || null,
-        subido_por,
-        id_actividad || null,
+        subido_por
       ]
     );
 
-    logger.info(`PDF subido para planeación: ID ${result.insertId}, Curso: ${id_curso}`);
+    const id_material = result.insertId;
+
+    // 6. Si hay id_actividad, crear el vínculo en la tabla pivote
+    if (id_actividad) {
+      // Validar que la actividad exista antes de insertar (opcional pero recomendado)
+      const [actividadExists] = await connection.query(
+        "SELECT id_actividad FROM calificaciones_actividades WHERE id_actividad = ?",
+        [id_actividad]
+      );
+
+      if (actividadExists.length === 0) {
+        throw new Error(`La actividad ${id_actividad} no existe.`);
+      }
+
+      await connection.query(
+        `INSERT INTO actividad_materiales (id_actividad, id_material) VALUES (?, ?)`,
+        [id_actividad, id_material]
+      );
+    }
+
+    // 7. Confirmar transacción
+    await connection.commit();
+
+    logger.info(`PDF subido ID: ${id_material} vinculado a Curso: ${id_curso} ${id_actividad ? `y Actividad: ${id_actividad}` : ''}`);
 
     res.status(201).json({
       success: true,
       message: "PDF subido exitosamente",
       material: {
-        id_material: result.insertId,
+        id_material: id_material,
         nombre_archivo: req.file.originalname,
         tipo_archivo: "pdf",
-        categoria_material: "planeacion",
-        ruta_descarga: `/api/material/download/${result.insertId}`,
+        categoria_material: categoria_material || "planeacion",
+        // Aquí construyes la URL pública o ruta de descarga
+        url: dbRelativePath 
       },
     });
+
   } catch (error) {
+    // 8. Rollback y Limpieza en caso de error
+    if (connection) await connection.rollback();
+    
     logger.error(`Error al subir PDF de planeación: ${error.message}`);
+
+    // Si el archivo se llegó a mover a la carpeta final pero la BD falló, lo borramos
+    if (finalFilePathSystem && fs.existsSync(finalFilePathSystem)) {
+        try {
+            fs.unlinkSync(finalFilePathSystem);
+            logger.info("Archivo huérfano eliminado tras error en BD.");
+        } catch (unlinkError) {
+            logger.error("Error al borrar archivo huérfano:", unlinkError);
+        }
+    } else if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+        // Si falló antes de moverlo, borramos el temporal
+        fs.unlinkSync(req.file.path);
+    }
+
     res.status(500).json({
-      error: "Error al subir el PDF",
+      error: "Error al guardar el archivo en la base de datos.",
+      details: error.message 
     });
+  } finally {
+    if (connection) connection.release();
   }
 };
 
