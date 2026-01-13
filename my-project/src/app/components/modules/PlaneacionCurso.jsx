@@ -711,21 +711,14 @@ const handleSave = async () => {
       porcentaje_proyecto: Number.parseInt(porcentajeProyecto),
       practicas: practicas.map((p) => ({
         descripcion: p.descripcion_practica,
-        // 👇 CAMBIO: Separar PDFs subidos de enlaces/referencias
-        materiales: p.materiales
-          .filter((m) => m.id_material) // Solo PDFs ya subidos
-          .map((m) => ({
-            id_material: m.id_material,
-            tipo: m.tipo,
-            nombre: m.nombre || null, // Include title for existing PDFs
-          })),
-        materiales_nuevos: p.materiales
-          .filter((m) => !m.id_material && (m.tipo === "enlace" || m.tipo === "referencias"))
-          .map((m) => ({
-            tipo: m.tipo,
-            url: m.url || "",
-            referencia: m.referencia || "",
-          })),
+        id_actividad: p.id_actividad || null, // Agregar ID si existe
+        materiales: p.materiales.map((m) => ({
+          id_material: m.id_material || null, // Importante enviar null si es nuevo
+          tipo: m.tipo || 'referencias',
+          nombre: m.nombre || null,
+          referencia: m.referencia || m.descripcion || "", // Asegurar que el texto va aquí
+          url: m.url || "",
+        })),
         id_unidad: p.id_unidad ? Number.parseInt(p.id_unidad) : null,
         id_subtema: p.id_subtema ? Number.parseInt(p.id_subtema) : null,
       })),
@@ -740,11 +733,13 @@ const handleSave = async () => {
             nombre: m.nombre || null, // Include title for existing PDFs
           })),
         materiales_nuevos: proyecto.materiales
-          .filter((m) => !m.id_material && m.tipo === "enlace")
-          .map((m) => ({
-            tipo: m.tipo,
-            url: m.url || "",
-          })),
+        .filter((m) => !m.id_material && (m.tipo === "enlace" || m.tipo === "referencias")) // Permitir ambos
+        .map((m) => ({
+          tipo: m.tipo,
+          url: m.url || "",
+          referencia: m.referencia || m.descripcion || "", // Asegurar que viaja el texto
+          nombre: m.nombre || null
+        })),
         fundamentacion: proyecto.fundamentacion,
         planeacion: proyecto.planeacion,
         ejecucion: proyecto.ejecucion,
@@ -1197,7 +1192,7 @@ return (
                     >
                       <option value="enlace">🔗 Enlace</option>
                       <option value="pdf">📄 PDF</option>
-                      <option value="referencia">📝 Referencias APA</option>
+                      <option value="referencias">📝 Referencias APA</option>
                     </select>
 
                     {material.tipo === "enlace" ? (

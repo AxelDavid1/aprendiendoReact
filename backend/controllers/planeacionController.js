@@ -66,7 +66,7 @@ const guardarPlaneacion = async (req, res) => {
       [id_curso, porcentaje_actividades, porcentaje_proyecto]
     );
 
-    const id_calificaciones_curso = califCurso.insertId || 
+    const id_calificaciones_curso = califCurso.insertId ||
       (await connection.query("SELECT id_calificaciones FROM calificaciones_curso WHERE id_curso = ?", [id_curso]))[0][0].id_calificaciones;
 
     // ---------------------------------------------------------
@@ -101,33 +101,33 @@ const guardarPlaneacion = async (req, res) => {
         const subtemasRecibidos = new Set();
 
         if (tema.subtemas) {
-            for (const [subIndex, subtema] of tema.subtemas.entries()) {
-                let idSubtemaReal = null;
-                if (subtema.id && subtemasExistentesMap.has(parseInt(subtema.id))) {
-                    idSubtemaReal = parseInt(subtema.id);
-                    await connection.query(
-                        `UPDATE subtemas_unidad SET nombre_subtema=?, descripcion_subtema=?, orden=? WHERE id_subtema=?`,
-                        [subtema.nombre, subtema.descripcion, subIndex, idSubtemaReal]
-                    );
-                } else {
-                    const [subIns] = await connection.query(
-                        `INSERT INTO subtemas_unidad (id_unidad, nombre_subtema, descripcion_subtema, orden) VALUES (?, ?, ?, ?)`,
-                        [idUnidadReal, subtema.nombre, subtema.descripcion, subIndex]
-                    );
-                    idSubtemaReal = subIns.insertId;
-                }
-                subtemasRecibidos.add(idSubtemaReal);
+          for (const [subIndex, subtema] of tema.subtemas.entries()) {
+            let idSubtemaReal = null;
+            if (subtema.id && subtemasExistentesMap.has(parseInt(subtema.id))) {
+              idSubtemaReal = parseInt(subtema.id);
+              await connection.query(
+                `UPDATE subtemas_unidad SET nombre_subtema=?, descripcion_subtema=?, orden=? WHERE id_subtema=?`,
+                [subtema.nombre, subtema.descripcion, subIndex, idSubtemaReal]
+              );
+            } else {
+              const [subIns] = await connection.query(
+                `INSERT INTO subtemas_unidad (id_unidad, nombre_subtema, descripcion_subtema, orden) VALUES (?, ?, ?, ?)`,
+                [idUnidadReal, subtema.nombre, subtema.descripcion, subIndex]
+              );
+              idSubtemaReal = subIns.insertId;
             }
+            subtemasRecibidos.add(idSubtemaReal);
+          }
         }
         // Borrar subtemas huerfanos
         for (const [idSub] of subtemasExistentesMap) {
-            if (!subtemasRecibidos.has(idSub)) await connection.query("DELETE FROM subtemas_unidad WHERE id_subtema = ?", [idSub]);
+          if (!subtemasRecibidos.has(idSub)) await connection.query("DELETE FROM subtemas_unidad WHERE id_subtema = ?", [idSub]);
         }
       }
     }
     // Borrar unidades huerfanas
     for (const [idUni] of unidadesExistentesMap) {
-        if (!unidadesRecibidas.has(idUni)) await connection.query("DELETE FROM unidades_curso WHERE id_unidad = ?", [idUni]);
+      if (!unidadesRecibidas.has(idUni)) await connection.query("DELETE FROM unidades_curso WHERE id_unidad = ?", [idUni]);
     }
 
     // ---------------------------------------------------------
@@ -164,126 +164,116 @@ const guardarPlaneacion = async (req, res) => {
 
         // B) VINCULAR MATERIALES
         await connection.query("DELETE FROM actividad_materiales WHERE id_actividad = ?", [idActividad]);
-        const todosMateriales = [...(practica.materiales || []), ...(practica.materiales_nuevos || [])];
+        const todosMateriales = practica.materiales || [];
         if (todosMateriales.length > 0) {
-           await procesarYVincularMateriales(connection, idActividad, id_curso, todosMateriales, id_usuario, 'actividad');
+          await procesarYVincularMateriales(connection, idActividad, id_curso, todosMateriales, id_usuario, 'actividad');
         }
       }
     }
 
     // C) LIMPIEZA DE PRÁCTICAS HUÉRFANAS
     if (idsActividadesProcesadas.length > 0) {
-        const placeholders = idsActividadesProcesadas.map(() => '?').join(',');
-        await connection.query(
-            `DELETE FROM calificaciones_actividades WHERE id_calificaciones_curso = ? AND tipo_actividad = 'actividad' AND id_actividad NOT IN (${placeholders})`,
-            [id_calificaciones_curso, ...idsActividadesProcesadas]
-        );
+      const placeholders = idsActividadesProcesadas.map(() => '?').join(',');
+      await connection.query(
+        `DELETE FROM calificaciones_actividades WHERE id_calificaciones_curso = ? AND tipo_actividad = 'actividad' AND id_actividad NOT IN (${placeholders})`,
+        [id_calificaciones_curso, ...idsActividadesProcesadas]
+      );
     } else if (!practicas || practicas.length === 0) {
-        await connection.query("DELETE FROM calificaciones_actividades WHERE id_calificaciones_curso = ? AND tipo_actividad = 'actividad'", [id_calificaciones_curso]);
+      await connection.query("DELETE FROM calificaciones_actividades WHERE id_calificaciones_curso = ? AND tipo_actividad = 'actividad'", [id_calificaciones_curso]);
     }
 
     // ---------------------------------------------------------
     // 5. PROCESAMIENTO DEL PROYECTO FINAL
     // ---------------------------------------------------------
     if (proyecto) {
-        let idProyecto = null;
-        const [proyExistente] = await connection.query(
-            "SELECT id_actividad FROM calificaciones_actividades WHERE id_calificaciones_curso = ? AND tipo_actividad = 'proyecto' LIMIT 1", 
-            [id_calificaciones_curso]
+      let idProyecto = null;
+      const [proyExistente] = await connection.query(
+        "SELECT id_actividad FROM calificaciones_actividades WHERE id_calificaciones_curso = ? AND tipo_actividad = 'proyecto' LIMIT 1",
+        [id_calificaciones_curso]
+      );
+
+      if (proyExistente.length > 0) {
+        idProyecto = proyExistente[0].id_actividad;
+        await connection.query(
+          "UPDATE calificaciones_actividades SET instrucciones = ?, fecha_actualizacion = NOW() WHERE id_actividad = ?",
+          [proyecto.instrucciones || "Proyecto Final", idProyecto]
         );
+      } else {
+        const [nuevoProy] = await connection.query(
+          `INSERT INTO calificaciones_actividades (id_calificaciones_curso, nombre, tipo_actividad, instrucciones, max_archivos, max_tamano_mb, tipos_archivo_permitidos) VALUES (?, 'Proyecto Final', 'proyecto', ?, 10, 25, ?)`,
+          [id_calificaciones_curso, proyecto.instrucciones || "Proyecto Final", JSON.stringify(["pdf", "link", "zip"])]
+        );
+        idProyecto = nuevoProy.insertId;
+      }
 
-        if (proyExistente.length > 0) {
-            idProyecto = proyExistente[0].id_actividad;
-            await connection.query(
-                "UPDATE calificaciones_actividades SET instrucciones = ?, fecha_actualizacion = NOW() WHERE id_actividad = ?",
-                [proyecto.instrucciones || "Proyecto Final", idProyecto]
-            );
-        } else {
-            const [nuevoProy] = await connection.query(
-                `INSERT INTO calificaciones_actividades (id_calificaciones_curso, nombre, tipo_actividad, instrucciones, max_archivos, max_tamano_mb, tipos_archivo_permitidos) VALUES (?, 'Proyecto Final', 'proyecto', ?, 10, 25, ?)`,
-                [id_calificaciones_curso, proyecto.instrucciones || "Proyecto Final", JSON.stringify(["pdf", "link", "zip"])]
-            );
-            idProyecto = nuevoProy.insertId;
-        }
-
-        await connection.query("DELETE FROM actividad_materiales WHERE id_actividad = ?", [idProyecto]);
-        const materialesProyecto = [...(proyecto.materiales || []), ...(proyecto.materiales_nuevos || [])];
-        if (materialesProyecto.length > 0) {
-            await procesarYVincularMateriales(connection, idProyecto, id_curso, materialesProyecto, id_usuario, 'actividad');
-        }
+      await connection.query("DELETE FROM actividad_materiales WHERE id_actividad = ?", [idProyecto]);
+      const materialesProyecto = [...(proyecto.materiales || []), ...(proyecto.materiales_nuevos || [])];
+      if (materialesProyecto.length > 0) {
+        await procesarYVincularMateriales(connection, idProyecto, id_curso, materialesProyecto, id_usuario, 'actividad');
+      }
     }
 
     // ---------------------------------------------------------
-    // 6. FUENTES DE INFORMACIÓN (Lógica de Actualizar/Insertar/Borrar)
+    // 6. FUENTES DE INFORMACIÓN (Con LOGS de depuración)
     // ---------------------------------------------------------
     if (fuentes && Array.isArray(fuentes)) {
-      // Obtener fuentes existentes en BD
+      console.log(`[DEBUG] Procesando ${fuentes.length} fuentes...`);
+
       const [fuentesExistentes] = await connection.query(
-        "SELECT id_material FROM material_curso WHERE id_curso = ? AND categoria_material = 'planeacion'", 
+        "SELECT id_material FROM material_curso WHERE id_curso = ? AND categoria_material = 'planeacion'",
         [id_curso]
       );
       const fuentesExistentesMap = new Map(fuentesExistentes.map(f => [f.id_material, f]));
+      console.log(`[DEBUG] Fuentes existentes en BD: ${JSON.stringify([...fuentesExistentesMap.keys()])}`);
+
       const fuentesRecibidas = new Set();
 
       for (const fuente of fuentes) {
-        let idFuente = null;
         const contenido = fuente.referencia || fuente.descripcion || fuente.nombre;
+        // console.log(`[DEBUG] Fuente actual:`, fuente);
 
         if (contenido && contenido.trim() !== "") {
-          // A) ACTUALIZAR EXISTENTE
+          let idFuente = null;
+          const esEnlace = fuente.tipo === "enlace" || !!fuente.url;
+          const nombreArchivoParaBD = esEnlace ? "Enlace Web" : "Referencia Bibliográfica";
+          const tipoArchivoParaBD = esEnlace ? "enlace" : "texto";
+
+          // Intento de MATCH por ID
           if (fuente.id_material && fuentesExistentesMap.has(parseInt(fuente.id_material))) {
+            console.log(`[DEBUG] ACTUALIZANDO fuente ID: ${fuente.id_material}`);
             idFuente = parseInt(fuente.id_material);
-            const esEnlace = fuente.tipo === "enlace" || !!fuente.url;
-            
+
             await connection.query(
               `UPDATE material_curso SET 
-                nombre_archivo = ?, 
-                tipo_archivo = ?, 
-                es_enlace = ?, 
-                url_enlace = ?, 
-                descripcion = ?,
-                fecha_subida = NOW()
+                nombre_archivo = ?, tipo_archivo = ?, es_enlace = ?, url_enlace = ?, descripcion = ?, fecha_subida = NOW()
                WHERE id_material = ?`,
-              [
-                esEnlace ? "Enlace Web" : "Referencia Bibliográfica",
-                esEnlace ? "enlace" : "texto",
-                esEnlace ? 1 : 0,
-                fuente.url || null,
-                contenido,
-                idFuente
-              ]
+              [nombreArchivoParaBD, tipoArchivoParaBD, esEnlace ? 1 : 0, fuente.url || null, contenido, idFuente]
             );
-          } 
-          // B) INSERTAR NUEVO
+          }
           else {
-            const esEnlace = fuente.tipo === "enlace" || !!fuente.url;
+            console.log(`[DEBUG] INSERTANDO NUEVA fuente (El ID ${fuente.id_material || 'N/A'} no existía en BD)`);
             const [nueva] = await connection.query(
               `INSERT INTO material_curso (
                 id_curso, nombre_archivo, tipo_archivo, categoria_material, 
                 es_enlace, url_enlace, descripcion, subido_por, fecha_subida, activo
               ) VALUES (?, ?, ?, 'planeacion', ?, ?, ?, ?, NOW(), 1)`,
               [
-                id_curso,
-                esEnlace ? "Enlace Web" : "Referencia Bibliográfica",
-                esEnlace ? "enlace" : "texto",
-                esEnlace ? 1 : 0,
-                fuente.url || null,
-                contenido,
-                id_usuario
+                id_curso, nombreArchivoParaBD, tipoArchivoParaBD, esEnlace ? 1 : 0,
+                fuente.url || null, contenido, id_usuario
               ]
             );
             idFuente = nueva.insertId;
+            console.log(`[DEBUG] -> Nueva ID generada: ${idFuente}`);
           }
-          
-          if (idFuente) {
-            fuentesRecibidas.add(idFuente);
-          }
+
+          if (idFuente) fuentesRecibidas.add(idFuente);
         }
       }
 
-      // C) BORRAR AUSENTES
+      // Borrar
       for (const [idFuenteExistente] of fuentesExistentesMap) {
         if (!fuentesRecibidas.has(idFuenteExistente)) {
+          console.log(`[DEBUG] BORRANDO fuente huérfana ID: ${idFuenteExistente}`);
           await connection.query("DELETE FROM material_curso WHERE id_material = ?", [idFuenteExistente]);
         }
       }
@@ -313,62 +303,62 @@ const procesarYVincularMateriales = async (connection, id_actividad, id_curso, m
     // Los PDFs subidos por el botón de "Subir Archivo" YA tienen ID,
     // así que este bloque es principalmente para Enlaces y Referencias APA nuevas.
     if (!idMaterial) {
-        // Determinar el tipo exacto para la BD
-        let tipoBD = 'pdf'; // Valor por defecto
-        let nombreArchivo = material.nombre || "Material";
-        
-        const esEnlace = material.tipo === 'enlace';
-        const esTexto = material.tipo === 'referencias' || material.tipo === 'texto';
-        
-        if (esEnlace) {
-            tipoBD = 'enlace';
-            nombreArchivo = "Enlace Web";
-        } else if (esTexto) {
-            tipoBD = 'texto';
-            nombreArchivo = null; // APA va sin nombre de archivo
-        } else {
-            // Caso PDF o Archivo que llegó sin ID (Raro, pero posible si falló la subida previa)
-            tipoBD = 'pdf';
-            // nombreArchivo se mantiene con material.nombre
-        }
+      // Determinar el tipo exacto para la BD
+      let tipoBD = 'pdf'; // Valor por defecto
+      let nombreArchivo = material.nombre || "Material";
 
-        const [resMaterial] = await connection.query(
-            `INSERT INTO material_curso (
+      const esEnlace = material.tipo === 'enlace';
+      const esTexto = material.tipo === 'referencias' || material.tipo === 'texto';
+
+      if (esEnlace) {
+        tipoBD = 'enlace';
+        nombreArchivo = "Enlace Web";
+      } else if (esTexto) {
+        tipoBD = 'texto';
+        nombreArchivo = "Referencia Bibliográfica"; // Evitar NULL en nombre_archivo
+      } else {
+        // Caso PDF o Archivo que llegó sin ID (Raro, pero posible si falló la subida previa)
+        tipoBD = 'pdf';
+        // nombreArchivo se mantiene con material.nombre
+      }
+
+      const [resMaterial] = await connection.query(
+        `INSERT INTO material_curso (
                 id_curso, nombre_archivo, tipo_archivo, categoria_material, 
                 es_enlace, url_enlace, descripcion, subido_por, fecha_subida, activo
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), 1)`,
-            [
-                id_curso,
-                nombreArchivo, 
-                tipoBD, // 👈 AQUÍ USAMOS LA VARIABLE CORREGIDA
-                categoria,
-                esEnlace ? 1 : 0,
-                material.url || null,
-                material.referencia || material.descripcion || "",
-                id_usuario
-            ]
-        );
-        idMaterial = resMaterial.insertId;
-        console.log(`✅ Nuevo material (${tipoBD}) creado con ID ${idMaterial}`);
+        [
+          id_curso,
+          nombreArchivo,
+          tipoBD, // 👈 AQUÍ USAMOS LA VARIABLE CORREGIDA
+          categoria,
+          esEnlace ? 1 : 0,
+          material.url || null,
+          material.referencia || material.descripcion || "",
+          id_usuario
+        ]
+      );
+      idMaterial = resMaterial.insertId;
+      console.log(`✅ Nuevo material (${tipoBD}) creado con ID ${idMaterial}`);
     } else {
-        console.log(`ℹ️ Material existente detectado (ID: ${idMaterial}), saltando creación.`);
+      console.log(`ℹ️ Material existente detectado (ID: ${idMaterial}), saltando creación.`);
     }
 
     // ---------------------------------------------------------
     // PASO 2: VINCULACIÓN (Tabla Intermedia)
     // ---------------------------------------------------------
     if (idMaterial) {
-        // Usamos INSERT IGNORE para evitar errores si el vínculo ya existe 
-        // (aunque los borramos antes en el controlador principal, es doble seguridad)
-        await connection.query(
-            `INSERT IGNORE INTO actividad_materiales (id_actividad, id_material, orden)
+      // Usamos INSERT IGNORE para evitar errores si el vínculo ya existe 
+      // (aunque los borramos antes en el controlador principal, es doble seguridad)
+      await connection.query(
+        `INSERT IGNORE INTO actividad_materiales (id_actividad, id_material, orden)
              VALUES (?, ?, ?)`,
-            [id_actividad, idMaterial, index]
-        );
-        // Opcional: Asegurar que el material apunte a la categoría correcta si se reutiliza
-        // await connection.query("UPDATE material_curso SET categoria_material = ? WHERE id_material = ?", [categoria, idMaterial]);
-        
-        console.log(`🔗 Material ${idMaterial} vinculado a Actividad ${id_actividad}`);
+        [id_actividad, idMaterial, index]
+      );
+      // Opcional: Asegurar que el material apunte a la categoría correcta si se reutiliza
+      // await connection.query("UPDATE material_curso SET categoria_material = ? WHERE id_material = ?", [categoria, idMaterial]);
+
+      console.log(`🔗 Material ${idMaterial} vinculado a Actividad ${id_actividad}`);
     }
   }
 };
@@ -395,7 +385,7 @@ const obtenerPlaneacion = async (req, res) => {
 
     // 4. Temario
     const [temas] = await pool.query(`SELECT id_unidad as id, nombre_unidad as nombre, descripcion_unidad as descripcion, competenciasEspecificas as competencias_especificas, competenciasGenericas as competencias_genericas FROM unidades_curso WHERE id_curso = ? ORDER BY orden`, [id_curso]);
-    
+
     const temario = await Promise.all(temas.map(async (tema) => {
       const [subtemas] = await pool.query(`SELECT id_subtema as id, nombre_subtema as nombre, descripcion_subtema as descripcion FROM subtemas_unidad WHERE id_unidad = ? ORDER BY orden`, [tema.id]);
       return { ...tema, subtemas };
@@ -427,7 +417,7 @@ const obtenerPlaneacion = async (req, res) => {
 
         const materialesMapeados = materiales.map((m) => ({
           id_material: m.id_material,
-          nombre: m.nombre, 
+          nombre: m.nombre,
           tipo: m.tipo === "texto" ? "referencias" : m.tipo,
           es_enlace: m.es_enlace,
           url: m.url,
@@ -440,37 +430,37 @@ const obtenerPlaneacion = async (req, res) => {
     }
 
     const practicas = actividadesConMateriales.filter(a => a.tipo_actividad === 'actividad').map(p => ({
-        id_actividad: p.id_actividad,
-        descripcion: p.instrucciones || "",
-        materiales: p.materiales || [],
-        id_unidad: p.id_unidad ? String(p.id_unidad) : null,
-        id_subtema: p.id_subtema ? String(p.id_subtema) : null,
-        nombre_unidad: p.nombre_unidad,
-        nombre_subtema: p.nombre_subtema
+      id_actividad: p.id_actividad,
+      descripcion: p.instrucciones || "",
+      materiales: p.materiales || [],
+      id_unidad: p.id_unidad ? String(p.id_unidad) : null,
+      id_subtema: p.id_subtema ? String(p.id_subtema) : null,
+      nombre_unidad: p.nombre_unidad,
+      nombre_subtema: p.nombre_subtema
     }));
 
     const proyData = actividadesConMateriales.find(a => a.tipo_actividad === 'proyecto');
     const proyecto = proyData ? {
-        instrucciones: proyData.instrucciones,
-        fundamentacion: curso.proyecto_fundamentacion,
-        planeacion: curso.proyecto_planeacion,
-        ejecucion: curso.proyecto_ejecucion,
-        evaluacion: curso.proyecto_evaluacion,
-        materiales: proyData.materiales || []
+      instrucciones: proyData.instrucciones,
+      fundamentacion: curso.proyecto_fundamentacion,
+      planeacion: curso.proyecto_planeacion,
+      ejecucion: curso.proyecto_ejecucion,
+      evaluacion: curso.proyecto_evaluacion,
+      materiales: proyData.materiales || []
     } : null;
 
     // 6. Fuentes de Información (Planeación General - Sin cambios mayores)
     const [fuentesResult] = await pool.query(
-        `SELECT id_material, nombre_archivo, tipo_archivo as tipo, descripcion, es_enlace, url_enlace
+      `SELECT id_material, nombre_archivo, tipo_archivo as tipo, descripcion, es_enlace, url_enlace
          FROM material_curso WHERE id_curso = ? AND categoria_material = 'planeacion' ORDER BY fecha_subida`,
-        [id_curso]
+      [id_curso]
     );
     const fuentes = fuentesResult.map(f => ({
-        id_material: f.id_material,
-        tipo: f.tipo === 'texto' ? 'referencias' : (f.tipo === 'enlace' ? 'enlace' : 'pdf'),
-        referencia: f.descripcion,
-        url: f.es_enlace ? f.url_enlace : null,
-        nombre: f.nombre_archivo // Puede ser null
+      id_material: f.id_material,
+      tipo: f.tipo === 'texto' ? 'referencias' : (f.tipo === 'enlace' ? 'enlace' : 'pdf'),
+      referencia: f.descripcion,
+      url: f.es_enlace ? f.url_enlace : null,
+      nombre: f.nombre_archivo // Puede ser null
     }));
 
     res.status(200).json({
