@@ -228,42 +228,84 @@ const guardarPlaneacion = async (req, res) => {
 
       const fuentesRecibidas = new Set();
 
+      // ---------------------------------------------------------
+      // DENTRO DE LA SECCIÓN 6: FUENTES DE INFORMACIÓN
+      // ---------------------------------------------------------
+
       for (const fuente of fuentes) {
-        const contenido = fuente.referencia || fuente.descripcion || fuente.nombre;
-        // console.log(`[DEBUG] Fuente actual:`, fuente);
+        // CORRECCIÓN 1: Considerar la URL como contenido válido para que no salte los enlaces sin descripción
+        const contenido = fuente.referencia || fuente.descripcion || fuente.nombre || fuente.url;
 
         if (contenido && contenido.trim() !== "") {
           let idFuente = null;
-          const esEnlace = fuente.tipo === "enlace" || !!fuente.url;
-          const nombreArchivoParaBD = esEnlace ? "Enlace Web" : "Referencia Bibliográfica";
-          const tipoArchivoParaBD = esEnlace ? "enlace" : "texto";
+
+          // VARIABLES PARA LA BD (Lógica de 3 casos: PDF vs Enlace vs Texto)
+          let tipoBD = 'texto';
+          let nombreBD = 'Referencia Bibliográfica';
+          let esEnlaceBD = 0;
+          let urlBD = null;
+
+          if (fuente.tipo === 'pdf') {
+            // CASO A: Es un PDF (ya subido o existente)
+            tipoBD = 'pdf';
+            // IMPORTANTE: Respetar el nombre del archivo original si existe
+            nombreBD = fuente.nombre || 'Archivo PDF';
+            esEnlaceBD = 0;
+            urlBD = null;
+          }
+          else if (fuente.tipo === 'enlace') {
+            // CASO B: Es un Enlace
+            tipoBD = 'enlace';
+            nombreBD = 'Enlace Web';
+            esEnlaceBD = 1;
+            urlBD = fuente.url || contenido; // Si no hay URL separada, usar el contenido
+          }
+          else {
+            // CASO C: Es Referencia Bibliográfica (Texto)
+            tipoBD = 'texto';
+            nombreBD = 'Referencia Bibliográfica';
+            esEnlaceBD = 0;
+            urlBD = null;
+          }
 
           // Intento de MATCH por ID
           if (fuente.id_material && fuentesExistentesMap.has(parseInt(fuente.id_material))) {
-            console.log(`[DEBUG] ACTUALIZANDO fuente ID: ${fuente.id_material}`);
+            console.log(`[DEBUG] ACTUALIZANDO fuente ID: ${fuente.id_material} como tipo: ${tipoBD}`);
             idFuente = parseInt(fuente.id_material);
 
-            await connection.query(
-              `UPDATE material_curso SET 
-                nombre_archivo = ?, tipo_archivo = ?, es_enlace = ?, url_enlace = ?, descripcion = ?, fecha_subida = NOW()
-               WHERE id_material = ?`,
-              [nombreArchivoParaBD, tipoArchivoParaBD, esEnlace ? 1 : 0, fuente.url || null, contenido, idFuente]
-            );
+            // IMPORTANTE: Si es PDF, NO actualizamos 'nombre_archivo' ni 'tipo_archivo' ciegamente,
+            // porque podríamos borrar el nombre real del archivo subido. 
+            // Solo actualizamos descripción y metadatos.
+            if (tipoBD === 'pdf') {
+              await connection.query(
+                `UPDATE material_curso SET 
+                    descripcion = ?, fecha_subida = NOW()
+                   WHERE id_material = ?`,
+                [contenido, idFuente]
+              );
+            } else {
+              // Para Enlaces y Referencias sí actualizamos todo
+              await connection.query(
+                `UPDATE material_curso SET 
+                    nombre_archivo = ?, tipo_archivo = ?, es_enlace = ?, url_enlace = ?, descripcion = ?, fecha_subida = NOW()
+                   WHERE id_material = ?`,
+                [nombreBD, tipoBD, esEnlaceBD, urlBD, contenido, idFuente]
+              );
+            }
           }
           else {
-            console.log(`[DEBUG] INSERTANDO NUEVA fuente (El ID ${fuente.id_material || 'N/A'} no existía en BD)`);
+            console.log(`[DEBUG] INSERTANDO NUEVA fuente tipo ${tipoBD}`);
             const [nueva] = await connection.query(
               `INSERT INTO material_curso (
                 id_curso, nombre_archivo, tipo_archivo, categoria_material, 
                 es_enlace, url_enlace, descripcion, subido_por, fecha_subida, activo
               ) VALUES (?, ?, ?, 'planeacion', ?, ?, ?, ?, NOW(), 1)`,
               [
-                id_curso, nombreArchivoParaBD, tipoArchivoParaBD, esEnlace ? 1 : 0,
-                fuente.url || null, contenido, id_usuario
+                id_curso, nombreBD, tipoBD, esEnlaceBD,
+                urlBD, contenido, id_usuario
               ]
             );
             idFuente = nueva.insertId;
-            console.log(`[DEBUG] -> Nueva ID generada: ${idFuente}`);
           }
 
           if (idFuente) fuentesRecibidas.add(idFuente);
