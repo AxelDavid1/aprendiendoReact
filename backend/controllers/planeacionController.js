@@ -10,6 +10,7 @@ const guardarPlaneacion = async (req, res) => {
       temario,
       porcentaje_actividades,
       porcentaje_proyecto,
+      umbral_aprobatorio,
       practicas,
       proyecto,
       caracterizacion,
@@ -29,6 +30,9 @@ const guardarPlaneacion = async (req, res) => {
     connection = await pool.getConnection();
     await connection.beginTransaction();
 
+    // 0. OBTENER FECHA FIN DEL CURSO
+    const [datosCurso] = await connection.query("SELECT fecha_fin FROM curso WHERE id_curso = ?", [id_curso]);
+    const fechaFinCurso = datosCurso[0]?.fecha_fin || new Date();
     // ---------------------------------------------------------
     // 1. ACTUALIZAR DATOS DEL CURSO
     // ---------------------------------------------------------
@@ -55,15 +59,17 @@ const guardarPlaneacion = async (req, res) => {
     // ---------------------------------------------------------
     // 2. CONFIGURACIÓN DE CALIFICACIONES
     // ---------------------------------------------------------
+    const umbralFinal = umbral_aprobatorio || 70;
     const [califCurso] = await connection.query(
       `INSERT INTO calificaciones_curso 
-       (id_curso, umbral_aprobatorio, porcentaje_actividades, porcentaje_proyecto)
-       VALUES (?, 70, ?, ?)
-       ON DUPLICATE KEY UPDATE 
-         porcentaje_actividades = VALUES(porcentaje_actividades),
-         porcentaje_proyecto = VALUES(porcentaje_proyecto),
-         fecha_actualizacion = NOW()`,
-      [id_curso, porcentaje_actividades, porcentaje_proyecto]
+      (id_curso, umbral_aprobatorio, porcentaje_actividades, porcentaje_proyecto)
+      VALUES (?, ?, ?, ?)
+      ON DUPLICATE KEY UPDATE 
+        umbral_aprobatorio = VALUES(umbral_aprobatorio),
+        porcentaje_actividades = VALUES(porcentaje_actividades),
+        porcentaje_proyecto = VALUES(porcentaje_proyecto),
+        fecha_actualizacion = NOW()`,
+      [id_curso, umbralFinal, porcentaje_actividades, porcentaje_proyecto]
     );
 
     const id_calificaciones_curso = califCurso.insertId ||
@@ -146,17 +152,19 @@ const guardarPlaneacion = async (req, res) => {
           const [existe] = await connection.query("SELECT id_actividad FROM calificaciones_actividades WHERE id_actividad = ?", [practica.id_actividad]);
           if (existe.length > 0) {
             idActividad = practica.id_actividad;
+            const fechaLimite = practica.fecha_entrega || fechaFinCurso;
             await connection.query(
-              `UPDATE calificaciones_actividades SET nombre=?, instrucciones=?, id_unidad=?, id_subtema=?, fecha_actualizacion=NOW() WHERE id_actividad=?`,
-              [`Actividad ${index + 1}`, practica.descripcion || '', idUnidadReal, idSubtemaReal, idActividad]
+              `UPDATE calificaciones_actividades SET nombre=?, instrucciones=?, id_unidad=?, id_subtema=?, fecha_limite=?, fecha_actualizacion=NOW() WHERE id_actividad=?`,
+              [`Actividad ${index + 1}`, practica.descripcion || '', idUnidadReal, idSubtemaReal, fechaLimite, idActividad]
             );
           }
         }
 
         if (!idActividad) {
+          const fechaLimite = practica.fecha_entrega || fechaFinCurso;
           const [nueva] = await connection.query(
-            `INSERT INTO calificaciones_actividades (id_calificaciones_curso, nombre, tipo_actividad, instrucciones, max_archivos, max_tamano_mb, tipos_archivo_permitidos, id_unidad, id_subtema) VALUES (?, ?, 'actividad', ?, 5, 10, ?, ?, ?)`,
-            [id_calificaciones_curso, `Actividad ${index + 1}`, practica.descripcion || '', JSON.stringify(['pdf', 'link']), idUnidadReal, idSubtemaReal]
+            `INSERT INTO calificaciones_actividades (id_calificaciones_curso, nombre, tipo_actividad, instrucciones, fecha_limite, max_archivos, max_tamano_mb, tipos_archivo_permitidos, id_unidad, id_subtema) VALUES (?, ?, 'actividad', ?, ?, 5, 10, ?, ?, ?)`,
+            [id_calificaciones_curso, `Actividad ${index + 1}`, practica.descripcion || '', fechaLimite, JSON.stringify(['pdf', 'link']), idUnidadReal, idSubtemaReal]
           );
           idActividad = nueva.insertId;
         }
@@ -194,14 +202,16 @@ const guardarPlaneacion = async (req, res) => {
 
       if (proyExistente.length > 0) {
         idProyecto = proyExistente[0].id_actividad;
+        const fechaLimiteProy = proyecto.fecha_entrega || fechaFinCurso;
         await connection.query(
-          "UPDATE calificaciones_actividades SET instrucciones = ?, fecha_actualizacion = NOW() WHERE id_actividad = ?",
-          [proyecto.instrucciones || "Proyecto Final", idProyecto]
+          "UPDATE calificaciones_actividades SET instrucciones = ?, fecha_limite = ?, fecha_actualizacion = NOW() WHERE id_actividad = ?",
+          [proyecto.instrucciones || "Proyecto Final", fechaLimiteProy, idProyecto]
         );
       } else {
+        const fechaLimiteProy = proyecto.fecha_entrega || fechaFinCurso;
         const [nuevoProy] = await connection.query(
-          `INSERT INTO calificaciones_actividades (id_calificaciones_curso, nombre, tipo_actividad, instrucciones, max_archivos, max_tamano_mb, tipos_archivo_permitidos) VALUES (?, 'Proyecto Final', 'proyecto', ?, 10, 25, ?)`,
-          [id_calificaciones_curso, proyecto.instrucciones || "Proyecto Final", JSON.stringify(["pdf", "link", "zip"])]
+          `INSERT INTO calificaciones_actividades (id_calificaciones_curso, nombre, tipo_actividad, instrucciones, fecha_limite, max_archivos, max_tamano_mb, tipos_archivo_permitidos) VALUES (?, 'Proyecto Final', 'proyecto', ?, ?, 10, 25, ?)`,
+          [id_calificaciones_curso, proyecto.instrucciones || "Proyecto Final", fechaLimiteProy, JSON.stringify(["pdf", "link", "zip"])]
         );
         idProyecto = nuevoProy.insertId;
       }
@@ -478,7 +488,8 @@ const obtenerPlaneacion = async (req, res) => {
       id_unidad: p.id_unidad ? String(p.id_unidad) : null,
       id_subtema: p.id_subtema ? String(p.id_subtema) : null,
       nombre_unidad: p.nombre_unidad,
-      nombre_subtema: p.nombre_subtema
+      nombre_subtema: p.nombre_subtema,
+      fecha_entrega: p.fecha_limite
     }));
 
     const proyData = actividadesConMateriales.find(a => a.tipo_actividad === 'proyecto');
@@ -488,7 +499,8 @@ const obtenerPlaneacion = async (req, res) => {
       planeacion: curso.proyecto_planeacion,
       ejecucion: curso.proyecto_ejecucion,
       evaluacion: curso.proyecto_evaluacion,
-      materiales: proyData.materiales || []
+      materiales: proyData.materiales || [],
+      fecha_entrega: proyData.fecha_limite
     } : null;
 
     // 6. Fuentes de Información (Planeación General - Sin cambios mayores)
@@ -509,6 +521,7 @@ const obtenerPlaneacion = async (req, res) => {
       temario,
       porcentaje_practicas: califCurso[0]?.porcentaje_actividades || 50,
       porcentaje_proyecto: califCurso[0]?.porcentaje_proyecto || 50,
+      umbral_aprobatorio: califCurso[0]?.umbral_aprobatorio || 70,
       practicas,
       proyecto,
       clave_asignatura: curso.clave_asignatura || "",
