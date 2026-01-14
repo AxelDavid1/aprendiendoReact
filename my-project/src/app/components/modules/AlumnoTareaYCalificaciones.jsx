@@ -289,22 +289,12 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
       let actividadesConfiguradas = [];
       if (actividadesResponse.ok) {
         const actividadesData = await actividadesResponse.json();
+        console.log("DEBUG DATA RECIBIDA:", actividadesData);
         actividadesConfiguradas = actividadesData.actividades || [];
+        console.log("DEBUG ACTIVIDADES:", actividadesConfiguradas);
       }
 
-      // 2. Obtener material de actividad (recursos de apoyo)
-      const materialResponse = await fetch(
-        `${API_BASE_URL}/api/material/curso/${cursoSeleccionado.id}`,
-        { headers },
-      );
-
-      let materialesActividad = [];
-      if (materialResponse.ok) {
-        const materialData = await materialResponse.json();
-        materialesActividad = materialData.material?.actividad || [];
-      }
-
-      // 3. Fetch existing submissions (entregas) for the student in this course
+      // 2. Fetch existing submissions (entregas) for the student in this course
       const entregasResponse = await fetch(
         `${API_BASE_URL}/api/entregas/alumno/${cursoSeleccionado.id}`,
         { headers },
@@ -318,11 +308,9 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
         console.error("Error cargando entregas:", entregasResponse.status);
       }
 
-      // 4. Combinar actividades con material y entregas
+      // 3. Combinar actividades con material y entregas
       const tareasFormateadas = actividadesConfiguradas.map((actividad) => {
-        const recursosActividad = materialesActividad.filter(
-          (material) => material.id_actividad === actividad.id_actividad,
-        );
+        const recursosActividad = actividad.materiales || [];
 
         const materialPrincipal =
           recursosActividad.find((material) => !material.es_enlace) ||

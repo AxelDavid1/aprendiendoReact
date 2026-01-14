@@ -133,13 +133,12 @@ const upsertCalificacionCurso = async (req, res) => {
   }
 };
 
-// @desc    Obtener la configuración de calificación de un curso y sus actividades
-// @route   GET /api/calificaciones/:id_curso
-// @access  Private (Alumno/Maestro)
+// backend/controllers/calificacionesController.js
+
 const getCalificacionCurso = async (req, res) => {
   const { id_curso } = req.params;
   const { id_usuario, tipo_usuario, id_alumno: id_alumno_sesion } = req.user;
-  const { id_alumno: id_alumno_query } = req.query; // <-- El profesor envía esto
+  const { id_alumno: id_alumno_query } = req.query; 
 
   if (!id_curso) {
     return res.status(400).json({ error: "El ID del curso es obligatorio." });
@@ -149,6 +148,7 @@ const getCalificacionCurso = async (req, res) => {
   try {
     connection = await pool.getConnection();
 
+    // 1. Obtener porcentajes generales del curso
     const [califCursoRows] = await connection.query(
       "SELECT * FROM calificaciones_curso WHERE id_curso = ?",
       [id_curso]
@@ -159,25 +159,33 @@ const getCalificacionCurso = async (req, res) => {
     }
     const califCurso = califCursoRows[0];
 
+    // 2. Obtener las actividades (SIN pedir la columna 'porcentaje')
     const [actividadesRows] = await connection.query(
-      "SELECT id_actividad, nombre, instrucciones, porcentaje, fecha_limite, max_archivos, max_tamano_mb, tipos_archivo_permitidos FROM calificaciones_actividades WHERE id_calificaciones_curso = ?",
+      `SELECT id_actividad, nombre, instrucciones, fecha_limite, 
+              max_archivos, max_tamano_mb, tipos_archivo_permitidos, 
+              tipo_actividad
+       FROM calificaciones_actividades WHERE id_calificaciones_curso = ?`,
       [califCurso.id_calificaciones]
     );
 
-    // ====== AQUÍ ESTÁ EL CAMBIO IMPORTANTE ======
-    let id_alumno_para_buscar = null;
+    // --- CÁLCULO DE PONDERACIÓN DINÁMICA ---
+    // Contamos cuántas actividades y proyectos hay
+    const numActividades = actividadesRows.filter(a => a.tipo_actividad === 'actividad').length;
+    const numProyectos = actividadesRows.filter(a => a.tipo_actividad === 'proyecto').length;
 
-    // Si es alumno, usa su propio id
+    // Calculamos cuánto vale cada una individualmente
+    // Ej: Si porcentaje_actividades es 50% y hay 5 tareas, cada una vale 10%
+    const valorPorActividad = numActividades > 0 ? (califCurso.porcentaje_actividades / numActividades) : 0;
+    const valorPorProyecto = numProyectos > 0 ? (califCurso.porcentaje_proyecto / numProyectos) : 0;
+    // ----------------------------------------
+
+    // Determinar el ID del alumno a consultar
+    let id_alumno_para_buscar = null;
     if (tipo_usuario === 'alumno') {
       id_alumno_para_buscar = id_alumno_sesion;
+    } else if (['maestro', 'admin_sedeq', 'admin_universidad', 'SEDEQ'].includes(tipo_usuario) && id_alumno_query) {
+      id_alumno_para_buscar = parseInt(id_alumno_query);
     }
-    // Si es maestro/admin Y viene id_alumno en query, úsalo
-    else if (['maestro', 'admin_sedeq', 'admin_universidad', 'SEDEQ'].includes(tipo_usuario) && id_alumno_query) {
-      id_alumno_para_buscar = parseInt(id_alumno_query); // <-- Asegurar que sea número
-    }
-
-    console.log('🔍 DEBUG: Buscando entregas para id_alumno:', id_alumno_para_buscar);
-    // ============================================
 
     let id_inscripcion_objetivo = null;
     if (id_alumno_para_buscar) {
@@ -185,23 +193,25 @@ const getCalificacionCurso = async (req, res) => {
         "SELECT id_inscripcion FROM inscripcion WHERE id_alumno = ? AND id_curso = ? AND estatus_inscripcion = 'aprobada'",
         [id_alumno_para_buscar, id_curso]
       );
-
-      console.log('📋 DEBUG: Inscripciones encontradas:', inscripcionRows.length);
-
       if (inscripcionRows.length > 0) {
         id_inscripcion_objetivo = inscripcionRows[0].id_inscripcion;
-        console.log('✅ DEBUG: id_inscripcion encontrado:', id_inscripcion_objetivo);
-      } else {
-        console.log('⚠️ DEBUG: No se encontró inscripción aprobada para este alumno en este curso');
       }
     }
 
     const actividadesConEntregas = [];
+    
     for (const actividad of actividadesRows) {
+      
+      // A) Inyectar el porcentaje calculado para que el Frontend lo muestre
+      actividad.porcentaje = actividad.tipo_actividad === 'proyecto' 
+          ? parseFloat(valorPorProyecto.toFixed(2)) 
+          : parseFloat(valorPorActividad.toFixed(2));
+
+      // B) Buscar Entrega (Si hay alumno)
       let entregaCompleta = null;
       if (id_inscripcion_objetivo) {
         const [entregaRows] = await connection.query(
-          `SELECT id_entrega, fecha_entrega, calificacion, comentario_profesor
+          `SELECT id_entrega, fecha_entrega, calificacion, comentario_profesor, estatus_entrega
            FROM entregas_estudiantes
            WHERE id_actividad = ? AND id_inscripcion = ?
            ORDER BY fecha_entrega DESC
@@ -209,29 +219,43 @@ const getCalificacionCurso = async (req, res) => {
           [actividad.id_actividad, id_inscripcion_objetivo]
         );
 
-        console.log(`📦 DEBUG: Entregas para actividad ${actividad.id_actividad}:`, entregaRows.length);
-
         if (entregaRows.length > 0) {
           const entregaBase = entregaRows[0];
+          // Traer archivos que subió el alumno
           const [archivosRows] = await connection.query(
             "SELECT id_archivo_entrega, nombre_archivo_original, ruta_archivo, tipo_archivo FROM archivos_entrega WHERE id_entrega = ?",
             [entregaBase.id_entrega]
           );
-          console.log(`📎 DEBUG: Archivos para entrega ${entregaBase.id_entrega}:`, archivosRows.length);
-
           entregaCompleta = { ...entregaBase, archivos: archivosRows };
         }
       }
+
+      // C) Traer Materiales de Apoyo (Lo que subió el profesor)
+      const [materialesApoyo] = await connection.query(
+        `SELECT m.id_material, m.nombre_archivo, m.tipo_archivo, m.es_enlace, m.url_enlace, m.descripcion
+         FROM material_curso m
+         JOIN actividad_materiales am ON m.id_material = am.id_material
+         WHERE am.id_actividad = ?
+         ORDER BY am.orden ASC`,
+        [actividad.id_actividad]
+      );
+
       actividadesConEntregas.push({
         ...actividad,
         entrega: entregaCompleta,
+        materiales: materialesApoyo || [] 
       });
     }
 
-    let calificacionFinal = 0;
+    // Cálculo de calificación final del alumno (Promedio ponderado real)
+    let puntosAcumulados = 0;
+    
     for (const act of actividadesConEntregas) {
       if (act.entrega && act.entrega.calificacion !== null) {
-        calificacionFinal += parseFloat(act.entrega.calificacion);
+        // La calificación suele ser 0-100.
+        // Puntos ganados = (CalificaciónObtenida / 100) * ValorDeLaActividad
+        const puntosGanados = (parseFloat(act.entrega.calificacion) / 100) * act.porcentaje;
+        puntosAcumulados += puntosGanados;
       }
     }
 
@@ -239,8 +263,8 @@ const getCalificacionCurso = async (req, res) => {
       id_curso: califCurso.id_curso,
       umbral_aprobatorio: califCurso.umbral_aprobatorio,
       actividades: actividadesConEntregas,
-      calificacion_final: parseFloat(calificacionFinal.toFixed(2)),
-      aprobado: calificacionFinal >= califCurso.umbral_aprobatorio,
+      calificacion_final: parseFloat(puntosAcumulados.toFixed(2)),
+      aprobado: puntosAcumulados >= califCurso.umbral_aprobatorio,
     };
 
     res.status(200).json(response);

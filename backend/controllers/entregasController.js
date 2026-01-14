@@ -529,5 +529,5 @@ module.exports = {
   unsubmitEntrega,
   descargarArchivoEntrega,
   eliminarArchivoEntrega,
-  getEntregasPorAlumnoYCurso, // Kept for now to avoid breaking routes, but deprecated
+  getEntregasPorAlumnoYCurso,
 };
