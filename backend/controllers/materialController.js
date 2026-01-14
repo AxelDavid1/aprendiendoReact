@@ -51,162 +51,74 @@ const upload = multer({
 // @route   POST /api/material
 // @access  Private (Maestro)
 const subirMaterial = async (req, res) => {
-  try {
-    const {
-      id_curso,
-      categoria_material,
-      nombre_archivo,
-      descripcion,
-      es_enlace,
-      url_enlace,
-      instrucciones_texto,
-      fecha_limite,
-      id_actividad, // <-- Recibimos el nuevo campo
-    } = req.body;
+  let connection;
+  // Guardamos la ruta del archivo físico por si hay que borrarlo tras error en BD
+  let finalFilePathSystem = null;
 
+  try {
+    const { 
+      id_curso, 
+      categoria_material, 
+      nombre_archivo, 
+      descripcion, 
+      es_enlace, 
+      url_enlace,
+      tipo_archivo 
+    } = req.body;
+    
     const subido_por = req.user.id_usuario;
 
-    // Debug: Log incoming request data
-    console.log(`🔍 Debug Material Upload:`);
-    console.log(`   - ID Curso: ${id_curso}`);
-    console.log(`   - Usuario ID: ${subido_por}`);
-    console.log(`   - Tipo Usuario: ${req.user.tipo_usuario}`);
-    console.log(`   - Categoría: ${categoria_material}`);
-    console.log(`   - ID Actividad (si aplica): ${id_actividad}`);
-    console.log(`   - Es enlace: ${es_enlace}`);
-    console.log(
-      `📁 Archivo recibido:`,
-      req.file
-        ? `${req.file.originalname} (${req.file.size} bytes)`
-        : "Ninguno",
-    );
-
-    // Validaciones
-    if (!id_curso || !categoria_material) {
-      return res.status(400).json({
-        error: "El ID del curso y categoría del material son obligatorios.",
-      });
+    // Validación básica
+    if (!id_curso) {
+      return res.status(400).json({ error: "El ID del curso es obligatorio." });
     }
 
-    // Validar categoría
-    const categoriasValidas = ["planeacion", "material_descarga", "actividad"];
-    if (!categoriasValidas.includes(categoria_material)) {
-      return res.status(400).json({
-        error: "Categoría de material no válida.",
-      });
+    // Determinar si es archivo o enlace
+    const isLink = es_enlace === 'true' || es_enlace === '1' || es_enlace === 1;
+    
+    // Si es archivo PDF, validar que Multer lo haya procesado
+    if (!isLink && !req.file) {
+      return res.status(400).json({ error: "No se ha subido ningún archivo PDF." });
     }
 
-    // Debug: Verificar datos del usuario y curso
-    console.log(`🔍 Debug Material Upload:
-    - ID Curso: ${id_curso}
-    - Usuario ID: ${subido_por}
-    - Tipo Usuario: ${req.user.tipo_usuario}`);
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
 
-    // También verificar si es admin o maestro
-    const isAdmin =
-      req.user.tipo_usuario === "admin_sedeq" ||
-      req.user.tipo_usuario === "admin_universidad" ||
-      req.user.tipo_usuario === "maestro";
+    let dbRelativePath = null;
+    let finalSize = 0;
+    let finalName = nombre_archivo || "Material";
 
-    // Verificar que el usuario es maestro del curso solo si no es admin
-    let tienePermisos = isAdmin;
-
-    if (!isAdmin) {
-      const [cursoRows] = await pool.query(
-        `SELECT c.id_curso, c.id_maestro, m.id_maestro, m.id_usuario
-         FROM curso c
-         INNER JOIN maestro m ON c.id_maestro = m.id_maestro
-         WHERE c.id_curso = ? AND m.id_usuario = ?`,
-        [id_curso, subido_por],
-      );
-
-      console.log(`🔍 Resultado consulta maestro:`, cursoRows);
-      tienePermisos = cursoRows.length > 0;
-    }
-
-    if (!tienePermisos) {
-      console.log(
-        `❌ Sin permisos: Usuario ${subido_por} no es maestro del curso ${id_curso} ni admin`,
-      );
-      return res.status(403).json({
-        error: "No tienes permisos para subir material a este curso.",
-      });
-    }
-
-    // Procesar parámetros
-    const esEnlace = es_enlace === "true" || es_enlace === true;
-
-    let ruta_archivo = null;
-    let tipo_archivo = null;
-    let tamaño_archivo = null;
-    let nombre_final = nombre_archivo || "Material del curso";
-
-    // Debug antes del procesamiento
-    console.log(`🔄 Procesando: ${esEnlace ? "ENLACE" : "ARCHIVO"}`);
-    console.log(`📂 Archivo req.file:`, req.file ? "SÍ EXISTE" : "NO EXISTE");
-
-    // Si es un archivo subido (PDF)
-    if (req.file && !esEnlace) {
-      // Mover archivo a la carpeta correcta de la categoría
-      const finalPath = path.join(
-        __dirname,
-        "../uploads/material",
-        categoria_material,
-      );
-      if (!fs.existsSync(finalPath)) {
-        fs.mkdirSync(finalPath, { recursive: true });
+    // Lógica para Archivos Físicos (PDF)
+    if (!isLink && req.file) {
+      const uploadDir = path.join(__dirname, `../uploads/material/${categoria_material || 'varios'}`);
+      
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
       }
 
-      const finalFileName = path.basename(req.file.filename);
-      const finalFilePath = path.join(finalPath, finalFileName);
-
-      // Mover archivo de uploads/material/ a uploads/material/categoria/
-      fs.renameSync(req.file.path, finalFilePath);
-
-      ruta_archivo = finalFilePath;
-      tipo_archivo = "pdf";
-      tamaño_archivo = req.file.size;
-      nombre_final = req.file.originalname;
-      console.log(
-        `✅ Archivo PDF procesado: ${nombre_final} -> ${finalFilePath}`,
-      );
+      // Generar nombre único
+      const uniqueName = `curso${id_curso}_${Date.now()}_${Math.round(Math.random() * 1E9)}_${req.file.originalname.replace(/\s+/g, '_')}`;
+      finalFilePathSystem = path.join(uploadDir, uniqueName);
+      
+      // Mover archivo
+      fs.renameSync(req.file.path, finalFilePathSystem);
+      
+      // Ruta relativa para BD
+      dbRelativePath = `uploads/material/${categoria_material || 'varios'}/${uniqueName}`;
+      finalSize = req.file.size;
+      finalName = nombre_archivo || req.file.originalname;
     }
 
-    // Si es un enlace
-    if (esEnlace) {
-      if (!url_enlace || !url_enlace.trim()) {
-        return res.status(400).json({
-          error: "URL del enlace es obligatoria cuando es_enlace es true.",
-        });
-      }
-      ruta_archivo = null;
-      tipo_archivo = "enlace";
-      tamaño_archivo = null;
-      console.log(`✅ Enlace procesado: ${url_enlace}`);
+    // Lógica para Enlaces
+    if (isLink) {
+        finalName = nombre_archivo || "Enlace Web";
+        // Validar URL si es necesario
     }
 
-    // Validar que tenemos archivo o enlace (excepto para actividades sin contenido)
-    if (!esEnlace && !req.file && categoria_material !== "actividad") {
-      return res.status(400).json({
-        error: "Se requiere un archivo cuando no es un enlace.",
-      });
-    }
-
-    console.log(`💾 Insertando en BD con valores:`);
-    console.log(`  - id_curso: ${id_curso}`);
-    console.log(`  - nombre_archivo: ${nombre_final}`);
-    console.log(`  - ruta_archivo: ${ruta_archivo}`);
-    console.log(`  - tipo_archivo: ${tipo_archivo}`);
-    console.log(`  - categoria_material: ${categoria_material}`);
-    console.log(`  - es_enlace: ${esEnlace ? 1 : 0}`);
-    console.log(`  - url_enlace: ${url_enlace || null}`);
-    console.log(`  - tamaño_archivo: ${tamaño_archivo}`);
-    console.log(`  - descripcion: ${descripcion || null}`);
-    console.log(`  - fecha_limite: ${fecha_limite || null}`);
-    console.log(`  - subido_por: ${subido_por}`);
-
-    const insertQuery = `
-      INSERT INTO material_curso (
+    // --- AQUÍ ESTABA EL ERROR ---
+    // Eliminamos 'id_actividad' de la consulta porque esa columna NO existe en material_curso
+    const [result] = await connection.query(
+      `INSERT INTO material_curso (
         id_curso,
         nombre_archivo,
         ruta_archivo,
@@ -216,51 +128,56 @@ const subirMaterial = async (req, res) => {
         url_enlace,
         tamaño_archivo,
         descripcion,
-        instrucciones_texto,
-        fecha_limite,
         subido_por,
-        id_actividad
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `;
-
-    const [result] = await pool.query(insertQuery, [
-      id_curso,
-      nombre_final,
-      ruta_archivo,
-      tipo_archivo,
-      categoria_material,
-      esEnlace ? 1 : 0,
-      url_enlace || null,
-      tamaño_archivo,
-      descripcion || null,
-      instrucciones_texto || null,
-      fecha_limite || null,
-      subido_por,
-      id_actividad || null, // <-- Guardamos el ID de la actividad
-    ]);
-
-    logger.info(
-      `Material subido exitosamente: ID ${result.insertId}, Curso: ${id_curso}, Categoría: ${categoria_material}`,
+        fecha_subida,
+        activo
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 1)`,
+      [
+        id_curso,
+        finalName,
+        dbRelativePath, // Será null si es enlace
+        isLink ? 'enlace' : 'pdf',
+        categoria_material || 'material_descarga',
+        isLink ? 1 : 0,
+        isLink ? url_enlace : null,
+        finalSize,
+        descripcion || null,
+        subido_por
+      ]
     );
 
+    const id_material = result.insertId;
+
+    await connection.commit();
+
+    // Responder
     res.status(201).json({
+      success: true,
       message: "Material subido exitosamente",
       material: {
-        id_material: result.insertId,
-        id_curso,
-        nombre_archivo: nombre_final,
-        categoria_material,
-        es_enlace: esEnlace ? true : false,
-        url_enlace,
-        descripcion,
-        fecha_subida: new Date().toISOString(),
-      },
+        id_material,
+        nombre_archivo: finalName,
+        ruta_archivo: dbRelativePath,
+        url_enlace: isLink ? url_enlace : null,
+        es_enlace: isLink ? 1 : 0,
+        fecha_subida: new Date()
+      }
     });
+
   } catch (error) {
+    if (connection) await connection.rollback();
+    
+    // Limpieza de archivo si falló la BD
+    if (finalFilePathSystem && fs.existsSync(finalFilePathSystem)) {
+        fs.unlinkSync(finalFilePathSystem);
+    } else if (req.file && req.file.path && fs.existsSync(req.file.path)) {
+        fs.unlinkSync(req.file.path);
+    }
+
     logger.error(`Error al subir material: ${error.message}`);
-    res.status(500).json({
-      error: "Error interno del servidor al subir el material.",
-    });
+    res.status(500).json({ error: "Error interno del servidor al subir el material." });
+  } finally {
+    if (connection) connection.release();
   }
 };
 

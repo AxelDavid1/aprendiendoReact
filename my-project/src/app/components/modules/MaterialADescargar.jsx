@@ -2,17 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faTrash, faFilePdf, faLink, faPlus } from "@fortawesome/free-solid-svg-icons";
+import { faTrash, faFilePdf, faLink, faPlus, faDownload, faExternalLinkAlt } from "@fortawesome/free-solid-svg-icons";
 import styles from "./MaterialADescargar.module.css";
 
 const API_BASE_URL = "http://localhost:5000";
 
 const getSiteName = (url) => {
   try {
+    if (!url) return "Enlace";
     const urlObj = new URL(url);
     return urlObj.hostname.replace("www.", "");
   } catch {
-    return url;
+    return "Sitio Web";
   }
 };
 
@@ -22,14 +23,17 @@ const MaterialADescargar = ({ curso, onClose, showToast, showConfirmModal }) => 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // Helper para notificaciones (compatible con tu sistema actual)
   const notify = (message, type = "info") => {
     if (showToast) {
       showToast(message, type);
     } else {
       console[type === "error" ? "error" : "log"](message);
+      if (type !== "info") alert(message);
     }
   };
 
+  // Helper para confirmaciones
   const confirmAction = async (title, message, onConfirm, type = "warning") => {
     if (showConfirmModal) {
       showConfirmModal(title, message, onConfirm, type);
@@ -38,6 +42,7 @@ const MaterialADescargar = ({ curso, onClose, showToast, showConfirmModal }) => 
     }
   };
 
+  // Cargar material existente (Filtrado por material_descarga)
   const loadMaterialExistente = async () => {
     if (!curso?.id_curso) return;
     setLoading(true);
@@ -55,7 +60,19 @@ const MaterialADescargar = ({ curso, onClose, showToast, showConfirmModal }) => 
       }
 
       const data = await response.json();
-      setMaterialExistente(data.material?.material_descarga || []);
+      
+      // Filtramos explícitamente por 'material_descarga' si el backend devuelve todo mezclado,
+      // o usamos la propiedad si ya viene agrupado. Adaptamos a ambas posibilidades.
+      let descargaItems = [];
+      if (data.material && Array.isArray(data.material)) {
+         // Si es un array plano
+         descargaItems = data.material.filter(m => m.categoria_material === 'material_descarga');
+      } else if (data.material?.material_descarga) {
+         // Si viene agrupado
+         descargaItems = data.material.material_descarga;
+      }
+
+      setMaterialExistente(descargaItems || []);
     } catch (error) {
       console.error("Error al cargar material existente:", error);
       notify("No se pudo cargar el material existente", "error");
@@ -74,7 +91,7 @@ const MaterialADescargar = ({ curso, onClose, showToast, showConfirmModal }) => 
       ...prev,
       {
         nombre: "",
-        tipo: "pdf",
+        tipo: "pdf", // Valor por defecto
         descripcion: "",
         archivo: null,
         link: "",
@@ -98,6 +115,15 @@ const MaterialADescargar = ({ curso, onClose, showToast, showConfirmModal }) => 
     const file = event.target.files?.[0];
     if (!file) return;
     handleMaterialChange(index, "archivo", file);
+    // Auto-rellenar nombre si está vacío
+    setMateriales((prev) => {
+       if (!prev[index].nombre) {
+          const updated = [...prev];
+          updated[index] = { ...updated[index], nombre: file.name };
+          return updated;
+       }
+       return prev;
+    });
   };
 
   const eliminarMaterialExistente = (idMaterial) => {
@@ -157,10 +183,7 @@ const MaterialADescargar = ({ curso, onClose, showToast, showConfirmModal }) => 
     }
 
     if (materialesNuevosValidos.length === 0) {
-      notify(
-        "Verifica que cada material tenga nombre y archivo o enlace válido",
-        "warning",
-      );
+      notify("Verifica que cada material tenga nombre y archivo/enlace válido", "warning");
       return;
     }
 
@@ -171,16 +194,23 @@ const MaterialADescargar = ({ curso, onClose, showToast, showConfirmModal }) => 
 
       for (const material of materialesNuevosValidos) {
         const formDataMaterial = new FormData();
+        
+        // Campos obligatorios para tu tabla material_curso
         formDataMaterial.append("id_curso", curso.id_curso);
         formDataMaterial.append("categoria_material", "material_descarga");
         formDataMaterial.append("nombre_archivo", material.nombre.trim());
         formDataMaterial.append("descripcion", material.descripcion || "");
-
+        
         if (material.tipo === "pdf") {
-          formDataMaterial.append("archivo", material.archivo);
-          formDataMaterial.append("es_enlace", "false");
+          // IMPORTANTE: Tu backend espera 'file' en upload.single('file')
+          formDataMaterial.append("file", material.archivo); 
+          formDataMaterial.append("tipo_archivo", "pdf");
+          formDataMaterial.append("es_enlace", "0"); // Enviar como string "0"
+          formDataMaterial.append("url_enlace", ""); // Enviar vacío para limpiar
         } else {
-          formDataMaterial.append("es_enlace", "true");
+          // Enlace
+          formDataMaterial.append("tipo_archivo", "enlace");
+          formDataMaterial.append("es_enlace", "1"); // Enviar como string "1"
           formDataMaterial.append("url_enlace", material.link.trim());
         }
 
@@ -192,9 +222,7 @@ const MaterialADescargar = ({ curso, onClose, showToast, showConfirmModal }) => 
 
         if (!responseMaterial.ok) {
           const errorData = await responseMaterial.json().catch(() => ({}));
-          throw new Error(
-            errorData.error || `No se pudo subir el material "${material.nombre}"`,
-          );
+          throw new Error(errorData.error || `Error al subir "${material.nombre}"`);
         }
       }
 
@@ -215,79 +243,85 @@ const MaterialADescargar = ({ curso, onClose, showToast, showConfirmModal }) => 
       <div className={styles.modalContent}>
         <div className={styles.modalHeader}>
           <h2 className={styles.modalTitle}>
-            📚 Material a Descargar - {curso?.nombre_curso || "Curso"}
+            📚 Material de Apoyo - {curso?.nombre_curso || "Curso"}
           </h2>
-          <button
-            onClick={onClose}
-            className={styles.closeButton}
-            type="button"
-            aria-label="Cerrar"
-          >
+          <button onClick={onClose} className={styles.closeButton} type="button" aria-label="Cerrar">
             ×
           </button>
         </div>
 
         <div className={styles.modalBody}>
           <p className={styles.tabDescription}>
-            Gestiona los recursos que los estudiantes podrán descargar.
+            Gestiona recursos adicionales (PDFs o Enlaces) para estudio independiente.
           </p>
 
           {loading ? (
             <div className={styles.loadingState}>
-              <p>Cargando material existente...</p>
+              <p>Cargando material...</p>
             </div>
           ) : (
             materialExistente.length > 0 && (
               <div className={styles.existingMaterial}>
-                <h3>Material existente</h3>
+                <h3>Material Disponible</h3>
                 {materialExistente.map((item) => (
                   <div key={item.id_material} className={styles.materialCard}>
                     <div className={styles.materialInfo}>
                       <span className={styles.materialName}>
                         <FontAwesomeIcon
-                          icon={item.es_enlace ? faLink : faFilePdf}
-                          className={
-                            item.es_enlace ? styles.linkIcon : styles.pdfIcon
-                          }
+                          icon={item.es_enlace || item.tipo_archivo === 'enlace' ? faLink : faFilePdf}
+                          className={item.es_enlace || item.tipo_archivo === 'enlace' ? styles.linkIcon : styles.pdfIcon}
                         />
                         {item.nombre_archivo}
                       </span>
+                      
                       {item.descripcion && (
                         <p className={styles.materialDesc}>{item.descripcion}</p>
                       )}
-                      {item.es_enlace && item.url_enlace && (
+
+                      {/* Visualización de Enlace */}
+                      {(item.es_enlace || item.tipo_archivo === 'enlace') && item.url_enlace && (
                         <p className={styles.materialLink}>
-                          <a
-                            href={item.url_enlace}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className={styles.linkPreview}
-                          >
-                            {getSiteName(item.url_enlace)}
+                          <a href={item.url_enlace} target="_blank" rel="noopener noreferrer" className={styles.linkPreview}>
+                            {getSiteName(item.url_enlace)} <FontAwesomeIcon icon={faExternalLinkAlt} size="xs"/>
                           </a>
                         </p>
                       )}
+
                       <small className={styles.materialDate}>
-                        Subido: {new Date(item.fecha_subida).toLocaleDateString()}
+                        Subido: {item.fecha_subida ? new Date(item.fecha_subida).toLocaleDateString() : 'Fecha desc.'}
                       </small>
                     </div>
+
                     <div className={styles.materialActions}>
-                      {item.es_enlace && item.url_enlace && (
-                        <a
-                          href={item.url_enlace}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={styles.viewButton}
-                          title="Ver enlace"
-                        >
-                          👁️
-                        </a>
+                      {/* Botón Ver/Descargar */}
+                      {(item.es_enlace || item.tipo_archivo === 'enlace') ? (
+                         <a
+                           href={item.url_enlace}
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           className={styles.viewButton}
+                           title="Abrir enlace"
+                         >
+                           👁️
+                         </a>
+                      ) : (
+                         <a
+                           // Usamos la ruta de descarga directa del backend
+                           href={`${API_BASE_URL}/api/material/download/${item.id_material}`}
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           className={styles.viewButton}
+                           title="Descargar PDF"
+                         >
+                           <FontAwesomeIcon icon={faDownload} />
+                         </a>
                       )}
+
                       <button
                         type="button"
                         onClick={() => eliminarMaterialExistente(item.id_material)}
                         className={styles.deleteButton}
-                        title="Eliminar material"
+                        title="Eliminar"
                       >
                         <FontAwesomeIcon icon={faTrash} />
                       </button>
@@ -298,23 +332,20 @@ const MaterialADescargar = ({ curso, onClose, showToast, showConfirmModal }) => 
             )
           )}
 
+          {/* Formulario para agregar nuevo */}
           {materiales.map((material, index) => (
             <div key={index} className={styles.materialItem}>
               <div className={styles.materialHeader}>
                 <input
                   type="text"
-                  placeholder="Nombre del material"
+                  placeholder="Título del recurso"
                   value={material.nombre}
-                  onChange={(e) =>
-                    handleMaterialChange(index, "nombre", e.target.value)
-                  }
+                  onChange={(e) => handleMaterialChange(index, "nombre", e.target.value)}
                   className={styles.input}
                 />
                 <select
                   value={material.tipo}
-                  onChange={(e) =>
-                    handleMaterialChange(index, "tipo", e.target.value)
-                  }
+                  onChange={(e) => handleMaterialChange(index, "tipo", e.target.value)}
                   className={styles.select}
                 >
                   <option value="pdf">📄 PDF</option>
@@ -323,7 +354,7 @@ const MaterialADescargar = ({ curso, onClose, showToast, showConfirmModal }) => 
                 <button
                   onClick={() => handleRemoveMaterial(index)}
                   className={styles.deleteButton}
-                  title="Eliminar material"
+                  title="Quitar"
                   type="button"
                 >
                   <FontAwesomeIcon icon={faTrash} />
@@ -332,15 +363,13 @@ const MaterialADescargar = ({ curso, onClose, showToast, showConfirmModal }) => 
 
               <div className={styles.materialContent}>
                 <div className={styles.formGroup}>
-                  <label>Descripción:</label>
+                  <label>Descripción (Opcional):</label>
                   <textarea
                     value={material.descripcion}
-                    onChange={(e) =>
-                      handleMaterialChange(index, "descripcion", e.target.value)
-                    }
+                    onChange={(e) => handleMaterialChange(index, "descripcion", e.target.value)}
                     className={styles.textarea}
                     rows={2}
-                    placeholder="Describe brevemente este material..."
+                    placeholder="¿Para qué sirve este material?"
                   />
                 </div>
 
@@ -355,24 +384,23 @@ const MaterialADescargar = ({ curso, onClose, showToast, showConfirmModal }) => 
                         className={styles.fileInput}
                         id={`material-${index}`}
                       />
-                      <label
-                        htmlFor={`material-${index}`}
-                        className={styles.fileLabel}
-                      >
-                        📎 {material.archivo ? material.archivo.name : "Seleccionar archivo PDF"}
+                      <label htmlFor={`material-${index}`} className={styles.fileLabel}>
+                        {material.archivo ? (
+                           <><span style={{color: '#2ecc71'}}>✔</span> {material.archivo.name}</>
+                        ) : (
+                           "📎 Seleccionar PDF"
+                        )}
                       </label>
                     </div>
                   </div>
                 ) : (
                   <div className={styles.formGroup}>
-                    <label>URL del enlace:</label>
+                    <label>URL del sitio:</label>
                     <input
                       type="url"
-                      placeholder="https://ejemplo.com/recurso"
+                      placeholder="https://..."
                       value={material.link}
-                      onChange={(e) =>
-                        handleMaterialChange(index, "link", e.target.value)
-                      }
+                      onChange={(e) => handleMaterialChange(index, "link", e.target.value)}
                       className={styles.input}
                     />
                   </div>
@@ -381,23 +409,14 @@ const MaterialADescargar = ({ curso, onClose, showToast, showConfirmModal }) => 
             </div>
           ))}
 
-          <button
-            onClick={handleAddMaterial}
-            className={styles.addButton}
-            type="button"
-          >
-            <FontAwesomeIcon icon={faPlus} /> Añadir Material
+          <button onClick={handleAddMaterial} className={styles.addButton} type="button">
+            <FontAwesomeIcon icon={faPlus} /> Agregar otro recurso
           </button>
         </div>
 
         <div className={styles.modalActions}>
-          <button
-            onClick={onClose}
-            className={styles.buttonSecondary}
-            type="button"
-            disabled={saving}
-          >
-            Cancelar
+          <button onClick={onClose} className={styles.buttonSecondary} type="button" disabled={saving}>
+            Cerrar
           </button>
           <button
             onClick={handleSave}
@@ -405,7 +424,7 @@ const MaterialADescargar = ({ curso, onClose, showToast, showConfirmModal }) => 
             type="button"
             disabled={saving || materialesNuevosValidos.length === 0}
           >
-            {saving ? "Guardando..." : "Guardar Material"}
+            {saving ? "Subiendo..." : "Guardar Todo"}
           </button>
         </div>
       </div>
