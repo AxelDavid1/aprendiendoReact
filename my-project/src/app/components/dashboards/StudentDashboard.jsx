@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import styles from "./Dashboard.module.css";
-import CursosYCredencialesAlumno from "../modules/CursoYCredencialesAlumno";
+import CursoYCredencialesAlumno from "../modules/CursoYCredencialesAlumno";
 import CardConvocatoriaBienvenido from "../controls/CardConvocatoriaBienvenido";
 import AlumnoTareaYCalificaciones from "../modules/AlumnoTareaYCalificaciones";
 import AlumnoDescargaCertificadosConstancias from "../modules/AlumnoDescargaCertificadosConstancias";
@@ -132,8 +132,6 @@ function StudentDashboard({ userId }) {
     );
   }
 
-  // **AQUÍ ESTÁ EL CAMBIO CLAVE**
-  // Verificamos si el alumno está en una convocatoria aceptada O en una en ejecución.
   const enConvocatoria =
     estadoGeneral?.convocatoriasAceptadas?.length > 0 ||
     estadoGeneral?.convocatoriasEnEjecucion?.length > 0;
@@ -178,7 +176,7 @@ function StudentDashboard({ userId }) {
         {/* Contenido según la pestaña activa */}
         <section>
           {activeMainTab === "cursos" && (
-            <CursosYCredencialesAlumno
+            <CursoYCredencialesAlumno
               enConvocatoria={enConvocatoria}
               universidadesConvocatoria={
                 estadoGeneral?.universidadesParticipantes || []

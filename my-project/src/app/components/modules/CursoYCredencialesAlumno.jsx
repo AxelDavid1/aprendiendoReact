@@ -8,31 +8,33 @@ import CredencialCard from "../controls/CredencialCard"
 import CursoModal from "../modals/CursoModal"
 import CredencialModal from "../modals/CredencialModal"
 import styles from "./CursoYCredencialesAlumno.module.css"
-const CursoYCredencialesAlumno = ({ 
-    enConvocatoria = false, 
-    universidadesConvocatoria = [], 
-    universidadAlumno = null, 
+const CursoYCredencialesAlumno = ({
+    enConvocatoria = false,
+    universidadesConvocatoria = [],
+    universidadAlumno = null,
     solicitudesDelAlumno = [] // <-- RECIBIMOS LA NUEVA PROP
- }) => {
+}) => {
     // Estados para pestañas - agregamos "seguimiento"
     const [activeTab, setActiveTab] = useState("cursos")
 
     // Estados para filtros
     const [filters, setFilters] = useState({
         universidades: [],
-        categorias: [],
+        subgrupos: [],
+        habilidades: [],
         estatus: [],
-        estatusInscripcion: [], // Nuevo filtro para estatus de inscripción
+        estatusInscripcion: [],
         modalidad: [],
-        searchTerm: "", // Para la barra de búsqueda
+        searchTerm: "",
     })
 
     // Estados para controlar qué secciones están expandidas
     const [expandedSections, setExpandedSections] = useState({
         universidades: false,
-        categorias: false,
+        subgrupos: false,
+        habilidades: false,
         estatus: false,
-        estatusInscripcion: false, // Nueva sección expandible
+        estatusInscripcion: false,
         modalidad: false,
     })
 
@@ -40,8 +42,9 @@ const CursoYCredencialesAlumno = ({
     const [cursos, setCursos] = useState([])
     const [credenciales, setCredenciales] = useState([])
     const [universidades, setUniversidades] = useState([])
-    const [categorias, setCategorias] = useState([])
-    const [inscripciones, setInscripciones] = useState([]); // Estado para las inscripciones del alumno
+    const [subgrupos, setSubgrupos] = useState([]);
+    const [habilidades, setHabilidades] = useState([]);
+    const [inscripciones, setInscripciones] = useState([]);
 
     // --- ESTADOS DE UI (CARGA Y ERRORES) ---
     const [loading, setLoading] = useState(true)
@@ -51,6 +54,8 @@ const CursoYCredencialesAlumno = ({
     // --- ESTADO PARA EL MODAL ---
     const [selectedCurso, setSelectedCurso] = useState(null)
     const [selectedCredencial, setSelectedCredencial] = useState(null)
+    const [selectedSubgrupos, setSelectedSubgrupos] = useState([]);
+    const [selectedHabilidades, setSelectedHabilidades] = useState([]);
     const [isModalLoading, setIsModalLoading] = useState(false);
 
     // Arrays de opciones de estatus dinámicos según la pestaña
@@ -85,7 +90,7 @@ const CursoYCredencialesAlumno = ({
         const estadoFinal = llena ? "llena" : estado;
         const estadoText = {
             planeada: "Planeada",
-            aviso: "Aviso", 
+            aviso: "Aviso",
             revision: "Revisión",
             activa: "Activa",
             finalizada: "Finalizada",
@@ -99,7 +104,7 @@ const CursoYCredencialesAlumno = ({
             abandonada: "Abandonada",
             "lista de espera": "Lista de Espera"
         };
-        
+
         const estadoClasses = {
             planeada: styles.estadoPlaneada,
             aviso: styles.estadoAviso,
@@ -217,22 +222,24 @@ const CursoYCredencialesAlumno = ({
                 }
 
                 // 1. Peticiones de datos críticos (cursos, credenciales, etc.)
-                // Estas peticiones deben funcionar para que la página se muestre.
-                const [cursosRes, credencialesRes, universidadesRes, categoriasRes] = await Promise.all([
+                const [cursosRes, credencialesRes, universidadesRes, subgruposRes, habilidadesRes] = await Promise.all([
                     fetch(cursosUrl),
                     fetch(credencialesUrl),
                     fetchUniversidadesPromise,
-                    fetch("http://localhost:5000/api/categorias/activas"), // Usamos el endpoint de categorías activas
+                    fetch("http://localhost:5000/api/subgrupos-operadores", { headers }),
+                    fetch("http://localhost:5000/api/habilidades-clave", { headers }),
                 ]);
 
                 // Verificamos que todas las respuestas sean exitosas
                 if (!cursosRes.ok) throw new Error("Error al cargar cursos")
                 if (!universidadesRes.ok) throw new Error("Error al cargar universidades")
-                if (!categoriasRes.ok) throw new Error("Error al cargar categorías")
+                if (!subgruposRes.ok) throw new Error("Error al cargar subgrupos")
+                if (!habilidadesRes.ok) throw new Error("Error al cargar habilidades")
 
                 const cursosData = await cursosRes.json()
                 const universidadesData = await universidadesRes.json()
-                const categoriasData = await categoriasRes.json()
+                const subgruposData = await subgruposRes.json()
+                const habilidadesData = await habilidadesRes.json()
 
                 // Actualizamos los estados críticos
                 setCursos(cursosData.cursos || [])
@@ -247,7 +254,8 @@ const CursoYCredencialesAlumno = ({
                 if (!enConvocatoria) {
                     setUniversidades(universidadesData.universities || []);
                 }
-                setCategorias(categoriasData)
+                setSubgrupos(subgruposData || []);
+                setHabilidades(habilidadesData || []);
 
                 // 2. Petición de datos no críticos (inscripciones)
                 // Si esta petición falla, la página principal seguirá funcionando.
@@ -412,7 +420,7 @@ const CursoYCredencialesAlumno = ({
     // Función para obtener el estatus de inscripción de un item
     const getInscripcionStatus = useCallback((itemId) => {
         if (!inscripciones || inscripciones.length === 0) return null;
-        
+
         // Para cursos, buscamos directamente en las inscripciones
         const inscripcion = inscripciones.find(insc => insc.id_curso === itemId);
         return inscripcion ? inscripcion.estatus_inscripcion : null;
@@ -435,11 +443,11 @@ const CursoYCredencialesAlumno = ({
             const universidadNombre = item.nombre_universidad || item.universidad;
             const universidadMatch =
                 filters.universidades.length === 0 || filters.universidades.includes(universidadNombre)
-            
+
             // Lógica de filtrado de estatus simplificada
             const itemStatus = item.nombre_curso ? item.estatus_curso : item.estatus;
             const estatusMatch = filters.estatus.length === 0 || filters.estatus.includes(itemStatus);
-            
+
             // Nuevo filtro de estatus de inscripción
             let estatusInscripcionMatch = true;
             // Solo aplicamos el filtro de inscripción si hay alguno seleccionado
@@ -465,22 +473,29 @@ const CursoYCredencialesAlumno = ({
                 filters.modalidad.length === 0 || // Si no hay filtro, todo coincide
                 (item.nombre_curso && filters.modalidad.includes(item.modalidad)) || // Si es un curso, se filtra por su modalidad
                 (!!item.nombre_credencial && activeCredentialIdsByModalidad?.has(item.id_credencial || item.id_certificacion)); // Si es una credencial, se usa la lista pre-calculada
-            
-            // Si no hay filtro de categoría, solo evaluamos los otros filtros.
-            if (filters.categorias.length === 0) {
-                return searchTermMatch && universidadMatch && estatusMatch && estatusInscripcionMatch && modalidadMatch;
-            }
-            // Lógica de filtrado de categoría
-            let categoriaMatch = false;
-            if (item.nombre_curso) { // Es un curso
-                categoriaMatch = filters.categorias.includes(item.nombre_categoria);
-            } else if (item.nombre_credencial) { // Es una credencial
-                // Verificamos si alguna de las categorías de la credencial está en los filtros seleccionados.
-                const credencialCategorias = item.categorias || [];
-                categoriaMatch = credencialCategorias.some(cat => filters.categorias.includes(cat));
+
+            // Filtro por Subgrupo
+            let subgrupoMatch = true;
+            if (filters.subgrupos.length > 0) {
+                if (item.nombre_curso) {
+                    subgrupoMatch = filters.subgrupos.includes(item.nombre_subgrupo);
+                }
             }
 
-            return searchTermMatch && universidadMatch && estatusMatch && categoriaMatch && estatusInscripcionMatch && modalidadMatch;
+            // Filtro por Habilidades
+            let habilidadMatch = true;
+            if (filters.habilidades.length > 0) {
+                if (item.nombre_curso) {
+                    const cursoHabilidades = item.habilidades_nombres ?
+                        item.habilidades_nombres.split(',').map(h => h.trim()) : [];
+                    habilidadMatch = filters.habilidades.some(habilidad =>
+                        cursoHabilidades.includes(habilidad)
+                    );
+                }
+            }
+            return searchTermMatch && universidadMatch && estatusMatch &&
+                estatusInscripcionMatch && modalidadMatch &&
+                subgrupoMatch && habilidadMatch;
         })
     }, [filters, getInscripcionStatus, activeCredentialIdsByInscription, activeCredentialIdsByModalidad])
 
@@ -490,45 +505,44 @@ const CursoYCredencialesAlumno = ({
     // Componente para renderizar filtros
     const FilterSection = ({ title, items, filterType, isExpanded, onToggle, formatLabel = formatStatusLabel }) => {
         const getUniqueKey = (item) => {
-            // Prefijo para evitar colisiones entre diferentes tipos de filtros (ej. id 1 de categoría y id 1 de universidad)
-            return `${filterType}-${item.id_universidad || item.id_categoria || item}`;
+            return `${filterType}-${item.id_universidad || item.id_categoria || item.id_subgrupo || item.id_habilidad || JSON.stringify(item)}`;
         };
 
         const getValue = (item) => {
             // El valor que se guarda en el estado de filtros
-            return item.nombre || item.nombre_categoria || item;
+            return item.nombre || item.nombre_categoria || item.nombre_subgrupo || item.nombre_habilidad || item;
         };
 
         const getLabel = (item) => {
             // El texto que se muestra al usuario
-            return item.nombre || item.nombre_categoria || formatLabel(item);
+            return item.nombre || item.nombre_categoria || item.nombre_subgrupo || item.nombre_habilidad || formatLabel(item);
         };
 
         return (
             <div className={styles.filterSection}>
-            <button className={styles.filterHeader} onClick={() => onToggle(filterType)}>
-                <span>{title}</span>
-                <span className={`${styles.arrow} ${isExpanded ? styles.expanded : ""}`}>▼</span>
-            </button>
-            {isExpanded && (
-                <div className={styles.filterOptions}>
-                    {items.map((item) => {
-                        const value = getValue(item);
-                        return (
-                            <label key={getUniqueKey(item)} className={styles.checkboxLabel}>
-                                <input
-                                    type="checkbox"
-                                    checked={filters[filterType].includes(value)}
-                                    onChange={() => handleFilterChange(filterType, value)}
-                                    className={styles.checkbox}
-                                />
-                                <span className={styles.checkboxText}>{getLabel(item)}</span>
-                            </label>
-                        );
-                    })}
-                </div>
-            )}
-        </div>
+                <button className={styles.filterHeader} onClick={() => onToggle(filterType)}>
+                    <span>{title}</span>
+                    <span className={`${styles.arrow} ${isExpanded ? styles.expanded : ""}`}>▼</span>
+                </button>
+                {isExpanded && (
+                    <div className={styles.filterOptions}>
+                        {items.map((item) => {
+                            const value = getValue(item);
+                            return (
+                                <label key={getUniqueKey(item)} className={styles.checkboxLabel}>
+                                    <input
+                                        type="checkbox"
+                                        checked={filters[filterType].includes(value)}
+                                        onChange={() => handleFilterChange(filterType, value)}
+                                        className={styles.checkbox}
+                                    />
+                                    <span className={styles.checkboxText}>{getLabel(item)}</span>
+                                </label>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
         );
     }
 
@@ -560,13 +574,13 @@ const CursoYCredencialesAlumno = ({
         )].map(idCredencial => {
             const credencial = credenciales.find(c => c.id_credencial === idCredencial || c.id_certificacion === idCredencial);
             if (!credencial) return null;
-            
+
             // Calcular progreso de la credencial
             const cursosCredencial = cursosInscritos.filter(c => c.id_credencial === idCredencial);
             const cursosCompletados = cursosCredencial.filter(c => c.estatus_inscripcion === 'completada').length;
             const totalCursos = credencial.cursos ? credencial.cursos.length : cursosCredencial.length;
             const progreso = totalCursos > 0 ? Math.round((cursosCompletados / totalCursos) * 100) : 0;
-            
+
             return {
                 ...credencial,
                 progreso,
@@ -619,11 +633,11 @@ const CursoYCredencialesAlumno = ({
                         </h3>
                         {(() => {
                             const proximosVencimientos = [];
-                            
+
                             // Cursos próximos a vencer
                             cursosInscritos.forEach(curso => {
                                 const estadosExcluidos = ['rechazada', 'abandonada', 'completada'];
-                                if (isDateUpcoming(curso.fecha_fin) && 
+                                if (isDateUpcoming(curso.fecha_fin) &&
                                     curso.estatus_inscripcion && // Asegurarse de que hay un estado
                                     !estadosExcluidos.includes(curso.estatus_inscripcion)
                                 ) {
@@ -658,9 +672,9 @@ const CursoYCredencialesAlumno = ({
                                 <div className={styles.vencimientosList}>
                                     {proximosVencimientos.map((item, index) => (
                                         <div key={index} className={styles.vencimientoItem}>
-                                            <FontAwesomeIcon 
-                                                icon={item.tipo === 'curso' ? faGraduationCap : faCalendarAlt} 
-                                                className={styles.vencimientoIcon} 
+                                            <FontAwesomeIcon
+                                                icon={item.tipo === 'curso' ? faGraduationCap : faCalendarAlt}
+                                                className={styles.vencimientoIcon}
                                             />
                                             <div className={styles.vencimientoInfo}>
                                                 <span className={styles.vencimientoNombre}>{item.nombre}</span>
@@ -713,8 +727,8 @@ const CursoYCredencialesAlumno = ({
                                                 <FontAwesomeIcon icon={faClock} className={styles.warningIcon} />
                                             )}
                                         </div>
-                                        <button 
-                                            onClick={() => handleVerMas(curso)} 
+                                        <button
+                                            onClick={() => handleVerMas(curso)}
                                             className={styles.verMasBtn}
                                         >
                                             Ver más
@@ -741,14 +755,14 @@ const CursoYCredencialesAlumno = ({
                                             <span className={styles.progresoPorcentaje}>{credencial.progreso}%</span>
                                         </div>
                                         <div className={styles.progresoBar}>
-                                            <div 
-                                                className={styles.progresoFill} 
+                                            <div
+                                                className={styles.progresoFill}
                                                 style={{ width: `${credencial.progreso}%` }}
                                             ></div>
                                         </div>
                                         <div className={styles.progresoInfo}>
                                             <span>{credencial.cursosCompletados} de {credencial.totalCursos} cursos completados</span>
-                                            <button 
+                                            <button
                                                 onClick={() => handleVerMasCredencial(credencial)}
                                                 className={styles.verCredencialBtn}
                                             >
@@ -768,7 +782,7 @@ const CursoYCredencialesAlumno = ({
                     {/* Convocatorias */}
                     <section className={styles.seguimientoSection}>
                         <h3>Mis Convocatorias</h3>
-                                {solicitudesDelAlumno.length > 0 ? (
+                        {solicitudesDelAlumno.length > 0 ? (
                             <div className={styles.convocatoriasTable}>
                                 <div className={styles.tableHeader}>
                                     <span>Convocatoria</span>
@@ -823,10 +837,18 @@ const CursoYCredencialesAlumno = ({
                         )}
 
                         <FilterSection
-                            title="Categorías"
-                            items={categorias}
-                            filterType="categorias"
-                            isExpanded={expandedSections.categorias}
+                            title="Subgrupos"
+                            items={subgrupos}
+                            filterType="subgrupos"
+                            isExpanded={expandedSections.subgrupos}
+                            onToggle={toggleSection}
+                        />
+
+                        <FilterSection
+                            title="Habilidades Clave"
+                            items={habilidades}
+                            filterType="habilidades"
+                            isExpanded={expandedSections.habilidades}
                             onToggle={toggleSection}
                         />
 
@@ -943,7 +965,7 @@ const CursoYCredencialesAlumno = ({
 
                 {/* Renderizamos el modal si hay un curso seleccionado */}
                 {selectedCurso && (
-                    <CursoModal 
+                    <CursoModal
                         curso={selectedCurso}
                         onClose={handleCloseModal}
                         onSolicitar={handleSolicitarCurso}
