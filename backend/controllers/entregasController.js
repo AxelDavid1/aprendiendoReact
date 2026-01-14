@@ -282,28 +282,48 @@ const calificarEntrega = async (req, res) => {
       return res.status(400).json({ error: "La calificación es obligatoria." });
     }
 
+    // Validación de permisos ROBUSTA
+    // Usamos LEFT JOIN para maestro, para que no falle si el curso no tiene maestro asignado (caso raro pero posible en tests)
+    // O si el admin está calificando directamente.
     const [permisoRows] = await pool.query(
-      `SELECT e.id_entrega FROM entregas_estudiantes e
+      `SELECT e.id_entrega, c.id_maestro, m.id_usuario as id_usuario_maestro
+       FROM entregas_estudiantes e
        JOIN calificaciones_actividades ca ON e.id_actividad = ca.id_actividad
        JOIN calificaciones_curso cc ON ca.id_calificaciones_curso = cc.id_calificaciones
        JOIN curso c ON cc.id_curso = c.id_curso
-       JOIN maestro m ON c.id_maestro = m.id_maestro
-       WHERE e.id_entrega = ? AND (m.id_usuario = ? OR ? IN ('admin_sedeq', 'admin_universidad'))`,
-      [id_entrega, id_usuario, tipo_usuario]
+       LEFT JOIN maestro m ON c.id_maestro = m.id_maestro
+       WHERE e.id_entrega = ?`,
+      [id_entrega]
     );
 
     if (permisoRows.length === 0) {
-      return res.status(403).json({ error: "No tienes permisos para calificar esta entrega." });
+      return res.status(404).json({ error: "Entrega no encontrada." });
     }
 
+    const entregaData = permisoRows[0];
+    const esAdmin = ['admin_sedeq', 'admin_universidad', 'SEDEQ'].includes(tipo_usuario);
+    const esElMaestroDelCurso = entregaData.id_usuario_maestro === id_usuario;
+
+    // Si NO es admin Y NO es el maestro del curso -> Bloquear
+    if (!esAdmin && !esElMaestroDelCurso) {
+       return res.status(403).json({ error: "No tienes permisos para calificar esta entrega." });
+    }
+
+    // Proceder a actualizar
     await pool.query(
-      `UPDATE entregas_estudiantes SET calificacion = ?, comentario_profesor = ?, estatus_entrega = 'calificada', fecha_calificacion = NOW(), calificado_por = ?
+      `UPDATE entregas_estudiantes SET 
+        calificacion = ?, 
+        comentario_profesor = ?, 
+        estatus_entrega = 'calificada', 
+        fecha_calificacion = NOW(), 
+        calificado_por = ?
        WHERE id_entrega = ?`,
       [calificacion, feedback, id_usuario, id_entrega]
     );
 
-    logger.info(`Entrega calificada: ID ${id_entrega}, Calificación: ${calificacion}`);
+    logger.info(`Entrega calificada: ID ${id_entrega}, Calificación: ${calificacion} por usuario ${id_usuario}`);
     res.status(200).json({ message: "Entrega calificada exitosamente" });
+
   } catch (error) {
     logger.error(`Error al calificar entrega: ${error.message}`);
     res.status(500).json({ error: "Error interno del servidor." });
