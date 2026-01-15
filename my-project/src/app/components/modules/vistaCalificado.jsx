@@ -220,8 +220,11 @@ export default function VistaCalificacion({ curso, onClose }) {
       return;
     }
     const calNum = Number(calificacion);
-    if (calNum > actividadDeLaEntrega.ponderacion) {
-      setAlertModal({ show: true, message: `La calificación (${calNum}) no puede ser mayor que la ponderación máxima de la actividad (${actividadDeLaEntrega.ponderacion}%).` });
+    if (calNum > 100) {
+      setAlertModal({
+        show: true,
+        message: `La calificación (${calNum}) no puede ser mayor a 100. El sistema calculará automáticamente el porcentaje correspondiente.`
+      });
       return;
     }
     if (isNaN(calNum) || calNum < 0) {
@@ -258,7 +261,7 @@ export default function VistaCalificacion({ curso, onClose }) {
           ...prev,
           [id_entrega]: { ...prev[id_entrega], guardando: false, error: null },
         }));
-        
+
         // Actualizar la UI de la entrega con la nueva calificación y feedback
         setEntregas(prevEntregas => prevEntregas.map(actividad => ({
           ...actividad,
@@ -369,11 +372,10 @@ export default function VistaCalificacion({ curso, onClose }) {
                 {alumnos.map((alumno) => (
                   <li
                     key={alumno.id_alumno}
-                    className={`${styles.alumnoItem} ${
-                      alumno.id_alumno === idAlumnoSeleccionado
+                    className={`${styles.alumnoItem} ${alumno.id_alumno === idAlumnoSeleccionado
                         ? styles.alumnoItemSelected
                         : ""
-                    }`}
+                      }`}
                   >
                     <button
                       type="button"
@@ -450,11 +452,10 @@ export default function VistaCalificacion({ curso, onClose }) {
                     {entregas.map((actividad) => (
                       <article
                         key={`actividad-${actividad.id_actividad}`}
-                        className={`${styles.actividadCard} ${
-                          expandedActividades[actividad.id_actividad]
+                        className={`${styles.actividadCard} ${expandedActividades[actividad.id_actividad]
                             ? styles.expanded
                             : ""
-                        }`}
+                          }`}
                         aria-label={`Actividad ${actividad.nombre_actividad}`}
                       >
                         <div className={styles.actividadHeader}>
@@ -481,7 +482,7 @@ export default function VistaCalificacion({ curso, onClose }) {
                         </div>
                         <div className={styles.actividadContent}>
                           {actividad.entregas &&
-                          actividad.entregas.length > 0 ? (
+                            actividad.entregas.length > 0 ? (
                             (() => {
                               const entregasConArchivos =
                                 actividad.entregas.filter(
@@ -535,29 +536,41 @@ export default function VistaCalificacion({ curso, onClose }) {
                                           <label
                                             htmlFor={`calificacion-${entrega.id_entrega}`}
                                           >
-                                            Calificación:
+                                            Calificación (0 - 100):
                                           </label>
-                                          <input
-                                            id={`calificacion-${entrega.id_entrega}`}
-                                            type="number"
-                                            min="0"
-                                            step="any"
-                                            className={styles.campoCalificacion}
-                                            value={
-                                              calificacionesLocales[
-                                                entrega.id_entrega
-                                              ]?.calificacion ?? ""
-                                            }
-                                            onChange={(e) =>
-                                              handleCalificacionChange(
-                                                entrega.id_entrega,
-                                                e.target.value,
-                                              )
-                                            }
-                                            onWheel={(e) =>
-                                              e.target.blur()
-                                            }
-                                          />
+
+                                          {/* Agregamos un contenedor visual o simplemente modificamos el input */}
+                                          <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', marginBottom: '10px' }}>
+                                            <input
+                                              id={`calificacion-${entrega.id_entrega}`}
+                                              type="number"
+                                              min="0"
+                                              max="100" // <--- Límite HTML
+                                              step="any"
+                                              placeholder="0 - 100" // <--- Placeholder ayuda visual
+                                              className={styles.campoCalificacion}
+                                              value={
+                                                calificacionesLocales[
+                                                  entrega.id_entrega
+                                                ]?.calificacion ?? ""
+                                              }
+                                              onChange={(e) =>
+                                                handleCalificacionChange(
+                                                  entrega.id_entrega,
+                                                  e.target.value,
+                                                )
+                                              }
+                                              onWheel={(e) =>
+                                                e.target.blur()
+                                              }
+                                            />
+
+                                            {/* TEXTO DE AYUDA VITAL PARA UX */}
+                                            <small style={{ color: '#666', fontSize: '0.85em' }}>
+                                              Valor real en curso: <strong>{actividad.ponderacion}%</strong>.
+                                              <br />(Ej: Si pones 100, el alumno gana {actividad.ponderacion} puntos).
+                                            </small>
+                                          </div>
 
                                           <label
                                             htmlFor={`feedback-${entrega.id_entrega}`}
@@ -605,17 +618,17 @@ export default function VistaCalificacion({ curso, onClose }) {
                                           {calificacionesLocales[
                                             entrega.id_entrega
                                           ]?.error && (
-                                            <p
-                                              role="alert"
-                                              style={{ color: "red" }}
-                                            >
-                                              {
-                                                calificacionesLocales[
-                                                  entrega.id_entrega
-                                                ].error
-                                              }
-                                            </p>
-                                          )}
+                                              <p
+                                                role="alert"
+                                                style={{ color: "red" }}
+                                              >
+                                                {
+                                                  calificacionesLocales[
+                                                    entrega.id_entrega
+                                                  ].error
+                                                }
+                                              </p>
+                                            )}
                                         </>
                                       )}
                                     </div>

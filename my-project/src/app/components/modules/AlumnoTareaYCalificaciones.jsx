@@ -339,8 +339,8 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
           instrucciones: actividad.instrucciones || "",
           fecha_limite:
             actividad.fecha_limite &&
-            actividad.fecha_limite !== "0000-00-00 00:00:00" &&
-            new Date(actividad.fecha_limite).getFullYear() > 1970
+              actividad.fecha_limite !== "0000-00-00 00:00:00" &&
+              new Date(actividad.fecha_limite).getFullYear() > 1970
               ? actividad.fecha_limite
               : null,
           entregada: !!entregaExistente,
@@ -370,77 +370,53 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
   };
 
   const loadCalificaciones = async () => {
-    if (!cursoSeleccionado) {
-      console.log("No hay curso seleccionado para cargar calificaciones");
-      return;
-    }
+    if (!cursoSeleccionado) return;
 
-    console.log("Cargando calificaciones para curso:", cursoSeleccionado.id);
     setLoading((prev) => ({ ...prev, calificaciones: true }));
     try {
       const token = localStorage.getItem("token");
-      if (!token) {
-        showToast("Debes iniciar sesión para ver las calificaciones.", "error");
-        return;
-      }
+      if (!token) return;
 
-      const headers = {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      };
-
-      // Obtener calificaciones del curso
-      const response = await fetch(
-        `${API_BASE_URL}/api/calificaciones/${cursoSeleccionado.id}`,
-        { headers },
-      );
-
-      console.log("Respuesta de calificaciones:", response.status);
+      const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
+      const response = await fetch(`${API_BASE_URL}/api/calificaciones/${cursoSeleccionado.id}`, { headers });
 
       if (!response.ok) {
         if (response.status === 404) {
-          // No hay calificaciones configuradas aún
-          console.log("No hay calificaciones configuradas para este curso");
           setCalificaciones(null);
-          showToast("Las calificaciones aún no están disponibles.", "info");
           return;
         }
-        const errorText = await response.text();
-        console.error("Error en respuesta:", errorText);
-        throw new Error(`Error ${response.status}: ${errorText}`);
+        throw new Error("Error cargando calificaciones");
       }
 
       const data = await response.json();
-      console.log("Datos de calificaciones recibidos:", data);
+      console.log("Datos Calificaciones:", data);
 
-      // Transformar datos para el componente
+      // Transformar datos para la vista
       const calificacionesFormateadas = {
         evaluaciones: (data.actividades || []).map((actividad) => ({
-          id:
-            actividad.id_actividad ||
-            actividad.id ||
-            `act_${actividad.nombre.replace(/\s+/g, "_")}`,
+          id: actividad.id_actividad,
           nombre: actividad.nombre,
-          porcentaje: actividad.porcentaje,
-          // Usar la calificación y el feedback desde el objeto 'entrega' anidado
-          calificacion: actividad.entrega?.calificacion ?? null,
+          // Muestra cuánto vale esta tarea del total del curso (ej: 20%)
+          porcentaje_valor: actividad.porcentaje,
+
+          // Muestra qué sacó el alumno (ej: 100 de 100)
+          calificacion: actividad.entrega ? actividad.entrega.calificacion : null,
+
+          // Muestra cuántos puntos reales sumó (ej: 20 puntos)
+          puntos_ganados: actividad.puntos_ganados || 0,
+
           feedback: actividad.entrega?.comentario_profesor || null,
-          valor_minimo: Math.floor(actividad.porcentaje * 0.6), // 60% para aprobar cada actividad
+          entregada: !!actividad.entrega
         })),
         total: data.calificacion_final || 0,
-        umbral_aprobatorio: data.umbral_aprobatorio || 60,
-        aprobado:
-          (data.calificacion_final || 0) >= (data.umbral_aprobatorio || 60),
+        umbral_aprobatorio: data.umbral_aprobatorio || 70,
+        aprobado: data.aprobado,
       };
 
-      console.log("Calificaciones formateadas:", calificacionesFormateadas);
       setCalificaciones(calificacionesFormateadas);
     } catch (error) {
-      console.error("Error loading calificaciones:", error);
-      showToast(
-        "Error al cargar las calificaciones: " + error.message,
-        "error",
-      );
+      console.error(error);
+      showToast("Error al cargar calificaciones", "error");
     } finally {
       setLoading((prev) => ({ ...prev, calificaciones: false }));
     }
@@ -630,7 +606,7 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
           if (data.url && data.url.includes('.pdf') && !filename.toLowerCase().endsWith('.pdf')) {
             filename += '.pdf';
           } else if (data.url && (data.url.includes('.docx') || data.url.includes('.doc')) &&
-                     !filename.toLowerCase().endsWith('.docx') && !filename.toLowerCase().endsWith('.doc')) {
+            !filename.toLowerCase().endsWith('.docx') && !filename.toLowerCase().endsWith('.doc')) {
             filename += '.docx';
           }
 
@@ -829,7 +805,7 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
       entrega &&
       (entrega.archivos?.length > 0 || entrega.links?.length > 0);
     const canModify = !isGraded && (!isOverdue || isDraft || isSubmitted);
-    
+
     console.log(`[DEBUG] Tarea ${tareaId} - Permisos:`, {
       canSubmit,
       canModify,
@@ -1399,12 +1375,11 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
           {tareas.map((tarea, index) => (
             <div
               key={index}
-              className={`${styles.taskAccordion} ${
-                tarea.entrega?.estatus_entrega === "entregada" ||
+              className={`${styles.taskAccordion} ${tarea.entrega?.estatus_entrega === "entregada" ||
                 tarea.entrega?.estatus_entrega === "calificada"
-                  ? styles.taskCompleted
-                  : styles.taskPending
-              }`}
+                ? styles.taskCompleted
+                : styles.taskPending
+                }`}
             >
               <div
                 className={styles.taskAccordionHeader}
@@ -1417,10 +1392,10 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
                         tarea.entrega?.estatus_entrega === "calificada"
                           ? "fas fa-check-double"
                           : tarea.entrega?.estatus_entrega === "entregada"
-                          ? "fas fa-check-circle"
-                          : tarea.entrega?.estatus_entrega === "no_entregada"
-                          ? "fas fa-pencil-alt"
-                          : "fas fa-clock"
+                            ? "fas fa-check-circle"
+                            : tarea.entrega?.estatus_entrega === "no_entregada"
+                              ? "fas fa-pencil-alt"
+                              : "fas fa-clock"
                       }
                     ></i>
                     <span>{tarea.nombre}</span>
@@ -1462,9 +1437,8 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
                   </div>
                 </div>
                 <i
-                  className={`fas fa-chevron-${openAccordions[index] ? "up" : "down"} ${
-                    styles.chevronIcon
-                  }`}
+                  className={`fas fa-chevron-${openAccordions[index] ? "up" : "down"} ${styles.chevronIcon
+                    }`}
                 ></i>
               </div>
 
@@ -1731,27 +1705,36 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
                   <div className={styles.gradeList}>
                     {calificaciones.evaluaciones.map((evaluacion) => (
                       <div key={evaluacion.id} className={styles.gradeItem}>
-                        <div>
-                          <div className={styles.gradeName}>
-                            {evaluacion.nombre}
+                        <div className={styles.calificacionCard}>
+                          <div className={styles.calificacionHeader}>
+                            <h4>{evaluacion.nombre}</h4>
+                            {/* Valor de la actividad en el curso */}
+                            <span className={styles.badgeValor}>Vale {evaluacion.porcentaje_valor}%</span>
                           </div>
-                          {evaluacion.feedback && (
-                            <div className={styles.feedbackBubble}>
-                              {evaluacion.feedback}
-                            </div>
-                          )}
+
+                          <div className={styles.calificacionBody}>
+                            {evaluacion.calificacion !== null ? (
+                              <>
+                                <div className={styles.scoreRow}>
+                                  <div className={styles.scoreItem}>
+                                    <span>Calificación Maestro</span>
+                                    <strong>{evaluacion.calificacion} / 100</strong>
+                                  </div>
+                                  <div className={styles.arrow}>→</div>
+                                  <div className={styles.scoreItem}>
+                                    <span>Créditos Ganados</span>
+                                    <strong>{evaluacion.puntos_ganados} / {evaluacion.porcentaje_valor}</strong>
+                                  </div>
+                                </div>
+                                {evaluacion.feedback && (
+                                  <p className={styles.feedback}>"{evaluacion.feedback}"</p>
+                                )}
+                              </>
+                            ) : (
+                              <span className={styles.pending}>Sin calificar</span>
+                            )}
+                          </div>
                         </div>
-                        {evaluacion.calificacion !== null ? (
-                          <div className={styles.gradeValueContainer}>
-                            <span className={`${styles.gradeValue} ${evaluacion.calificacion >= 70 ? styles.good : styles.bad}`}>
-                              {evaluacion.calificacion}/{evaluacion.porcentaje}
-                            </span>
-                          </div>
-                        ) : (
-                          <div className={`${styles.gradeValue} ${styles.pending}`}>
-                            Pendiente
-                          </div>
-                        )}
                       </div>
                     ))}
                   </div>
@@ -1772,7 +1755,7 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
                           width: `${calificaciones.total}%`,
                           backgroundColor:
                             calificaciones.total >=
-                            calificaciones.umbral_aprobatorio
+                              calificaciones.umbral_aprobatorio
                               ? "#4caf50"
                               : "#f44336",
                         }}

@@ -138,7 +138,7 @@ const upsertCalificacionCurso = async (req, res) => {
 const getCalificacionCurso = async (req, res) => {
   const { id_curso } = req.params;
   const { id_usuario, tipo_usuario, id_alumno: id_alumno_sesion } = req.user;
-  const { id_alumno: id_alumno_query } = req.query; 
+  const { id_alumno: id_alumno_query } = req.query;
 
   if (!id_curso) {
     return res.status(400).json({ error: "El ID del curso es obligatorio." });
@@ -199,13 +199,13 @@ const getCalificacionCurso = async (req, res) => {
     }
 
     const actividadesConEntregas = [];
-    
+
     for (const actividad of actividadesRows) {
-      
+
       // A) Inyectar el porcentaje calculado para que el Frontend lo muestre
-      actividad.porcentaje = actividad.tipo_actividad === 'proyecto' 
-          ? parseFloat(valorPorProyecto.toFixed(2)) 
-          : parseFloat(valorPorActividad.toFixed(2));
+      actividad.porcentaje = actividad.tipo_actividad === 'proyecto'
+        ? parseFloat(valorPorProyecto.toFixed(2))
+        : parseFloat(valorPorActividad.toFixed(2));
 
       // B) Buscar Entrega (Si hay alumno)
       let entregaCompleta = null;
@@ -243,27 +243,40 @@ const getCalificacionCurso = async (req, res) => {
       actividadesConEntregas.push({
         ...actividad,
         entrega: entregaCompleta,
-        materiales: materialesApoyo || [] 
+        materiales: materialesApoyo || []
       });
     }
 
-    // Cálculo de calificación final del alumno (Promedio ponderado real)
+    // Cálculo de calificación final del alumno
     let puntosAcumulados = 0;
-    
-    for (const act of actividadesConEntregas) {
+
+    // Mapeamos de nuevo para agregar los 'puntos_ganados' a cada actividad
+    // para que el frontend sepa exactamente cuánto sumó cada una.
+    const actividadesConPuntos = actividadesConEntregas.map(act => {
+      let puntosGanados = 0;
+      let calificacionMaestro = 0;
+
       if (act.entrega && act.entrega.calificacion !== null) {
-        // La calificación suele ser 0-100.
-        // Puntos ganados = (CalificaciónObtenida / 100) * ValorDeLaActividad
-        const puntosGanados = (parseFloat(act.entrega.calificacion) / 100) * act.porcentaje;
+        calificacionMaestro = parseFloat(act.entrega.calificacion);
+
+        // FÓRMULA MAESTRA:
+        // (Calificación 0-100 / 100) * ValorRealDeLaActividad
+        puntosGanados = (calificacionMaestro / 100) * act.porcentaje;
         puntosAcumulados += puntosGanados;
       }
-    }
+
+      return {
+        ...act,
+        puntos_ganados: parseFloat(puntosGanados.toFixed(2)),
+        calificacion_maestro: calificacionMaestro // Enviamos la calificación original (0-100)
+      };
+    });
 
     const response = {
       id_curso: califCurso.id_curso,
       umbral_aprobatorio: califCurso.umbral_aprobatorio,
-      actividades: actividadesConEntregas,
-      calificacion_final: parseFloat(puntosAcumulados.toFixed(2)),
+      actividades: actividadesConPuntos, // <--- Usamos el nuevo array enriquecido
+      calificacion_final: parseFloat(puntosAcumulados.toFixed(2)), // Los "Créditos Finales"
       aprobado: puntosAcumulados >= califCurso.umbral_aprobatorio,
     };
 
