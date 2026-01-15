@@ -1,23 +1,17 @@
 const pool = require("../config/db");
 
-/**
- * Obtiene los cursos del alumno donde puede generar constancias
- * @param {number} id_alumno - ID del alumno
- * @returns {Promise<Array>} - Lista de cursos con información completa
- */
 const getCursosParaConstancias = async (id_alumno) => {
+  // Nota: Se han eliminado los comentarios internos para evitar errores de parseo SQL
   const query = `
     SELECT
-      -- Datos del alumno
       al.nombre_completo AS nombre_alumno,
 
-      -- Total de actividades del curso
       (SELECT COUNT(*)
        FROM calificaciones_actividades a
        WHERE a.id_calificaciones_curso = cal.id_calificaciones
+       AND a.tipo_actividad = 'actividad'
       ) AS total_actividades,
 
-      -- Actividades entregadas y calificadas
       (SELECT COUNT(DISTINCT a.id_actividad)
        FROM entregas_estudiantes e
        INNER JOIN calificaciones_actividades a ON e.id_actividad = a.id_actividad
@@ -26,43 +20,63 @@ const getCursosParaConstancias = async (id_alumno) => {
        AND e.estatus_entrega = 'calificada'
       ) AS actividades_calificadas,
 
-
-      -- Datos del curso
       c.id_curso,
       c.nombre_curso,
       c.descripcion AS descripcion_curso,
       c.creditos_constancia AS creditos_otorgados,
 
-      -- Datos de la universidad
       u.id_universidad,
       u.nombre AS nombre_universidad,
       u.logo_url AS logo_universidad,
 
-      -- Calificación y aprobación
       cal.umbral_aprobatorio,
+      
       COALESCE(
-        (SELECT SUM(e.calificacion)
-         FROM entregas_estudiantes e
-         INNER JOIN calificaciones_actividades a ON e.id_actividad = a.id_actividad
-         WHERE e.id_inscripcion = i.id_inscripcion
-         AND e.estatus_entrega = 'calificada'
-        ), 0
+        (
+          COALESCE(
+            (SELECT SUM(e.calificacion) 
+             FROM entregas_estudiantes e
+             JOIN calificaciones_actividades a ON e.id_actividad = a.id_actividad
+             WHERE e.id_inscripcion = i.id_inscripcion 
+             AND a.id_calificaciones_curso = cal.id_calificaciones
+             AND a.tipo_actividad = 'actividad'
+             AND e.estatus_entrega = 'calificada'), 0
+          ) 
+          / 
+          NULLIF((SELECT COUNT(*) FROM calificaciones_actividades a 
+                  WHERE a.id_calificaciones_curso = cal.id_calificaciones 
+                  AND a.tipo_actividad = 'actividad'), 0)
+        ) * (cal.porcentaje_actividades / 100), 
+        0
+      ) 
+      +
+      COALESCE(
+        (
+           COALESCE(
+            (SELECT SUM(e.calificacion) 
+             FROM entregas_estudiantes e
+             JOIN calificaciones_actividades a ON e.id_actividad = a.id_actividad
+             WHERE e.id_inscripcion = i.id_inscripcion 
+             AND a.id_calificaciones_curso = cal.id_calificaciones
+             AND a.tipo_actividad = 'proyecto'
+             AND e.estatus_entrega = 'calificada'), 0
+          )
+        ) * (cal.porcentaje_proyecto / 100), 
+        0
       ) AS calificacion_final,
 
-      -- Información de constancia si ya existe
       co.id_constancia,
       co.ruta_constancia,
       co.fecha_emitida,
 
-                  -- Información de credencial si aplica
-                  rc.id_certificacion AS id_credencial,
-                  (SELECT nombre FROM certificacion WHERE id_certificacion = rc.id_certificacion) AS nombre_credencial,
-                  (SELECT descripcion FROM certificacion WHERE id_certificacion = rc.id_certificacion) AS descripcion_credencial,
-                  (SELECT COUNT(*) FROM requisitos_certificado WHERE id_certificacion = rc.id_certificacion) AS total_cursos_credencial,
-            -- Verificación de elegibilidad
-            CASE
-              WHEN co.id_constancia IS NOT NULL THEN FALSE        WHEN (
-          -- Verifica si todas las actividades están calificadas
+      rc.id_certificacion AS id_credencial,
+      (SELECT nombre FROM certificacion WHERE id_certificacion = rc.id_certificacion) AS nombre_credencial,
+      (SELECT descripcion FROM certificacion WHERE id_certificacion = rc.id_certificacion) AS descripcion_credencial,
+      (SELECT COUNT(*) FROM requisitos_certificado WHERE id_certificacion = rc.id_certificacion) AS total_cursos_credencial,
+            
+      CASE
+        WHEN co.id_constancia IS NOT NULL THEN FALSE
+        WHEN (
           (SELECT COUNT(*) FROM calificaciones_actividades
            WHERE id_calificaciones_curso = cal.id_calificaciones) =
           (SELECT COUNT(DISTINCT a.id_actividad)
@@ -72,14 +86,20 @@ const getCursosParaConstancias = async (id_alumno) => {
            AND a.id_calificaciones_curso = cal.id_calificaciones
            AND e.estatus_entrega = 'calificada')
           AND
-          -- Verifica si la calificación supera el umbral
-          COALESCE(
-            (SELECT SUM(e.calificacion)
-             FROM entregas_estudiantes e
-             INNER JOIN calificaciones_actividades a ON e.id_actividad = a.id_actividad
-             WHERE e.id_inscripcion = i.id_inscripcion
-             AND e.estatus_entrega = 'calificada'
-            ), 0
+          (
+            COALESCE(
+              ((COALESCE((SELECT SUM(e.calificacion) FROM entregas_estudiantes e JOIN calificaciones_actividades a ON e.id_actividad = a.id_actividad WHERE e.id_inscripcion = i.id_inscripcion AND a.id_calificaciones_curso = cal.id_calificaciones AND a.tipo_actividad = 'actividad' AND e.estatus_entrega = 'calificada'), 0)) 
+               / 
+               NULLIF((SELECT COUNT(*) FROM calificaciones_actividades a WHERE a.id_calificaciones_curso = cal.id_calificaciones AND a.tipo_actividad = 'actividad'), 0)
+              ) * (cal.porcentaje_actividades / 100), 
+              0
+            ) 
+            +
+            COALESCE(
+              (COALESCE((SELECT SUM(e.calificacion) FROM entregas_estudiantes e JOIN calificaciones_actividades a ON e.id_actividad = a.id_actividad WHERE e.id_inscripcion = i.id_inscripcion AND a.id_calificaciones_curso = cal.id_calificaciones AND a.tipo_actividad = 'proyecto' AND e.estatus_entrega = 'calificada'), 0)) 
+              * (cal.porcentaje_proyecto / 100), 
+              0
+            )
           ) >= cal.umbral_aprobatorio
         ) THEN TRUE
         ELSE FALSE
@@ -100,11 +120,7 @@ const getCursosParaConstancias = async (id_alumno) => {
   const [rows] = await pool.query(query, [id_alumno]);
   return rows;
 };
-/**
- * Obtiene las credenciales del alumno donde puede generar certificados
- * @param {number} id_alumno - ID del alumno
- * @returns {Promise<Array>} - Lista de credenciales con información completa
- */
+
 const getCredencialesParaCertificados = async (id_alumno) => {
   const query = `
     SELECT
@@ -115,26 +131,22 @@ const getCredencialesParaCertificados = async (id_alumno) => {
       u.nombre AS nombre_universidad,
       u.logo_url AS logo_universidad,
 
-      -- Total de cursos requeridos
       (SELECT COUNT(*)
        FROM requisitos_certificado rc
        WHERE rc.id_certificacion = cert.id_certificacion
       ) AS total_cursos,
 
-      -- Cursos completados (con constancia)
       (SELECT COUNT(*)
        FROM requisitos_certificado rc
        INNER JOIN constancia_alumno co ON co.id_curso = rc.id_curso AND co.id_alumno = ?
        WHERE rc.id_certificacion = cert.id_certificacion
       ) AS cursos_completados,
 
-      -- Verificar si ya tiene certificado generado
       ca.id_cert_alumno AS id_certificacion_alumno,
       ca.ruta_certificado,
       ca.fecha_certificado,
       ca.completada,
 
-      -- Verificar si puede generar (todos los cursos con constancia)
       CASE
         WHEN ca.id_cert_alumno IS NOT NULL AND ca.completada = 1 THEN FALSE
         WHEN (
@@ -161,7 +173,6 @@ const getCredencialesParaCertificados = async (id_alumno) => {
     LEFT JOIN certificacion_alumno ca ON ca.id_certificacion = cert.id_certificacion AND ca.id_alumno = ?
     WHERE cert.estatus = 'activa'
     AND EXISTS (
-      -- Solo mostrar credenciales donde el alumno tiene al menos un curso inscrito
       SELECT 1
       FROM requisitos_certificado rc
       INNER JOIN inscripcion i ON i.id_curso = rc.id_curso
@@ -180,12 +191,6 @@ const getCredencialesParaCertificados = async (id_alumno) => {
   return rows;
 };
 
-/**
- * Obtiene los cursos requeridos de una credencial con su estado de completitud
- * @param {number} id_credencial - ID de la credencial
- * @param {number} id_alumno - ID del alumno
- * @returns {Promise<Array>} - Lista de cursos con estado
- */
 const getCursosDeCredencial = async (id_credencial, id_alumno) => {
   const query = `
     SELECT
@@ -210,11 +215,6 @@ const getCursosDeCredencial = async (id_credencial, id_alumno) => {
   return rows;
 };
 
-/**
- * Crea un registro de constancia para un alumno
- * @param {Object} data - Datos de la constancia
- * @returns {Promise<Object>} - Constancia creada
- */
 const crearConstancia = async (data) => {
   const {
     id_alumno,
@@ -244,11 +244,6 @@ const crearConstancia = async (data) => {
   };
 };
 
-/**
- * Crea un registro de certificado para un alumno
- * @param {Object} data - Datos del certificado
- * @returns {Promise<Object>} - Certificado creado
- */
 const crearCertificado = async (data) => {
   const {
     id_alumno,
@@ -280,11 +275,6 @@ const crearCertificado = async (data) => {
   };
 };
 
-/**
- * Obtiene información de una constancia por ID
- * @param {number} id_constancia - ID de la constancia
- * @returns {Promise<Object>} - Datos de la constancia
- */
 const getConstanciaPorId = async (id_constancia) => {
   const query = `
     SELECT
@@ -306,11 +296,6 @@ const getConstanciaPorId = async (id_constancia) => {
   return rows[0];
 };
 
-/**
- * Obtiene información de un certificado por ID
- * @param {number} id_cert_alumno - ID del certificado
- * @returns {Promise<Object>} - Datos del certificado
- */
 const getCertificadoPorId = async (id_cert_alumno) => {
   const query = `
     SELECT

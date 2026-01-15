@@ -90,6 +90,24 @@ function CourseManagement({ userId }) {
     onConfirm: null,
     type: "warning",
   })
+  // Search and debounce state
+  const [searchTerm, setSearchTerm] = useState("")
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm)
+
+  // Debounce search term
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm)
+      setPage(1) // Reset to first page on new search
+    }, 500)
+
+    return () => {
+      clearTimeout(handler)
+    }
+  }, [searchTerm])
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalCourses, setTotalCourses] = useState(0);
 
   useEffect(() => {
     try {
@@ -110,6 +128,7 @@ function CourseManagement({ userId }) {
   const canAssignTeacher = isEditing && !!selectedUniversidad && !!selectedFacultad
 
   // Función para obtener los cursos
+  // Función para obtener los cursos
   const fetchCourses = useCallback(async () => {
     setLoading(true)
     setError(null)
@@ -120,6 +139,9 @@ function CourseManagement({ userId }) {
       let url = API_URL
       const params = new URLSearchParams()
       params.append("exclude_assigned", "false")
+      params.append("page", page)
+      params.append("limit", "10")
+      params.append("searchTerm", debouncedSearchTerm)
 
       // Solo filtrar por maestro si NO es admin_sedeq
       if (user.tipo_usuario !== "admin_sedeq" && userId) {
@@ -146,14 +168,18 @@ function CourseManagement({ userId }) {
       const data = await response.json()
       console.log("Courses loaded:", data) // DEBUG
       setCourses(data.cursos || [])
+      setTotalPages(data.totalPages || 0)
+      setTotalCourses(data.total || 0)
     } catch (err) {
       console.error("Fetch error:", err) // DEBUG
       setError(err.message)
       setCourses([])
+      setTotalPages(0)
+      setTotalCourses(0)
     } finally {
       setLoading(false)
     }
-  }, [userId])
+  }, [userId, page])
 
   // Obtener Subgrupos Operadores
   const fetchSubgrupos = useCallback(async () => {
@@ -727,8 +753,48 @@ function CourseManagement({ userId }) {
           <button onClick={() => handleOpenModal()} className={styles.addButton}>
             <FontAwesomeIcon icon={faPlus} /> Agregar Curso
           </button>
+          <div className={styles.searchContainer}>
+            <i className="fas fa-search"></i>
+            <input
+              type="text"
+              placeholder="Search by name..."
+              className={styles.searchInput}
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
+          </div>
         </div>
         {renderContent()}
+        {courses.length > 0 && totalPages > 1 && (
+          <div className={styles.pagination}>
+            <div className={styles.paginationInfo}>
+              Showing{" "}
+              <strong>
+                {(page - 1) * 10 + 1}-{Math.min(page * 10, totalCourses)}
+              </strong>{" "}
+              of <strong>{totalCourses}</strong>
+            </div>
+            <div className={styles.paginationControls}>
+              <button
+                onClick={() => setPage(page - 1)}
+                disabled={page <= 1}
+                className={styles.pageButton}
+              >
+                Antes
+              </button>
+              <span className={styles.pageButton} style={{ cursor: "default" }}>
+                Pagina {page} de {totalPages}
+              </span>
+              <button
+                onClick={() => setPage(page + 1)}
+                disabled={page >= totalPages}
+                className={styles.pageButton}
+              >
+                Despues
+              </button>
+            </div>
+          </div>
+        )}
       </main>
       {isModalOpen && (
         <div className={styles.modalBackdrop} onClick={handleCloseModal}>
