@@ -393,6 +393,181 @@
     margin-bottom: 2rem;
 }
 
+/* Resumen de créditos */
+.gradeSummary {
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    border: 2px solid #dee2e6;
+}
+
+.gradeSummary h3 {
+    color: #185d96;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.2rem;
+}
+
+.summaryCards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1rem;
+}
+
+.summaryCard {
+    background: white;
+    padding: 1.25rem;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+}
+
+.summaryCard:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(24, 93, 150, 0.15);
+}
+
+.summaryIcon {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #185d96, #4a89d2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.summaryContent {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.summaryLabel {
+    font-size: 0.875rem;
+    color: #666;
+    font-weight: 500;
+}
+
+.summaryValue {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #185d96;
+}
+
+.gradePercentage {
+    font-size: 0.8rem;
+    color: #666;
+    font-weight: 400;
+    margin-left: 0.5rem;
+}
+
+.pointsEarned {
+    display: block;
+    font-size: 0.75rem;
+    color: #4caf50;
+    font-weight: 600;
+    margin-top: 0.25rem;
+}
+
+/* Mejoras de responsividad para tablet */
+@media (max-width: 1024px) {
+    .courseCards {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    }
+    
+    .materialGrid {
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    }
+    
+    .summaryCards {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Mejoras para móvil */
+@media (max-width: 768px) {
+    .gradeSummary {
+        padding: 1rem;
+    }
+    
+    .gradeSummary h3 {
+        font-size: 1rem;
+    }
+    
+    .summaryCard {
+        padding: 1rem;
+    }
+    
+    .summaryIcon {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+    
+    .summaryValue {
+        font-size: 1.5rem;
+    }
+    
+    .gradeItem {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .gradeValue {
+        align-self: flex-end;
+    }
+    
+    .taskMeta {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .taskMetaItem {
+        width: 100%;
+    }
+    
+    .linkInputContainer {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .btnOutline {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .container {
+        padding: 0.5rem;
+    }
+    
+    .summaryLabel {
+        font-size: 0.75rem;
+    }
+    
+    .summaryValue {
+        font-size: 1.25rem;
+    }
+    
+    .taskTitle {
+        font-size: 0.95rem;
+    }
+    
+    .materialCard {
+        padding: 1rem;
+    }
+}
 /* New task accordion with status-based styling */
 .taskAccordion {
     margin-bottom: 1rem;

@@ -1522,10 +1522,10 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
                               <div className={styles.taskResourceInfo}>
                                 <div
                                   className={`${styles.taskResourceIcon} ${recurso.tipo === "texto"
-                                      ? styles.text
-                                      : recurso.tipo === "enlace"
-                                        ? styles.link
-                                        : styles.pdf
+                                    ? styles.text
+                                    : recurso.tipo === "enlace"
+                                      ? styles.link
+                                      : styles.pdf
                                     }`}
                                 >
                                   <i
@@ -1752,17 +1752,69 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
                 </div>
               ) : calificaciones ? (
                 <div className={styles.calificacionesTab}>
+                  {/* Nuevo: Resumen de distribución de puntos */}
+                  <div className={styles.gradeSummary}>
+                    <h3>
+                      <i className="fas fa-chart-pie"></i>
+                      Distribución de Créditos
+                    </h3>
+                    <div className={styles.summaryCards}>
+                      <div className={styles.summaryCard}>
+                        <div className={styles.summaryIcon}>
+                          <i className="fas fa-tasks"></i>
+                        </div>
+                        <div className={styles.summaryContent}>
+                          <span className={styles.summaryLabel}>Total Actividades</span>
+                          <span className={styles.summaryValue}>
+                            {calificaciones.evaluaciones
+                              .filter(e => e.nombre.toLowerCase().includes('actividad'))
+                              .reduce((sum, e) => sum + (e.porcentaje_valor || 0), 0)}%
+                          </span>
+                        </div>
+                      </div>
+                      <div className={styles.summaryCard}>
+                        <div className={styles.summaryIcon}>
+                          <i className="fas fa-project-diagram"></i>
+                        </div>
+                        <div className={styles.summaryContent}>
+                          <span className={styles.summaryLabel}>Proyecto Final</span>
+                          <span className={styles.summaryValue}>
+                            {calificaciones.evaluaciones
+                              .filter(e => e.nombre.toLowerCase().includes('proyecto'))
+                              .reduce((sum, e) => sum + (e.porcentaje_valor || 0), 0)}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className={styles.gradeList}>
                     {calificaciones.evaluaciones.map((evaluacion) => (
                       <div key={evaluacion.id} className={styles.gradeItem}>
                         <div>
-                          <div className={styles.gradeName}>{evaluacion.nombre}</div>
-                          <div className={styles.feedbackBubble}>{evaluacion.feedback || "Sin retroalimentación"}</div>
+                          <div className={styles.gradeName}>
+                            {evaluacion.nombre}
+                            <span className={styles.gradePercentage}>
+                              ({evaluacion.porcentaje_valor}% del curso)
+                            </span>
+                          </div>
+                          <div className={styles.feedbackBubble}>
+                            {evaluacion.feedback || "Sin retroalimentación"}
+                          </div>
                         </div>
-                        <div className={styles.gradeValue}>{evaluacion.calificacion || "N/A"}</div>
+                        <div className={styles.gradeValue}>
+                          {evaluacion.calificacion || "N/A"}
+                          {evaluacion.calificacion && (
+                            <small className={styles.pointsEarned}>
+                              +{evaluacion.puntos_ganados} pts
+                            </small>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>
+
+                  {/* Total general */}
                   <div className={styles.totalGrade}>
                     <div>
                       <div className={styles.totalLabel}>
