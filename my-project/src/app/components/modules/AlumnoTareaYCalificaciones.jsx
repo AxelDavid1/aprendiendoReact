@@ -322,12 +322,18 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
         );
 
         const recursos = recursosActividad.map((material) => ({
-          nombre:
-            material.nombre_archivo || material.nombre_enlace || "Recurso",
+          nombre: material.nombre_archivo || material.nombre_enlace,
+          contenido: material.contenido || material.descripcion,
           url: material.es_enlace
             ? material.url_enlace
-            : `${API_BASE_URL}${material.ruta_descarga}`,
-          tipo: material.es_enlace ? "enlace" : "archivo",
+            : material.ruta_descarga
+              ? `${API_BASE_URL}${material.ruta_descarga}`
+              : null,
+          tipo: material.tipo_archivo === "texto"
+            ? "texto"
+            : material.es_enlace
+              ? "enlace"
+              : "archivo",
         }));
 
         return {
@@ -1191,7 +1197,9 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
             </h3>
             <div className={styles.materialGrid}>
               {material.planeacion.map((item, index) => {
-                const isLink = item.es_enlace || item.url_enlace;
+                const isText = item.tipo_archivo === "texto";
+                const isLink = item.es_enlace === true && !!item.url_enlace;
+                const isFile = !isText && !isLink;
                 const url = item.es_enlace
                   ? item.url_enlace
                   : `${API_BASE_URL}${item.ruta_descarga}`;
@@ -1199,10 +1207,21 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
                   <div key={index} className={styles.materialCard}>
                     <div className={styles.materialHeader}>
                       <div
-                        className={`${styles.materialIcon} ${isLink ? styles.link : styles.pdf}`}
+                        className={`${styles.materialIcon} ${isText
+                          ? styles.text
+                          : isLink
+                            ? styles.link
+                            : styles.pdf
+                          }`}
                       >
                         <i
-                          className={isLink ? "fas fa-link" : "fas fa-file-pdf"}
+                          className={
+                            isText
+                              ? "fas fa-quote-right"
+                              : isLink
+                                ? "fas fa-link"
+                                : "fas fa-file-pdf"
+                          }
                         ></i>
                       </div>
                       <div className={styles.materialInfo}>
@@ -1218,24 +1237,24 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
                       </div>
                     </div>
                     <div className={styles.materialActions}>
-                      {isLink ? (
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`${styles.materialBtn} ${styles.primary}`}
-                        >
+                      {isLink && (
+                        <a href={url} target="_blank" rel="noopener noreferrer" className={`${styles.materialBtn} ${styles.primary}`}>
                           <FontAwesomeIcon icon={faExternalLinkAlt} />
-                          Ver
+                          Ver enlace
                         </a>
-                      ) : (
-                        <button
-                          onClick={() => handleDownloadWithAuth(url, item.nombre_archivo)}
-                          className={`${styles.materialBtn} ${styles.primary}`}
-                        >
+                      )}
+
+                      {isFile && (
+                        <button onClick={() => handleDownloadWithAuth(url, item.nombre_archivo)} className={`${styles.materialBtn} ${styles.primary}`}>
                           <FontAwesomeIcon icon={faDownload} />
-                          Descargar PDF
+                          Descargar
                         </button>
+                      )}
+
+                      {isText && (
+                        <div className={styles.apaReference}>
+                          <p>{item.contenido || item.descripcion}</p>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -1255,7 +1274,9 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
               </h3>
               <div className={styles.materialGrid}>
                 {material.material_descarga.map((item, index) => {
-                  const isLink = item.es_enlace || item.url_enlace;
+                  const isText = item.tipo_archivo === "texto";
+                  const isLink = item.es_enlace === true && !!item.url_enlace;
+                  const isFile = !isText && !isLink;
                   const url = item.es_enlace
                     ? item.url_enlace
                     : `${API_BASE_URL}${item.ruta_descarga}`;
@@ -1286,7 +1307,7 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
                         </div>
                       </div>
                       <div className={styles.materialActions}>
-                        {isLink ? (
+                        {isLink && (
                           <a
                             href={url}
                             target="_blank"
@@ -1294,16 +1315,29 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
                             className={`${styles.materialBtn} ${styles.primary}`}
                           >
                             <FontAwesomeIcon icon={faExternalLinkAlt} />
-                            Ver
+                            Ver enlace
                           </a>
-                        ) : (
+                        )}
+
+                        {isFile && (
                           <button
-                            onClick={() => handleDownloadWithAuth(url, item.nombre_archivo)}
+                            onClick={() =>
+                              handleDownloadWithAuth(
+                                `${API_BASE_URL}${item.ruta_descarga}`,
+                                item.nombre_archivo
+                              )
+                            }
                             className={`${styles.materialBtn} ${styles.primary}`}
                           >
                             <FontAwesomeIcon icon={faDownload} />
                             Descargar
                           </button>
+                        )}
+
+                        {isText && (
+                          <div className={styles.apaReference}>
+                            {item.contenido || item.descripcion}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1487,37 +1521,53 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
                             >
                               <div className={styles.taskResourceInfo}>
                                 <div
-                                  className={`${styles.taskResourceIcon} ${isLink ? styles.linkIcon : styles.pdfIcon}`}
+                                  className={`${styles.taskResourceIcon} ${recurso.tipo === "texto"
+                                      ? styles.text
+                                      : recurso.tipo === "enlace"
+                                        ? styles.link
+                                        : styles.pdf
+                                    }`}
                                 >
                                   <i
                                     className={
-                                      isLink ? "fas fa-link" : "fas fa-file-pdf"
+                                      recurso.tipo === "texto"
+                                        ? "fas fa-quote-right"
+                                        : recurso.tipo === "enlace"
+                                          ? "fas fa-link"
+                                          : "fas fa-file-pdf"
                                     }
                                   ></i>
                                 </div>
                                 <span className={styles.taskResourceName}>
                                   {recurso.nombre ||
-                                    (isLink
+                                    (recurso.tipo === "enlace"
                                       ? "Enlace de apoyo"
-                                      : "Documento PDF")}
+                                      : recurso.tipo === "texto"
+                                        ? "Referencia APA"
+                                        : "Documento PDF")}
                                 </span>
                               </div>
-                              {isLink ? (
-                                <a
-                                  href={recurso.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
+
+                              {recurso.tipo === "texto" && (
+                                <div className={styles.apaReference}>
+                                  {recurso.contenido}
+                                </div>
+                              )}
+
+                              {recurso.tipo === "enlace" && (
+                                <button
                                   className={`${styles.taskResourceBtn} ${styles.linkBtn}`}
+                                  onClick={() => window.open(recurso.url, "_blank")}
                                 >
                                   <FontAwesomeIcon icon={faExternalLinkAlt} />
-                                  Ver
-                                </a>
-                              ) : (
+                                  Ver enlace
+                                </button>
+                              )}
+
+                              {recurso.tipo === "archivo" && (
                                 <button
-                                  onClick={() =>
-                                    handleDownloadWithAuth(recurso.url, recurso.nombre)
-                                  }
                                   className={`${styles.taskResourceBtn} ${styles.downloadBtn}`}
+                                  onClick={() => handleDownloadWithAuth(recurso.url, recurso.nombre)}
                                 >
                                   <FontAwesomeIcon icon={faDownload} />
                                   Descargar
@@ -1701,44 +1751,18 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
                   <span>Cargando calificaciones...</span>
                 </div>
               ) : calificaciones ? (
-                <div>
+                <div className={styles.calificacionesTab}>
                   <div className={styles.gradeList}>
                     {calificaciones.evaluaciones.map((evaluacion) => (
                       <div key={evaluacion.id} className={styles.gradeItem}>
-                        <div className={styles.calificacionCard}>
-                          <div className={styles.calificacionHeader}>
-                            <h4>{evaluacion.nombre}</h4>
-                            {/* Valor de la actividad en el curso */}
-                            <span className={styles.badgeValor}>Vale {evaluacion.porcentaje_valor}%</span>
-                          </div>
-
-                          <div className={styles.calificacionBody}>
-                            {evaluacion.calificacion !== null ? (
-                              <>
-                                <div className={styles.scoreRow}>
-                                  <div className={styles.scoreItem}>
-                                    <span>Calificación Maestro</span>
-                                    <strong>{evaluacion.calificacion} / 100</strong>
-                                  </div>
-                                  <div className={styles.arrow}>→</div>
-                                  <div className={styles.scoreItem}>
-                                    <span>Créditos Ganados</span>
-                                    <strong>{evaluacion.puntos_ganados} / {evaluacion.porcentaje_valor}</strong>
-                                  </div>
-                                </div>
-                                {evaluacion.feedback && (
-                                  <p className={styles.feedback}>"{evaluacion.feedback}"</p>
-                                )}
-                              </>
-                            ) : (
-                              <span className={styles.pending}>Sin calificar</span>
-                            )}
-                          </div>
+                        <div>
+                          <div className={styles.gradeName}>{evaluacion.nombre}</div>
+                          <div className={styles.feedbackBubble}>{evaluacion.feedback || "Sin retroalimentación"}</div>
                         </div>
+                        <div className={styles.gradeValue}>{evaluacion.calificacion || "N/A"}</div>
                       </div>
                     ))}
                   </div>
-
                   <div className={styles.totalGrade}>
                     <div>
                       <div className={styles.totalLabel}>

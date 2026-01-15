@@ -349,6 +349,40 @@
     background: rgba(24, 93, 150, 0.2);
     border-color: #185d96;
 }
+.apaReference {
+  font-size: 0.85rem;
+  color: #3f2a63;
+  background: rgba(155, 109, 255, 0.08);
+  padding: 0.75rem 1rem;
+  border-left: 4px solid #7b4fd6;
+  border-radius: 6px;
+  line-height: 1.6;
+  font-style: italic;
+}
+.materialIcon.text {
+  background: linear-gradient(135deg, #7b4fd6, #9b6dff);
+}
+.taskResourceItem {
+  /* Igual que materialCard */
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  padding: 1rem;
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.taskResourceItem .taskResourceIcon.pdf {
+  background: linear-gradient(135deg, #ff6b6b, #ff8787); /* Rojo */
+}
+
+.taskResourceItem .taskResourceIcon.link {
+  background: linear-gradient(135deg, #4a90e2, #64b5f6); /* Azul */
+}
+
+.taskResourceItem .taskResourceIcon.text {
+  background: linear-gradient(135deg, #7b4fd6, #9b6dff); /* Morado */
+}
+
 
 /* Improved Tareas Tab with separated sections */
 .tareasTab {
