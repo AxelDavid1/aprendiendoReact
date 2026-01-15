@@ -690,16 +690,14 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
   // --- FUNCIÓN PARA GUARDAR ---
   const handleSave = async () => {
     try {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
 
       // Validaciones
       if (Number.parseInt(porcentajePracticas) + Number.parseInt(porcentajeProyecto) !== 100) {
-        setError("La suma de los porcentajes de actividades y proyecto debe ser 100%")
-        return
+        setError("La suma de los porcentajes de actividades y proyecto debe ser 100%");
+        return;
       }
-      console.log("Temario antes de enviar:", temario)
-      console.log("Primer tema competencias_especificas:", temario[0]?.competencias_especificas)
 
       const payload = {
         id_curso: curso.id_curso,
@@ -718,44 +716,41 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
         porcentaje_actividades: Number.parseInt(porcentajePracticas),
         porcentaje_proyecto: Number.parseInt(porcentajeProyecto),
         umbral_aprobatorio: umbralAprobatorio,
+
         practicas: practicas.map((p) => ({
           descripcion: p.descripcion_practica,
-          id_actividad: p.id_actividad || null, // Agregar ID si existe
+          id_actividad: p.id_actividad || null,
           materiales: p.materiales.map((m) => ({
-            id_material: m.id_material || null, // Importante enviar null si es nuevo
+            id_material: m.id_material || null,
             tipo: m.tipo || 'referencias',
             nombre: m.nombre || null,
-            referencia: m.referencia || m.descripcion || "", // Asegurar que el texto va aquí
+            referencia: m.referencia || m.descripcion || "",
             url: m.url || "",
           })),
           id_unidad: p.id_unidad ? Number.parseInt(p.id_unidad) : null,
           id_subtema: p.id_subtema ? Number.parseInt(p.id_subtema) : null,
           fecha_entrega: p.fecha_entrega || null,
         })),
+
+        // 👇 AQUÍ ESTÁ LA CORRECCIÓN
         proyecto: {
           instrucciones: proyecto.instrucciones,
-          // 👇 CAMBIO: Separar PDFs subidos de enlaces
-          materiales: proyecto.materiales
-            .filter((m) => m.id_material)
-            .map((m) => ({
-              id_material: m.id_material,
-              tipo: m.tipo,
-              nombre: m.nombre || null, // Include title for existing PDFs
-            })),
-          materiales_nuevos: proyecto.materiales
-            .filter((m) => !m.id_material && (m.tipo === "enlace" || m.tipo === "referencias")) // Permitir ambos
-            .map((m) => ({
-              tipo: m.tipo,
-              url: m.url || "",
-              referencia: m.referencia || m.descripcion || "", // Asegurar que viaja el texto
-              nombre: m.nombre || null
-            })),
+          // Unificamos todo en un solo array 'materiales', enviando null en id_material si es nuevo
+          materiales: proyecto.materiales.map((m) => ({
+            id_material: m.id_material || null,
+            tipo: m.tipo,
+            nombre: m.nombre || null,
+            url: m.url || "", // Enviamos siempre el campo, aunque vaya vacío
+            referencia: m.referencia || m.descripcion || "", // Enviamos siempre el campo
+          })),
+          // Eliminamos 'materiales_nuevos' ya que el backend seguramente no lo lee
           fundamentacion: proyecto.fundamentacion,
           planeacion: proyecto.planeacion,
           ejecucion: proyecto.ejecucion,
           evaluacion: proyecto.evaluacion,
           fecha_entrega: proyecto.fecha_entrega || null,
         },
+
         caracterizacion: planeacion.caracterizacion,
         intencion_didactica: planeacion.intencion_didactica,
         competencias_desarrollar: planeacion.competencias_desarrollar,
@@ -767,11 +762,11 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
           referencia: f.tipo === "referencias" ? f.referencia || "" : "",
           url: f.tipo === "enlace" ? f.url || "" : "",
           id_material: f.id_material || null,
-          nombre: f.nombre || null, // Include title for existing PDFs
+          nombre: f.nombre || null,
         })),
-      }
+      };
 
-      console.log("Payload enviado:", JSON.stringify(payload, null, 2))
+      console.log("Payload enviado:", JSON.stringify(payload, null, 2));
 
       const response = await fetch(`${API_BASE_URL}/api/cursos/${curso.id_curso}/planeacion`, {
         method: "POST",
@@ -780,24 +775,26 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(payload),
-      })
+      });
 
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Error al guardar la planeación")
+        const errorData = await response.json();
+        // 👇 Agrega esto para ver el error real en la consola del navegador
+        console.error("Error detallado del servidor:", errorData);
+        throw new Error(errorData.error || "Error al guardar la planeación");
       }
 
-      const result = await response.json()
-      if (onSave) onSave(result)
-      alert("Planeación guardada exitosamente")
-      onClose()
+      const result = await response.json();
+      if (onSave) onSave(result);
+      alert("Planeación guardada exitosamente");
+      onClose();
     } catch (err) {
-      setError(err.message)
-      console.error("Error al guardar:", err)
+      setError(err.message);
+      console.error("Error al guardar:", err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   // useMemo para obtener la carrera seleccionada
   const carreraSeleccionada = useMemo(

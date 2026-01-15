@@ -47,10 +47,10 @@ const guardarPlaneacion = async (req, res) => {
       [
         caracterizacion || null, intencion_didactica || null, competencias_desarrollar || null,
         competencias_previas || null, evaluacion_competencias || null,
-        (proyecto && proyecto.fundamentacion) || proyecto_fundamentacion || null,
-        (proyecto && proyecto.planeacion) || proyecto_planeacion || null,
-        (proyecto && proyecto.ejecucion) || proyecto_ejecucion || null,
-        (proyecto && proyecto.evaluacion) || proyecto_evaluacion || null,
+        proyecto?.fundamentacion || null,
+        proyecto?.planeacion || null,
+        proyecto?.ejecucion || null,
+        proyecto?.evaluacion || null,
         convocatoria_id || null,
         id_curso,
       ]

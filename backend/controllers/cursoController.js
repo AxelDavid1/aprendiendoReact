@@ -544,12 +544,203 @@ const obtenerPlaneacion = async (req, res) => {
 };
 
 const actualizarPlaneacion = async (req, res) => {
-  res.status(501).json({
-    error:
-      "El endpoint para actualizar la planeación del curso está en desarrollo.",
-  });
-};
+  console.log("--> EJECUTANDO actualizarPlaneacion CORREGIDO <--"); // Si no ves esto en la terminal, no se guardó el archivo
+  
+  const { id } = req.params; 
+  const {
+    porcentaje_actividades,
+    porcentaje_proyecto,
+    umbral_aprobatorio,
+    caracterizacion,
+    intencion_didactica,
+    competencias_desarrollar,
+    competencias_previas,
+    evaluacion_competencias,
+    convocatoria_id,
+    proyecto,       // Objeto { instrucciones, fundamentacion, ... }
+    practicas,
+    temario,
+    fuentes
+  } = req.body;
 
+  // Helper seguro para enteros
+  const safeInt = (val) => {
+    if (val === undefined || val === null || val === "") return null;
+    const parsed = parseInt(val, 10);
+    return isNaN(parsed) ? null : parsed;
+  };
+
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    // 1. Actualizar configuración de calificación
+    const [califRows] = await connection.query(
+      "SELECT id_calificaciones FROM calificaciones_curso WHERE id_curso = ?", 
+      [id]
+    );
+
+    let id_calificaciones_curso;
+
+    if (califRows.length > 0) {
+      id_calificaciones_curso = califRows[0].id_calificaciones;
+      await connection.query(
+        `UPDATE calificaciones_curso 
+         SET porcentaje_actividades = ?, porcentaje_proyecto = ?, umbral_aprobatorio = ? 
+         WHERE id_curso = ?`,
+        [porcentaje_actividades, porcentaje_proyecto, umbral_aprobatorio, id]
+      );
+    } else {
+      const [resCalif] = await connection.query(
+        `INSERT INTO calificaciones_curso (id_curso, porcentaje_actividades, porcentaje_proyecto, umbral_aprobatorio)
+         VALUES (?, ?, ?, ?)`,
+        [id, porcentaje_actividades, porcentaje_proyecto, umbral_aprobatorio]
+      );
+      id_calificaciones_curso = resCalif.insertId;
+    }
+
+    // 2. Actualizar textos de la planeación
+    await connection.query(
+      `UPDATE curso 
+       SET caracterizacion = ?, intencion_didactica = ?, competencias_desarrollar = ?, 
+           competencias_previas = ?, evaluacion_competencias = ?, convocatoria_id = ?
+       WHERE id_curso = ?`,
+      [
+        caracterizacion || null, 
+        intencion_didactica || null, 
+        competencias_desarrollar || null, 
+        competencias_previas || null, 
+        evaluacion_competencias || null, 
+        safeInt(convocatoria_id), 
+        id
+      ]
+    );
+
+    // 3. GUARDAR PROYECTO
+    if (proyecto && id_calificaciones_curso) {
+      // DESESTRUCTURACIÓN CORRECTA (Aquí estaba tu error antes)
+      const { 
+        instrucciones, 
+        fundamentacion, // <--- Esta es la variable que debes usar
+        planeacion, 
+        ejecucion, 
+        evaluacion, 
+        fecha_entrega, 
+        materiales 
+      } = proyecto;
+
+      const [projRows] = await connection.query(
+        `SELECT id_actividad FROM calificaciones_actividades 
+         WHERE id_calificaciones_curso = ? AND tipo_actividad = 'proyecto'`,
+        [id_calificaciones_curso]
+      );
+
+      let id_proyecto_db;
+
+      if (projRows.length > 0) {
+        id_proyecto_db = projRows[0].id_actividad;
+        await connection.query(
+          `UPDATE calificaciones_actividades 
+           SET nombre = 'Proyecto Final', descripcion = ?, fecha_limite = ?,
+               fundamentacion = ?, planeacion = ?, ejecucion = ?, evaluacion = ?
+           WHERE id_actividad = ?`,
+          [
+            instrucciones || "", 
+            fecha_entrega || null, 
+            fundamentacion || "",
+            planeacion || "", 
+            ejecucion || "", 
+            evaluacion || "", 
+            id_proyecto_db
+          ]
+        );
+      } else {
+        const [resProj] = await connection.query(
+          `INSERT INTO calificaciones_actividades 
+           (id_calificaciones_curso, nombre, descripcion, fecha_limite, porcentaje, tipo_actividad, 
+            fundamentacion, planeacion, ejecucion, evaluacion)
+           VALUES (?, 'Proyecto Final', ?, ?, ?, 'proyecto', ?, ?, ?, ?)`,
+          [
+            id_calificaciones_curso, 
+            instrucciones || "", 
+            fecha_entrega || null, 
+            porcentaje_proyecto, 
+            fundamentacion || "", // USA 'fundamentacion'
+            planeacion || "", 
+            ejecucion || "", 
+            evaluacion || ""
+          ]
+        );
+        id_proyecto_db = resProj.insertId;
+      }
+
+      // Guardar Materiales del Proyecto (Solo nuevos)
+      if (materiales && Array.isArray(materiales)) {
+         for (const mat of materiales) {
+             if (!mat.id_material) { 
+                 await connection.query(
+                     `INSERT INTO materiales_actividad (id_actividad, nombre_archivo, url_enlace, tipo_archivo, es_enlace)
+                      VALUES (?, ?, ?, ?, ?)`,
+                     [id_proyecto_db, mat.nombre || mat.referencia || "Referencia", mat.url || "", mat.tipo === 'enlace' ? 'link' : 'texto', mat.tipo === 'enlace' ? 1 : 0]
+                 );
+             }
+         }
+      }
+    }
+
+    // 4. GUARDAR PRÁCTICAS
+    if (practicas && Array.isArray(practicas) && id_calificaciones_curso) {
+      for (const practica of practicas) {
+        let id_practica_db = practica.id_actividad;
+
+        if (id_practica_db) {
+          await connection.query(
+            `UPDATE calificaciones_actividades 
+             SET descripcion = ?, fecha_limite = ?, id_unidad = ?, id_subtema = ?
+             WHERE id_actividad = ?`,
+            [practica.descripcion || "", practica.fecha_entrega || null, safeInt(practica.id_unidad), safeInt(practica.id_subtema), id_practica_db]
+          );
+        } else {
+          const [resPrac] = await connection.query(
+            `INSERT INTO calificaciones_actividades 
+             (id_calificaciones_curso, nombre, descripcion, fecha_limite, porcentaje, tipo_actividad, id_unidad, id_subtema)
+             VALUES (?, 'Práctica', ?, ?, 0, 'actividad', ?, ?)`,
+            [id_calificaciones_curso, practica.descripcion || "", practica.fecha_entrega || null, safeInt(practica.id_unidad), safeInt(practica.id_subtema)]
+          );
+          id_practica_db = resPrac.insertId;
+        }
+
+        if (practica.materiales && Array.isArray(practica.materiales)) {
+          for (const mat of practica.materiales) {
+            if (!mat.id_material) {
+              await connection.query(
+                `INSERT INTO materiales_actividad (id_actividad, nombre_archivo, url_enlace, tipo_archivo, es_enlace)
+                 VALUES (?, ?, ?, ?, ?)`,
+                [id_practica_db, mat.nombre || mat.referencia || "Referencia", mat.url || "", mat.tipo === 'enlace' ? 'link' : 'texto', mat.tipo === 'enlace' ? 1 : 0]
+              );
+            }
+          }
+        }
+      }
+    }
+
+    await connection.commit();
+    res.json({ success: true, message: "Planeación guardada correctamente" });
+
+  } catch (error) {
+    if (connection) await connection.rollback();
+    console.error("Error REAL en actualizarPlaneacion:", error); // Esto aparecerá en tu terminal
+    
+    res.status(500).json({ 
+        success: false, 
+        error: "Error al guardar la planeación", 
+        details: error.message || String(error)
+    });
+  } finally {
+    if (connection) connection.release();
+  }
+};
 module.exports = {
   getAllCursos,
   getCursoById,
