@@ -729,26 +729,27 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
           })),
           id_unidad: p.id_unidad ? Number.parseInt(p.id_unidad) : null,
           id_subtema: p.id_subtema ? Number.parseInt(p.id_subtema) : null,
-          fecha_entrega: p.fecha_entrega || null,
+          fecha_entrega: p.fecha_entrega 
+            ? p.fecha_entrega.replace('T', ' ').slice(0, 19) 
+            : null,
         })),
 
-        // 👇 AQUÍ ESTÁ LA CORRECCIÓN
         proyecto: {
           instrucciones: proyecto.instrucciones,
-          // Unificamos todo en un solo array 'materiales', enviando null en id_material si es nuevo
           materiales: proyecto.materiales.map((m) => ({
             id_material: m.id_material || null,
             tipo: m.tipo,
             nombre: m.nombre || null,
-            url: m.url || "", // Enviamos siempre el campo, aunque vaya vacío
-            referencia: m.referencia || m.descripcion || "", // Enviamos siempre el campo
+            url: m.url || "",
+            referencia: m.referencia || m.descripcion || "",
           })),
-          // Eliminamos 'materiales_nuevos' ya que el backend seguramente no lo lee
           fundamentacion: proyecto.fundamentacion,
           planeacion: proyecto.planeacion,
           ejecucion: proyecto.ejecucion,
           evaluacion: proyecto.evaluacion,
-          fecha_entrega: proyecto.fecha_entrega || null,
+          fecha_entrega: proyecto.fecha_entrega 
+            ? proyecto.fecha_entrega.replace('T', ' ').slice(0, 19) 
+            : null,
         },
 
         caracterizacion: planeacion.caracterizacion,
@@ -778,12 +779,29 @@ const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        // 👇 Agrega esto para ver el error real en la consola del navegador
-        console.error("Error detallado del servidor:", errorData);
-        throw new Error(errorData.error || "Error al guardar la planeación");
-      }
+        const responseText = await response.text(); // 1. Leemos como texto crudo
+        let errorData;
 
+        try {
+          errorData = JSON.parse(responseText); // 2. Intentamos convertir a JSON
+        } catch (e) {
+          // 3. Si falla, es que el servidor devolvió HTML o texto plano
+          console.error("El servidor no devolvió JSON:", responseText);
+          errorData = { message: responseText || `Error HTTP ${response.status}` };
+        }
+
+        console.warn("=== DETALLES DEL ERROR ===");
+        console.warn("Status:", response.status);
+        console.warn("Body:", responseText); // Verás exactamente qué dice el servidor
+        console.warn("========================");
+
+        const errorMessage = errorData.error ||
+          errorData.message ||
+          errorData.error_message ||
+          `Error ${response.status}: ${response.statusText}`;
+
+        throw new Error(errorMessage);
+      }
       const result = await response.json();
       if (onSave) onSave(result);
       alert("Planeación guardada exitosamente");
