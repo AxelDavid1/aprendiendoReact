@@ -105,7 +105,7 @@ function CredencialesCursos({ userId, dashboardType, userUniversityId }) {
       setIsCoursesLoading(true);
       setCursosDisponibles([]);
       try {
-        const url = new URL(API_URL_CURSOS);
+        const url = new URL(API_URL_CURSOS, window.location.origin);
         url.searchParams.append("id_universidad", idUniversidad);
         url.searchParams.append("id_facultad", idFacultad);
         url.searchParams.append("exclude_assigned", "true");
@@ -154,7 +154,7 @@ function CredencialesCursos({ userId, dashboardType, userUniversityId }) {
       setIsCoursesLoading(true);
       setCursosDisponibles([]);
       try {
-        const url = new URL(API_URL_CURSOS);
+        const url = new URL(API_URL_CURSOS, window.location.origin);
         url.searchParams.append("id_universidad", idUniversidad);
         url.searchParams.append("id_facultad", idFacultad);
         url.searchParams.append("exclude_assigned", "true");

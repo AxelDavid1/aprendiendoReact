@@ -81,6 +81,7 @@ const getAllCursos = async (req, res) => {
       whereClauses.push("c.id_facultad = ?");
       queryParams.push(facultadId);
     }
+    whereClauses.push("c.fecha_inicio <= CURDATE() AND c.fecha_fin >= CURDATE()");
 
     // Excluir cursos asignados a credenciales
     if (exclude_assigned === "true") {
