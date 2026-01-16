@@ -2,7 +2,8 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useParams, useSearchParams } from "next/navigation";
-import styles from "./verificar.module.css";
+// ASEGÚRATE QUE EL ARCHIVO SE LLAME EXACTAMENTE ASÍ (minúsculas/mayúsculas importan)
+import styles from "./verificar.module.css"; 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
   faSpinner,
@@ -16,6 +17,16 @@ import {
   faDownload,
 } from "@fortawesome/free-solid-svg-icons";
 
+// 1. Definimos la estructura de los datos para evitar errores de TypeScript
+interface Metadata {
+  nombre_alumno: string;
+  tipo_documento: string;
+  nombre_item: string;
+  nombre_universidad: string;
+  fecha_emitida: string;
+  // Agrega otros campos si tu API devuelve más cosas
+}
+
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
@@ -23,12 +34,14 @@ const VerificationContent = () => {
   const params = useParams();
   const searchParams = useSearchParams();
 
-  const filename = params.filename;
+  // 2. Manejo seguro de params (puede venir como string o array)
+  const filename = Array.isArray(params?.filename) ? params.filename[0] : params?.filename;
   const tipo = searchParams.get("tipo");
 
-  const [metadata, setMetadata] = useState(null);
+  // 3. Tipamos el estado
+  const [metadata, setMetadata] = useState<Metadata | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!filename || !tipo) {
@@ -50,7 +63,7 @@ const VerificationContent = () => {
 
         setMetadata(data);
       } catch (err) {
-        setError(err.message);
+        setError(err instanceof Error ? err.message : "Error desconocido");
       } finally {
         setIsLoading(false);
       }
@@ -59,7 +72,8 @@ const VerificationContent = () => {
     fetchMetadata();
   }, [filename, tipo]);
 
-  const formatDate = (dateString) => {
+  // 4. Tipamos el argumento de la función
+  const formatDate = (dateString: string) => {
     if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString("es-ES", {
       year: "numeric",

@@ -1,5 +1,7 @@
 "use client";
-import React, { useState, useEffect } from "react";
+
+// 1. Agregamos Suspense a los imports
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   GoogleOAuthProvider,
@@ -38,7 +40,8 @@ interface Carrera {
   nombre: string;
 }
 
-export default function SignUpPage() {
+// 2. Renombramos tu componente principal a "SignUpContent" y quitamos el "export default"
+function SignUpContent() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const router = useRouter();
@@ -58,7 +61,6 @@ export default function SignUpPage() {
   const [universidades, setUniversidades] = useState<University[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // ¡NUEVA LÓGICA! Revisar si venimos de un login con perfil pendiente.
   useEffect(() => {
     const action = searchParams.get("action");
 
@@ -80,9 +82,9 @@ export default function SignUpPage() {
             .then((res) => setUniversidades(res.data.universities || []))
             .catch(() => setError("No se pudieron cargar las universidades."));
 
-          // Limpiar el localStorage para no dejar datos residuales
           localStorage.removeItem("pendingUser");
-        } catch (e) {
+        } catch (error) {
+          console.error("Error recuperando datos:", error);
           setError("Hubo un error al recuperar los datos del usuario.");
         }
       }
@@ -111,16 +113,16 @@ export default function SignUpPage() {
         setNewUser(response.data.user);
         setProfileData((prev) => ({
           ...prev,
-          nombre_completo: response.data.user.username, // Pre-fill with Google name
+          nombre_completo: response.data.user.username,
         }));
         setStep("completeProfile");
-        // Fetch universities for the dropdown
         try {
           const uniResponse = await axios.get(
             `${API_URL}/universidades?limit=999`,
           );
           setUniversidades(uniResponse.data.universities || []);
-        } catch (uniError) {
+        } catch (error) {
+          console.error("Error cargando universidades:", error);
           setError(
             "No se pudieron cargar las universidades. Por favor, recargue la página.",
           );
@@ -158,16 +160,13 @@ export default function SignUpPage() {
     setProfileData((prev) => ({
       ...prev,
       [name]: value,
-      // Si cambia la universidad, reseteamos la carrera seleccionada
       ...(name === "id_universidad" && { id_carrera: "" }),
     }));
   };
 
-  // State for careers dropdown
   const [carreras, setCarreras] = useState<Carrera[]>([]);
   const [loadingCarreras, setLoadingCarreras] = useState(false);
 
-  // Effect to fetch careers when a university is selected
   React.useEffect(() => {
     if (profileData.id_universidad) {
       setLoadingCarreras(true);
@@ -366,5 +365,14 @@ export default function SignUpPage() {
         </div>
       </div>
     </GoogleOAuthProvider>
+  );
+}
+
+// 3. Creamos el nuevo componente por defecto que envuelve al contenido
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<div className={styles.loading}>Cargando...</div>}>
+      <SignUpContent />
+    </Suspense>
   );
 }

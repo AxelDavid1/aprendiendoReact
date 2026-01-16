@@ -1,10 +1,19 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /**
-   * Configuración de reescrituras (Rewrites)
-   * @see https://nextjs.org/docs/app/api-reference/next-config-js/rewrites
-   */
+  
+  // 1. REDIRECCIÓN: Para que al entrar a tuweb.com te lleve a /screens/home
+  async redirects() {
+    return [
+      {
+        source: '/',
+        destination: '/screens/home',
+        permanent: true,
+      },
+    ];
+  },
+
+  // 2. REESCRITURAS: Para conectar con el Backend (Vital para desarrollo local)
   async rewrites() {
     return [
       {
@@ -13,8 +22,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-
-  // Aquí puedes añadir otras opciones de configuración de Next.js si las necesitas.
 };
 
 export default nextConfig;

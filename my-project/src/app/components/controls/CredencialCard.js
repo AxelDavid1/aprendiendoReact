@@ -1,7 +1,6 @@
 import React from 'react';
+import Image from 'next/image'
 import styles from './CredencialCard.module.css';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faEdit, faTrash } from '@fortawesome/free-solid-svg-icons';
 
 const getStatusChipClass = (estatus) => {
     const statusLower = estatus?.toLowerCase();
@@ -22,7 +21,7 @@ const getStatusChipClass = (estatus) => {
 const CredencialCard = ({ credencial, onVerMas }) => {
     return (
         <div className={styles.credencialCard}>
-            <img
+            <Image
                 src={credencial.imagen_url || "/assets/homeWallpaper.jpg"}
                 alt={credencial.nombre_credencial || 'Imagen de la credencial'}
                 className={styles.credencialImage}

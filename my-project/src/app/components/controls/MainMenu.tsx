@@ -1,14 +1,14 @@
 // src/app/components/controls/MainMenu.tsx
 import React, { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { FC } from "react"; // Importa FC para tipado
+import { FC } from "react";
 import styles from "./MainMenu.module.css";
 
 interface MainMenuProps {
   isAuthenticated: boolean;
 }
 
-const MainMenu: FC<MainMenuProps> = ({ isAuthenticated }) => {
+const MainMenu: FC<MainMenuProps> = () => {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
