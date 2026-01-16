@@ -1,6 +1,7 @@
 import React from 'react'
 import Image from 'next/image'
 import styles from './CursoCard.module.css'
+import { px } from 'framer-motion';
 
 const getStatusChipClass = (estatus) => {
     const statusLower = estatus?.toLowerCase();
@@ -33,6 +34,8 @@ const CursoCard = ({ curso, onVerMas }) => {
                 src={curso.imagen_url || "/assets/homeWallpaper.jpg"} 
                 alt={curso.nombre_curso} 
                 className={styles.cursoImage}
+                width={240}
+                height={160}
             />
             <div className={styles.cursoContent}>
                 <h3 className={`${styles.cursoTitle} ${styles.truncateTwoLines}`}>{curso.nombre_curso}</h3>

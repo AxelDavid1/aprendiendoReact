@@ -25,6 +25,8 @@ const CredencialCard = ({ credencial, onVerMas }) => {
                 src={credencial.imagen_url || "/assets/homeWallpaper.jpg"}
                 alt={credencial.nombre_credencial || 'Imagen de la credencial'}
                 className={styles.credencialImage}
+                width={240}
+                height={160}
             />
             <div className={styles.credencialContent}>
                 <h3 className={`${styles.credencialTitle} ${styles.truncateTwoLines}`}>
