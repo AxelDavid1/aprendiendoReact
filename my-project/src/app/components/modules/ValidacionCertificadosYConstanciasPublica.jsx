@@ -27,7 +27,7 @@ const ValidacionAlumnoPublica = () => {
       try {
         setIsLoadingUniversidades(true);
         // CORRECCIÓN: Agrega /api de vuelta
-        const response = await fetch(`${API_BASE_URL}/universidades`);
+        const response = await fetch(`${API_BASE_URL}/universidades?limit=1000`);
 
         if (!response.ok) {
           throw new Error("Error al cargar las universidades");
