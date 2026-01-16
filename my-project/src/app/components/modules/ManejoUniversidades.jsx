@@ -322,7 +322,7 @@ function ManejoUniversidades() {
                   <img
                     src={
                       uni.logo_url
-                        ? `${SERVER_URL}${uni.logo_url}`
+                        ? `${SERVER_URL}${uni.logo_url.startsWith('/') ? '' : '/'}${uni.logo_url}`
                         : "/placeholder-logo.png"
                     }
                     alt={`${uni.nombre} Logo`}

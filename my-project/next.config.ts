@@ -21,6 +21,10 @@ const nextConfig: NextConfig = {
         // Cuando Next vea "/api", lo manda a tu backend local
         destination: "http://localhost:5000/api/:path*", 
       },
+      {
+        source: "/uploads/:path*",
+        destination: "http://localhost:5000/uploads/:path*",
+      },
     ];
   },
 };
