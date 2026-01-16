@@ -16,8 +16,8 @@ import {
   faSpinner,
 } from "@fortawesome/free-solid-svg-icons"
 
-const SUBGRUPOS_API_URL = "http://localhost:5000/api/subgrupos-operadores"
-const HABILIDADES_API_URL = "http://localhost:5000/api/habilidades-clave"
+const SUBGRUPOS_API_URL = "/api/subgrupos-operadores"
+const HABILIDADES_API_URL = "/api/habilidades-clave"
 
 // Obtener token de autenticación
 const getAuthToken = () => {

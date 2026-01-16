@@ -9,11 +9,11 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 // Define the base URL of your backend API
-const API_URL = "http://localhost:5000/api/maestros";
-const API_URL_UNIVERSIDADES = "http://localhost:5000/api/universidades";
-const API_URL_FACULTADES = "http://localhost:5000/api/facultades";
-const API_URL_CARRERAS = "http://localhost:5000/api/carreras";
-const SERVER_URL = "http://localhost:5000";
+const API_URL = "/api/maestros";
+const API_URL_UNIVERSIDADES = "/api/universidades";
+const API_URL_FACULTADES = "/api/facultades";
+const API_URL_CARRERAS = "/api/carreras";
+const SERVER_URL = "";
 
 // Initial state for the form
 const initialMaestroState = {
@@ -110,8 +110,8 @@ function GestionMaestros() {
   const fetchUniversidades = useCallback(async () => {
     try {
       const response = await fetch(
-        "http://localhost:5000/api/universidades?limit=9999",
-      );
+        "/api/universidades?limit=9999",
+      ); 
       if (!response.ok) throw new Error("Could not fetch universities");
       const data = await response.json();
       setUniversidades(data.universities || []);

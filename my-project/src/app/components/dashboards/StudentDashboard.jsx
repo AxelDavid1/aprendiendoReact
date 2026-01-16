@@ -29,7 +29,7 @@ function StudentDashboard({ userId }) {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/convocatorias/alumno/estado-general",
+        "/api/convocatorias/alumno/estado-general",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -69,7 +69,7 @@ function StudentDashboard({ userId }) {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/convocatorias/${convocatoriaId}/solicitar`,
+        `/api/convocatorias/${convocatoriaId}/solicitar`,
         {
           method: "POST",
           headers: {

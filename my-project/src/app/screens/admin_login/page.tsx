@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import axios, { AxiosError } from "axios"; // Import AxiosError
 import styles from "./AdminLogin.module.css";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 interface ApiErrorResponse {
   error?: string; // Assuming the error message is a string and might be optional

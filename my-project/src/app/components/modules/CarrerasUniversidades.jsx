@@ -11,9 +11,9 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 // Define the base URL of your backend API
-const API_URL_UNIVERSIDADES = "http://localhost:5000/api/universidades";
-const API_URL_FACULTADES = "http://localhost:5000/api/facultades";
-const API_URL_CARRERAS = "http://localhost:5000/api/carreras";
+const API_URL_UNIVERSIDADES = "/api/universidades";
+const API_URL_FACULTADES = "/api/facultades";
+const API_URL_CARRERAS = "/api/carreras";
 
 // Initial states for forms
 const initialFacultadState = {

@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash, faFilePdf, faLink, faPlus, faDownload, faExternalLinkAlt } from "@fortawesome/free-solid-svg-icons";
 import styles from "./MaterialADescargar.module.css";
 
-const API_BASE_URL = "http://localhost:5000";
+const API_BASE_URL = "";
 
 const getSiteName = (url) => {
   try {

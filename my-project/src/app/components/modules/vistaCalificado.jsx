@@ -9,7 +9,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import { useAuth } from "../../../hooks/useAuth";
 
-const API_BASE_URL = "http://localhost:5000";
+const API_BASE_URL = "";
 
 export default function VistaCalificacion({ curso, onClose }) {
   const { token } = useAuth();

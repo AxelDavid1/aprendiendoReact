@@ -10,7 +10,7 @@ import {
   faAward,
 } from "@fortawesome/free-solid-svg-icons";
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "";
 
 const ValidacionAlumnoPublica = () => {
   const [universidades, setUniversidades] = useState([]);

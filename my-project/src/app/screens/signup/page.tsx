@@ -11,7 +11,7 @@ import {
 import axios, { AxiosError } from "axios";
 import styles from "./SignUp.module.css";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 const GOOGLE_CLIENT_ID =
   process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID ||
   "768061039087-q59g2dbarenff9j3epsvc2gp208fiu2k.apps.googleusercontent.com";

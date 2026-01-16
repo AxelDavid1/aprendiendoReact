@@ -18,12 +18,12 @@ import PlaneacionCurso from "./PlaneacionCurso"
 import MaterialADescargar from "./MaterialADescargar"
 import { useAuth } from "@/hooks/useAuth"
 
-const API_URL = "http://localhost:5000/api/cursos"
-const API_URL_UNIVERSIDADES = "http://localhost:5000/api/universidades"
-const API_URL_SUBGRUPOS = "http://localhost:5000/api/subgrupos-operadores"
-const API_URL_FACULTADES = "http://localhost:5000/api/facultades"
-const API_URL_CARRERAS = "http://localhost:5000/api/carreras"
-const API_URL_MAESTROS = "http://localhost:5000/api/maestros"
+const API_URL = "/api/cursos"
+const API_URL_UNIVERSIDADES = "/api/universidades"
+const API_URL_SUBGRUPOS = "/api/subgrupos-operadores"
+const API_URL_FACULTADES = "/api/facultades"
+const API_URL_CARRERAS = "/api/carreras"
+const API_URL_MAESTROS = "/api/maestros"
 
 // Estado inicial para el formulario del curso
 const initialCourseState = {

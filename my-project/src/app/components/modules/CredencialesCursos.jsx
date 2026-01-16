@@ -9,10 +9,10 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import styles from "./CredencialesCursos.module.css";
 
-const API_URL = "http://localhost:5000/api/credenciales";
-const API_URL_UNIVERSIDADES = "http://localhost:5000/api/universidades";
-const API_URL_FACULTADES = "http://localhost:5000/api/facultades";
-const API_URL_CURSOS = "http://localhost:5000/api/cursos";
+const API_URL = "/api/credenciales";
+const API_URL_UNIVERSIDADES = "/api/universidades";
+const API_URL_FACULTADES = "/api/facultades";
+const API_URL_CURSOS = "/api/cursos";
 
 const initialCredentialState = {
   nombre_credencial: "",

@@ -5,7 +5,7 @@ import styles from "./AlumnoTareaYCalificaciones.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash, faExternalLinkAlt, faDownload } from "@fortawesome/free-solid-svg-icons";
 
-const API_BASE_URL = "http://localhost:5000";
+const API_BASE_URL = "";
 
 const AlumnoTareaYCalificaciones = ({ userId }) => {
   const [activeTab, setActiveTab] = useState("material");

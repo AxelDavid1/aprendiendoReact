@@ -49,7 +49,7 @@ function Inscripciones() {
     setCredentialsLoading(true);
     setCredentialsError(null);
     try {
-      const response = await fetch("http://localhost:5000/api/credenciales");
+      const response = await fetch("/api/credenciales");
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(errData.error || "Error al obtener las credenciales");
@@ -79,7 +79,7 @@ function Inscripciones() {
         params.append('estado', selectedFilter.estado);
       }
 
-      let url = 'http://localhost:5000/api/inscripciones/all'; // <-- Probamos con esta nueva ruta
+      let url = '/api/inscripciones/all'; // <-- Probamos con esta nueva ruta
       const queryString = params.toString();
       if (queryString) {
         url += `?${queryString}`;
@@ -115,7 +115,7 @@ function Inscripciones() {
     setUnassignedCoursesLoading(true);
     setUnassignedCoursesError(null);
     try {
-      const response = await fetch("http://localhost:5000/api/cursos?exclude_assigned=true");
+      const response = await fetch("/api/cursos?exclude_assigned=true");
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(errData.error || "Error al obtener los cursos sin credencial");
@@ -199,7 +199,7 @@ function Inscripciones() {
 
     setIsDetailLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/credenciales/${credentialId}`);
+      const response = await fetch(`/api/credenciales/${credentialId}`);
       if (!response.ok) {
         throw new Error("No se pudieron cargar los detalles de la credencial.");
       }
@@ -246,7 +246,7 @@ function Inscripciones() {
     }
 
     try {
-      const response = await fetch(`http://localhost:5000/api/inscripciones/${selectedApplication.id_inscripcion}/estado`, {
+      const response = await fetch(`/api/inscripciones/${selectedApplication.id_inscripcion}/estado`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(body)

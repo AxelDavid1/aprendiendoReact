@@ -10,7 +10,7 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import styles from "./GestionUnidades.module.css";
 
-const API_URL = "http://localhost:5000/api/unidades";
+const API_URL = "/api/unidades";
 
 const initialUnidadState = {
   id_unidad: null,

@@ -27,8 +27,8 @@ interface Metadata {
   // Agrega otros campos si tu API devuelve más cosas
 }
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+const API_BASE_URL =      
+  process.env.NEXT_PUBLIC_API_URL || "/api";
 
 const VerificationContent = () => {
   const params = useParams();

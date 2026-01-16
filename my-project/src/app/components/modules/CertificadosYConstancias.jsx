@@ -14,9 +14,9 @@ import {
   faSignature,
 } from "@fortawesome/free-solid-svg-icons";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 const SERVER_URL =
-  process.env.NEXT_PUBLIC_SERVER_URL || "http://localhost:5000";
+  process.env.NEXT_PUBLIC_SERVER_URL || "";
 
 const CertificadosYConstancias = () => {
   const { user } = useAuth();

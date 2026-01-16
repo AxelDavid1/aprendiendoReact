@@ -10,7 +10,7 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 import styles from './GestionHorarios.module.css';
 
-const API_URL = 'http://localhost:5000/api/horarios';
+const API_URL = '/api/horarios';
 
 const initialHorarioState = {
     id_horario: null,

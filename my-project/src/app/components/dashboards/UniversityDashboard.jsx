@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import styles from "./Dashboard.module.css";
 import CredencialesCursos from "../modules/CredencialesCursos";
 
-const API_URL_USERS = "http://localhost:5000/api/users"; // Assuming this endpoint exists
+const API_URL_USERS = "/api/users"; // Assuming this endpoint exists
 
 function UniversityDashboard({ userId }) {
   const [teachers, setTeachers] = useState([]);

@@ -6,7 +6,7 @@ import { faTrash, faPlus, faChevronDown, faChevronUp } from "@fortawesome/free-s
 import styles from "./PlaneacionCurso.module.css"
 import React from "react" // Import React
 
-const API_BASE_URL = "http://localhost:5000"
+const API_BASE_URL = ""
 
 const PlaneacionCurso = ({ curso, onClose, onSave, token }) => {
   // Estados principales

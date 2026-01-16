@@ -10,8 +10,8 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 
 // Define the base URL of your backend API
-const API_URL = "http://localhost:5000/api/universidades";
-const SERVER_URL = "http://localhost:5000";
+const API_URL = "/api/universidades";
+const SERVER_URL = "";
 
 // Initial state for the form, including all fields from the database
 const initialUniversityState = {

@@ -5,7 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import styles from "./CalificacionCurso.module.css";
 import VistaCalificacion from "./vistaCalificado";
 
-const API_BASE_URL = "http://localhost:5000";
+const API_BASE_URL = "";
 
 const CalificacionCurso = ({ rol, entidadId }) => {
   const { token } = useAuth();

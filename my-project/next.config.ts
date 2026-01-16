@@ -12,16 +12,6 @@ const nextConfig: NextConfig = {
       },
     ];
   },
-
-  // 2. REESCRITURAS: Para conectar con el Backend (Vital para desarrollo local)
-  async rewrites() {
-    return [
-      {
-        source: "/api/:path*",
-        destination: "http://localhost:5000/api/:path*",
-      },
-    ];
-  },
 };
 
 export default nextConfig;

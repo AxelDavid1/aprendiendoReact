@@ -9,8 +9,8 @@ import {
   faTimes,
 } from "@fortawesome/free-solid-svg-icons";
 
-const API_URL = "http://localhost:5000/api/dominios";
-const UNIVERSITIES_API_URL = "http://localhost:5000/api/universidades";
+const API_URL = "/api/dominios";
+const UNIVERSITIES_API_URL = "/api/universidades";
 
 // Simula la obtención del token. En una aplicación real, esto vendría de un AuthContext o localStorage.
 const getAuthToken = () => {

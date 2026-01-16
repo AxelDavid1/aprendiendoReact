@@ -200,8 +200,8 @@ const CursoYCredencialesAlumno = ({
                 setLoading(true); // Iniciar carga
                 const headers = token ? { 'Authorization': `Bearer ${token}` } : {};
 
-                let cursosUrl = "http://localhost:5000/api/cursos?exclude_assigned=false";
-                let credencialesUrl = "http://localhost:5000/api/credenciales";
+                let cursosUrl = "/api/cursos?exclude_assigned=false";
+                let credencialesUrl = "/api/credenciales";
                 let fetchUniversidadesPromise;
 
                 if (enConvocatoria && universidadesConvocatoria.length > 0) {
@@ -215,10 +215,10 @@ const CursoYCredencialesAlumno = ({
                     // Si NO estamos en convocatoria, filtramos por la universidad del alumno.
                     cursosUrl += `&universidades=${universidadAlumno.id_universidad}`;
                     credencialesUrl += `?universidades=${universidadAlumno.id_universidad}`;
-                    fetchUniversidadesPromise = fetch("http://localhost:5000/api/universidades");
+                    fetchUniversidadesPromise = fetch("/api/universidades");
                 } else {
                     // En modo normal, fetcheamos todas las universidades (el backend debería filtrar por la del alumno si es necesario)
-                    fetchUniversidadesPromise = fetch("http://localhost:5000/api/universidades");
+                    fetchUniversidadesPromise = fetch("/api/universidades");
                 }
 
                 // 1. Peticiones de datos críticos (cursos, credenciales, etc.)
@@ -226,8 +226,8 @@ const CursoYCredencialesAlumno = ({
                     fetch(cursosUrl),
                     fetch(credencialesUrl),
                     fetchUniversidadesPromise,
-                    fetch("http://localhost:5000/api/subgrupos-operadores", { headers }),
-                    fetch("http://localhost:5000/api/habilidades-clave", { headers }),
+                    fetch("/api/subgrupos-operadores", { headers }),
+                    fetch("/api/habilidades-clave", { headers }),
                 ]);
 
                 // Verificamos que todas las respuestas sean exitosas
@@ -261,7 +261,7 @@ const CursoYCredencialesAlumno = ({
                 // Si esta petición falla, la página principal seguirá funcionando.
                 if (token) {
                     try {
-                        const inscripcionesRes = await fetch("http://localhost:5000/api/inscripciones/alumno", { headers });
+                        const inscripcionesRes = await fetch("/api/inscripciones/alumno", { headers });
                         if (inscripcionesRes.ok) {
                             const inscripcionesData = await inscripcionesRes.json();
                             setInscripciones(inscripcionesData.inscripciones || []);
@@ -310,7 +310,7 @@ const CursoYCredencialesAlumno = ({
         }
 
         try {
-            const response = await fetch('http://localhost:5000/api/inscripciones', {
+            const response = await fetch('/api/inscripciones', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -361,7 +361,7 @@ const CursoYCredencialesAlumno = ({
         setSelectedCredencial({ id_credencial: credencialId, nombre_certificacion: credencialName });
 
         try {
-            const res = await fetch(`http://localhost:5000/api/credenciales/${credencialId}`);
+            const res = await fetch(`/api/credenciales/${credencialId}`);
             if (!res.ok) {
                 throw new Error('Error al cargar los detalles de la credencial');
             }

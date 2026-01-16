@@ -14,9 +14,9 @@ import {
 } from "@fortawesome/free-solid-svg-icons";
 import styles from "./Convocatorias.module.css";
 
-const API_URL_CONVOCATORIAS = "http://localhost:5000/api/convocatorias";
-const API_URL_UNIVERSIDADES = "http://localhost:5000/api/universidades";
-const API_URL_SOLICITUDES = "http://localhost:5000/api/convocatorias/solicitudes/all";
+const API_URL_CONVOCATORIAS = "/api/convocatorias";
+const API_URL_UNIVERSIDADES = "/api/universidades";
+const API_URL_SOLICITUDES = "/api/convocatorias/solicitudes/all";
 
 // Estado inicial para el formulario de creación/edición de convocatorias
 const initialFormState = {
@@ -266,9 +266,9 @@ function GestionConvocatorias() {
       prev.filter((u) => u.id_universidad !== universidad.id_universidad),
     );
   };
-
+  
   const handleStatusChange = async (solicitudId, nuevoEstado) => {
-    const API_URL_UPDATE_SOLICITUD = `http://localhost:5000/api/convocatorias/solicitudes/${solicitudId}`;
+    const API_URL_UPDATE_SOLICITUD = `/api/convocatorias/solicitudes/${solicitudId}`;
     try {
       const token = getAuthToken();
       if (!token) throw new Error("No estás autenticado.");
