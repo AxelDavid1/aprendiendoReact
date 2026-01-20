@@ -20,26 +20,23 @@ const handleError = async (res, error, message, connection) => {
   res.status(statusCode).json({ error: errorMessage });
 };
 
-// ✅ SOLUCIÓN: Permitir obtener todas las universidades cuando limit sea muy alto
 // @desc    Get all universities with pagination and search
 // @route   GET /api/universidades
 // @access  Public
 exports.getAllUniversidades = async (req, res) => {
   try {
-    const { searchTerm = "", page = 1, limit = 10 } = req.query;
-    
-    // Parsear el limit
+    const { searchTerm = "", page = 1, limit = 10, onlyWithAdmin = false } = req.query;
+
     const parsedLimit = parseInt(limit, 10);
-    
-    // Si el limit solicitado es mayor a 999, obtener TODAS las universidades sin límite
     const finalLimit = parsedLimit > 999 ? null : parsedLimit;
-    
+
     const options = {
       searchTerm,
       page: parseInt(page, 10),
-      limit: finalLimit, // null = sin límite, o el valor parseado
+      limit: finalLimit,
+      onlyWithAdmin: onlyWithAdmin === 'true' || onlyWithAdmin === true, // ✅ Nuevo parámetro
     };
-    
+
     const result = await Universidad.findAll(options);
     res.status(200).json(result);
   } catch (error) {

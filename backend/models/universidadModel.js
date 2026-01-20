@@ -39,49 +39,59 @@ class Universidad {
    * ✅ CORREGIDO: Ahora soporta limit = null para obtener TODAS las universidades
    * @returns {Promise<object>} An object containing the list of universities and pagination info.
    */
-  static async findAll({ searchTerm = "", page = 1, limit = 10 }) {
+  // En universidadModel.js - Modificar la función findAll
+
+  static async findAll({ searchTerm = "", page = 1, limit = 10, onlyWithAdmin = false }) {
     const searchTermWildcard = `%${searchTerm}%`;
-    
-    // ✅ Si limit es null, no aplicar límite ni offset
+
     let query;
     let queryParams;
-    
+
+    // ✅ Agregar condición para filtrar solo universidades con admin
+    const adminFilter = onlyWithAdmin
+      ? "AND usr.email IS NOT NULL"
+      : "";
+
     if (limit === null) {
-      // Sin límite - obtener TODAS las universidades
       query = `
-        SELECT
-          uni.*,
-          usr.email AS email_admin
-        FROM universidad uni
-        LEFT JOIN usuario usr ON uni.id_universidad = usr.id_universidad AND usr.tipo_usuario = 'admin_universidad'
-        WHERE uni.nombre LIKE ? OR uni.ubicacion LIKE ?
-        ORDER BY uni.nombre ASC`;
-      
+      SELECT
+        uni.*,
+        usr.email AS email_admin
+      FROM universidad uni
+      LEFT JOIN usuario usr ON uni.id_universidad = usr.id_universidad AND usr.tipo_usuario = 'admin_universidad'
+      WHERE (uni.nombre LIKE ? OR uni.ubicacion LIKE ?)
+      ${adminFilter}
+      ORDER BY uni.nombre ASC`;
+
       queryParams = [searchTermWildcard, searchTermWildcard];
     } else {
-      // Con límite - paginación normal
       const offset = (page - 1) * limit;
-      
+
       query = `
-        SELECT
-          uni.*,
-          usr.email AS email_admin
-        FROM universidad uni
-        LEFT JOIN usuario usr ON uni.id_universidad = usr.id_universidad AND usr.tipo_usuario = 'admin_universidad'
-        WHERE uni.nombre LIKE ? OR uni.ubicacion LIKE ?
-        ORDER BY uni.nombre ASC
-        LIMIT ? OFFSET ?`;
-      
+      SELECT
+        uni.*,
+        usr.email AS email_admin
+      FROM universidad uni
+      LEFT JOIN usuario usr ON uni.id_universidad = usr.id_universidad AND usr.tipo_usuario = 'admin_universidad'
+      WHERE (uni.nombre LIKE ? OR uni.ubicacion LIKE ?)
+      ${adminFilter}
+      ORDER BY uni.nombre ASC
+      LIMIT ? OFFSET ?`;
+
       queryParams = [searchTermWildcard, searchTermWildcard, limit, offset];
     }
 
     const [rows] = await pool.execute(query, queryParams);
 
-    // Obtener el total de universidades
-    const [[{ total }]] = await pool.execute(
-      `SELECT COUNT(*) as total FROM universidad uni WHERE uni.nombre LIKE ? OR uni.ubicacion LIKE ?`,
-      [searchTermWildcard, searchTermWildcard],
-    );
+    // ✅ Actualizar el conteo total para incluir el filtro de admin
+    const countQuery = `
+    SELECT COUNT(*) as total 
+    FROM universidad uni 
+    LEFT JOIN usuario usr ON uni.id_universidad = usr.id_universidad AND usr.tipo_usuario = 'admin_universidad'
+    WHERE (uni.nombre LIKE ? OR uni.ubicacion LIKE ?)
+    ${adminFilter}`;
+
+    const [[{ total }]] = await pool.execute(countQuery, [searchTermWildcard, searchTermWildcard]);
 
     return {
       universities: rows,

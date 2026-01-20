@@ -36,7 +36,8 @@ function ManejoUniversidades() {
   const [error, setError] = useState(null);
 
   // Pagination state
-  const [page, setPage] = useState(1);
+  const [pageUniversidades, setPageUniversidades] = useState(1);
+  const [pageAdmins, setPageAdmins] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [totalUniversities, setTotalUniversities] = useState(0);
   const [allUniversities, setAllUniversities] = useState([]); // For admin assignment dropdown
@@ -64,7 +65,8 @@ function ManejoUniversidades() {
   useEffect(() => {
     const handler = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
-      setPage(1); // Reset to first page on new search
+      setPageUniversidades(1);
+      setPageAdmins(1);
     }, 500);
 
     return () => {
@@ -77,13 +79,15 @@ function ManejoUniversidades() {
     setLoading(true);
     setError(null);
     try {
-      const url = `${API_URL}?page=${page}&limit=10&searchTerm=${debouncedSearchTerm}`;
+      const currentPage = activeView === "universidades" ? pageUniversidades : pageAdmins;
+      const onlyWithAdmin = activeView === "admins"; // ✅ Agregar este parámetro
+      const url = `${API_URL}?page=${currentPage}&limit=10&searchTerm=${debouncedSearchTerm}&onlyWithAdmin=${onlyWithAdmin}`;
       const response = await fetch(url);
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(
           errData.error ||
-            `Failed to fetch data: ${response.status} ${response.statusText}`,
+          `Failed to fetch data: ${response.status} ${response.statusText}`,
         );
       }
       const data = await response.json();
@@ -96,7 +100,8 @@ function ManejoUniversidades() {
     } finally {
       setLoading(false);
     }
-  }, [page, debouncedSearchTerm]);
+  }, [pageUniversidades, pageAdmins, activeView, debouncedSearchTerm]);
+
 
   useEffect(() => {
     fetchUniversities();
@@ -144,6 +149,15 @@ function ManejoUniversidades() {
     }
     setLogoFile(null);
     setIsModalOpen(true);
+  };
+
+  const handleTabChange = (newView) => {
+    setActiveView(newView);
+    if (newView === "universidades") {
+      setPageUniversidades(1);
+    } else {
+      setPageAdmins(1);
+    }
   };
 
   const handleCloseModal = () => setIsModalOpen(false);
@@ -280,10 +294,7 @@ function ManejoUniversidades() {
         </div>
       );
     }
-    const universitiesToDisplay =
-      activeView === "admins"
-        ? universities.filter((u) => u.email_admin)
-        : universities;
+    const universitiesToDisplay = universities;
 
     if (universitiesToDisplay.length === 0) {
       const isAdminsView = activeView === "admins";
@@ -421,18 +432,16 @@ function ManejoUniversidades() {
       <main className={styles.main}>
         <div className={styles.tabContainer}>
           <button
-            className={`${styles.tabButton} ${
-              activeView === "universidades" ? styles.activeTab : ""
-            }`}
-            onClick={() => setActiveView("universidades")}
+            className={`${styles.tabButton} ${activeView === "universidades" ? styles.activeTab : ""
+              }`}
+            onClick={() => handleTabChange("universidades")}
           >
             <FontAwesomeIcon icon={faSchool} /> Universidades
           </button>
           <button
-            className={`${styles.tabButton} ${
-              activeView === "admins" ? styles.activeTab : ""
-            }`}
-            onClick={() => setActiveView("admins")}
+            className={`${styles.tabButton} ${activeView === "admins" ? styles.activeTab : ""
+              }`}
+            onClick={() => handleTabChange("admins")}
           >
             <FontAwesomeIcon icon={faUserShield} /> Administradores
           </button>
@@ -464,24 +473,33 @@ function ManejoUniversidades() {
             <div className={styles.paginationInfo}>
               Showing{" "}
               <strong>
-                {(page - 1) * 10 + 1}-{Math.min(page * 10, totalUniversities)}
+                {((activeView === "universidades" ? pageUniversidades : pageAdmins) - 1) * 10 + 1}-
+                {Math.min((activeView === "universidades" ? pageUniversidades : pageAdmins) * 10, totalUniversities)}
               </strong>{" "}
               of <strong>{totalUniversities}</strong>
             </div>
             <div className={styles.paginationControls}>
               <button
-                onClick={() => setPage(page - 1)}
-                disabled={page <= 1}
+                onClick={() =>
+                  activeView === "universidades"
+                    ? setPageUniversidades(pageUniversidades - 1)
+                    : setPageAdmins(pageAdmins - 1)
+                }
+                disabled={activeView === "universidades" ? pageUniversidades <= 1 : pageAdmins <= 1}
                 className={styles.pageButton}
               >
                 Antes
               </button>
               <span className={styles.pageButton} style={{ cursor: "default" }}>
-                Pagina {page} de {totalPages}
+                Pagina {activeView === "universidades" ? pageUniversidades : pageAdmins} de {totalPages}
               </span>
               <button
-                onClick={() => setPage(page + 1)}
-                disabled={page >= totalPages}
+                onClick={() =>
+                  activeView === "universidades"
+                    ? setPageUniversidades(pageUniversidades + 1)
+                    : setPageAdmins(pageAdmins + 1)
+                }
+                disabled={activeView === "universidades" ? pageUniversidades >= totalPages : pageAdmins >= totalPages}
                 className={styles.pageButton}
               >
                 Despues
