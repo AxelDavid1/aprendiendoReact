@@ -22,11 +22,11 @@ const getAllCursos = async (req, res) => {
     exclude_assigned = "true",
     editing_credential_id,
     universidades,
-    groupByCourse, // Nota: Con la nueva lógica de habilidades, siempre agruparemos implícitamente
+    groupByCourse,
     universidadId,
     facultadId,
-    // Nuevos filtros opcionales si quisieras filtrar desde backend en el futuro
     id_subgrupo,
+    only_active = "false", // NUEVO PARÁMETRO: filtrar solo cursos vigentes
   } = req.query;
 
   const offset = (page - 1) * limit;
@@ -81,7 +81,11 @@ const getAllCursos = async (req, res) => {
       whereClauses.push("c.id_facultad = ?");
       queryParams.push(facultadId);
     }
-    whereClauses.push("c.fecha_inicio <= CURDATE() AND c.fecha_fin >= CURDATE()");
+
+    // NUEVO: Filtro de cursos vigentes (solo si only_active es "true")
+    if (only_active === "true") {
+      whereClauses.push("c.fecha_inicio <= CURDATE() AND c.fecha_fin >= CURDATE()");
+    }
 
     // Excluir cursos asignados a credenciales
     if (exclude_assigned === "true") {
@@ -101,7 +105,6 @@ const getAllCursos = async (req, res) => {
       whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
 
     // --- CONTEO (Count) ---
-    // Usamos COUNT(DISTINCT c.id_curso) porque los joins de habilidades multiplicarían filas sin el group by
     const countQuery = `
         SELECT COUNT(DISTINCT c.id_curso) as total
         FROM curso c
@@ -117,10 +120,6 @@ const getAllCursos = async (req, res) => {
     const totalPages = Math.ceil(totalCursos / limit);
 
     // --- CONSULTA PRINCIPAL DE DATOS ---
-    // Agregamos:
-    // 1. so.nombre_subgrupo, so.id_subgrupo
-    // 2. GROUP_CONCAT para habilidades (nombres e IDs)
-    
     const selectFields = `
             c.*,
             m.nombre_completo as nombre_maestro,
@@ -160,8 +159,6 @@ const getAllCursos = async (req, res) => {
             LEFT JOIN certificacion cert ON rc.id_certificacion = cert.id_certificacion
         `;
 
-    // IMPORTANTE: Siempre agrupamos por ID de curso para que el GROUP_CONCAT funcione correctamente
-    // y devuelva una sola fila por curso con sus arrays de habilidades.
     const groupByClause = "GROUP BY c.id_curso";
 
     const dataQuery = `
@@ -178,9 +175,6 @@ const getAllCursos = async (req, res) => {
       parseInt(limit),
       parseInt(offset),
     ]);
-    
-    // Procesamiento opcional: Convertir habilidades_ids de string "1,2,3" a array [1,2,3] si el frontend lo requiere así,
-    // aunque el frontend actual parece manejar strings. Lo dejamos tal cual sale de SQL por eficiencia.
 
     res.json({
       cursos,

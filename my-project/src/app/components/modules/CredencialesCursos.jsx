@@ -109,8 +109,8 @@ function CredencialesCursos({ userId, dashboardType, userUniversityId }) {
         url.searchParams.append("id_universidad", idUniversidad);
         url.searchParams.append("id_facultad", idFacultad);
         url.searchParams.append("exclude_assigned", "true");
+        url.searchParams.append("only_active", "true"); // NUEVO: Solo cursos vigentes
 
-        // If editing a credential, pass its ID to allow its courses to be shown
         if (editingCredentialId) {
           url.searchParams.append("editing_credential_id", editingCredentialId);
         }
@@ -122,8 +122,6 @@ function CredencialesCursos({ userId, dashboardType, userUniversityId }) {
         }
         const data = await response.json();
 
-        // Backend now handles the filtering, so we just use the courses directly
-        // but still filter out courses already in the current credential being edited
         const cursosFiltrados = (data.cursos || []).filter(
           (curso) =>
             !cursosEnCredencial.some((c) => c.id_curso === curso.id_curso),
@@ -139,7 +137,6 @@ function CredencialesCursos({ userId, dashboardType, userUniversityId }) {
     [cursosEnCredencial],
   );
 
-  // Function specifically for editing - doesn't depend on cursosEnCredencial state
   const fetchCursosForEditing = useCallback(
     async (
       idUniversidad,
@@ -159,6 +156,7 @@ function CredencialesCursos({ userId, dashboardType, userUniversityId }) {
         url.searchParams.append("id_facultad", idFacultad);
         url.searchParams.append("exclude_assigned", "true");
         url.searchParams.append("editing_credential_id", editingCredentialId);
+        url.searchParams.append("only_active", "true"); // NUEVO: Solo cursos vigentes
 
         const response = await fetch(url);
         if (!response.ok) {
@@ -167,7 +165,6 @@ function CredencialesCursos({ userId, dashboardType, userUniversityId }) {
         }
         const data = await response.json();
 
-        // Filter out courses already in the current credential being edited
         const cursosFiltrados = (data.cursos || []).filter(
           (curso) => !currentCourses.some((c) => c.id_curso === curso.id_curso),
         );
