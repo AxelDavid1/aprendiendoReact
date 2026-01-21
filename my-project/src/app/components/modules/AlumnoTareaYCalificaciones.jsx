@@ -127,7 +127,7 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
         "Content-Type": "application/json",
       };
 
-      // Obtener inscripciones del alumno
+      // Obtener inscripciones completas del alumno
       const inscripcionesRes = await fetch(
         `${API_BASE_URL}/api/inscripciones/alumno`,
         { headers },
@@ -142,7 +142,7 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
 
       console.log("Inscripciones encontradas:", inscripciones);
 
-      // Filtrar solo las inscripciones aprobadas
+      // Filtrar solo inscripciones aprobadas
       const inscripcionesAprobadas = inscripciones.filter(
         (inscripcion) => inscripcion.estatus_inscripcion === "aprobada",
       );
@@ -155,45 +155,18 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
         return;
       }
 
-      // Obtener detalles de los cursos usando exclude_assigned=false para ver todos
-      const cursosRes = await fetch(
-        `${API_BASE_URL}/api/cursos?exclude_assigned=false`,
-        { headers },
-      );
-
-      if (!cursosRes.ok) {
-        throw new Error("No se pudieron cargar los detalles de los cursos");
-      }
-
-      const cursosData = await cursosRes.json();
-      console.log("Cursos cargados:", cursosData.cursos?.length || 0);
-
-      // Crear array de cursos inscritos con información completa
-      const cursosInscritos = inscripcionesAprobadas
-        .map((inscripcion) => {
-          const curso = cursosData.cursos?.find(
-            (c) => c.id_curso === inscripcion.id_curso,
-          );
-
-          if (!curso) {
-            console.warn(
-              `Curso no encontrado para inscripción: ${inscripcion.id_curso}`,
-            );
-            return null;
-          }
-
-          return {
-            id: curso.id_curso,
-            nombre: curso.nombre_curso || curso.nombre,
-            universidad: curso.nombre_universidad || "Universidad",
-            estado: curso.estatus_curso || "en_curso",
-            fecha_inicio: curso.fecha_inicio,
-            fecha_fin: curso.fecha_fin,
-            modalidad: curso.modalidad,
-            inscripcion: inscripcion, // Guardamos la inscripción completa para referencia
-          };
-        })
-        .filter(Boolean); // Eliminar elementos null
+      // Formatear cursos inscritos directamente desde la respuesta del backend
+      const cursosInscritos = inscripcionesAprobadas.map((inscripcion) => ({
+        id: inscripcion.id_curso,
+        nombre: inscripcion.nombre_curso,
+        universidad: inscripcion.nombre_universidad || "Universidad",
+        estado: inscripcion.estatus_curso || "en_curso",
+        fecha_inicio: inscripcion.fecha_inicio,
+        fecha_fin: inscripcion.fecha_fin,
+        modalidad: inscripcion.modalidad,
+        fecha_inscripcion: inscripcion.fecha_solicitud,
+        inscripcion: inscripcion,
+      }));
 
       console.log("Cursos inscritos procesados:", cursosInscritos);
 

@@ -63,9 +63,23 @@ const getInscripcionesAlumno = async (req, res) => {
 
   try {
     const [inscripciones] = await pool.query(
-      "SELECT id_curso, estatus_inscripcion FROM inscripcion WHERE id_alumno = ?",
-      [id_alumno],
-    );
+    `SELECT 
+      i.id_curso, 
+      i.estatus_inscripcion, 
+      i.fecha_solicitud,
+      c.nombre_curso,
+      c.estatus_curso,
+      c.fecha_inicio,
+      c.fecha_fin,
+      c.modalidad,
+      u.nombre as nombre_universidad
+    FROM inscripcion i
+    JOIN curso c ON i.id_curso = c.id_curso
+    LEFT JOIN universidad u ON c.id_universidad = u.id_universidad
+    WHERE i.id_alumno = ?
+    ORDER BY i.fecha_solicitud DESC`,
+    [id_alumno],
+  );
 
     res.json({ inscripciones });
   } catch (error) {
