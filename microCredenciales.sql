@@ -219,10 +219,6 @@ CREATE TABLE `subgrupo_habilidades` (
   CONSTRAINT `fk_subgrupo_habilidades_subgrupo` FOREIGN KEY (`id_subgrupo`) REFERENCES `subgrupos_operadores` (`id_subgrupo`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
----
--- 1. Desactivar verificaciones temporalmente
-SET FOREIGN_KEY_CHECKS = 0;
-
 -- Tablas de curso (CORREGIDO)
 CREATE TABLE `curso` (
   `id_curso` int(10) unsigned NOT NULL AUTO_INCREMENT,
@@ -461,7 +457,143 @@ CREATE TABLE `inscripcion` (
   -- CONSTRAINT `chk_porcentaje_asistencia` CHECK (`porcentaje_asistencia` >= 0 and `porcentaje_asistencia` <= 100)
 ) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Continúa con el resto de las tablas, eliminando todos los CHECK constraints...
+CREATE TABLE `sesiones_usuario` (
+  `id_sesion` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `id_usuario` int(10) unsigned NOT NULL,
+  `fecha_login` timestamp NULL DEFAULT current_timestamp(),
+  `fecha_logout` timestamp NULL DEFAULT NULL,
+  `duracion_sesion` int(10) unsigned DEFAULT NULL,
+  `estatus_sesion` enum('activa','cerrada','expirada','forzada') DEFAULT 'activa',
+  PRIMARY KEY (`id_sesion`),
+  KEY `idx_usuario_fecha` (`id_usuario`,`fecha_login`),
+  KEY `idx_estatus` (`estatus_sesion`),
+  KEY `idx_sesiones_reporte` (`id_usuario`,`fecha_login`,`estatus_sesion`),
+  CONSTRAINT `fk_sesion_usuario` FOREIGN KEY (`id_usuario`) REFERENCES `usuario` (`id_usuario`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=611 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+
+-- TABLAS FALTANTEEEES
+--
+--
+CREATE TABLE `certificacion` (
+  `id_certificacion` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `id_universidad` int(10) unsigned DEFAULT NULL,
+  `id_facultad` int(10) unsigned DEFAULT NULL,
+  `nombre` varchar(150) NOT NULL,
+  `descripcion` text DEFAULT NULL,
+  `id_categoria` int(10) unsigned DEFAULT NULL,
+  `requisitos_adicionales` text DEFAULT NULL,
+  `estatus` enum('activa','inactiva') DEFAULT 'activa',
+  `fecha_creacion` timestamp NULL DEFAULT current_timestamp(),
+  `fecha_actualizacion` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id_certificacion`),
+  UNIQUE KEY `uk_nombre` (`nombre`),
+  KEY `idx_categoria` (`id_categoria`),
+  KEY `fk_certificacion_universidad` (`id_universidad`),
+  KEY `fk_certificacion_facultad` (`id_facultad`),
+  CONSTRAINT `fk_certificacion_categoria` FOREIGN KEY (`id_categoria`) REFERENCES `categoria_curso` (`id_categoria`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_certificacion_facultad` FOREIGN KEY (`id_facultad`) REFERENCES `facultades` (`id_facultad`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_certificacion_universidad` FOREIGN KEY (`id_universidad`) REFERENCES `universidad` (`id_universidad`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `requisitos_certificado` (
+  `id_requisito` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `id_certificacion` int(10) unsigned NOT NULL,
+  `id_curso` int(10) unsigned NOT NULL,
+  `obligatorio` tinyint(1) DEFAULT 1,
+  PRIMARY KEY (`id_requisito`),
+  UNIQUE KEY `uk_certificacion_curso` (`id_certificacion`,`id_curso`),
+  UNIQUE KEY `uk_curso_unico` (`id_curso`),
+  KEY `idx_certificacion` (`id_certificacion`),
+  KEY `idx_curso` (`id_curso`),
+  CONSTRAINT `fk_requisito_certificacion` FOREIGN KEY (`id_certificacion`) REFERENCES `certificacion` (`id_certificacion`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_requisito_curso` FOREIGN KEY (`id_curso`) REFERENCES `curso` (`id_curso`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `constancia_alumno` (
+  `id_constancia` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `id_alumno` int(10) unsigned NOT NULL,
+  `id_curso` int(10) unsigned NOT NULL,
+  `id_credencial` int(10) unsigned DEFAULT NULL,
+  `progreso` decimal(5,2) DEFAULT 100.00,
+  `creditos_otorgados` decimal(5,2) DEFAULT 0.00,
+  `fecha_emitida` timestamp NULL DEFAULT current_timestamp(),
+  `ruta_constancia` varchar(500) DEFAULT NULL,
+  PRIMARY KEY (`id_constancia`),
+  UNIQUE KEY `uk_alumno_curso` (`id_alumno`,`id_curso`),
+  KEY `fk_constancia_alumno` (`id_alumno`),
+  KEY `fk_constancia_curso` (`id_curso`),
+  KEY `fk_constancia_credencial` (`id_credencial`),
+  CONSTRAINT `fk_constancia_alumno` FOREIGN KEY (`id_alumno`) REFERENCES `alumno` (`id_alumno`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_constancia_credencial` FOREIGN KEY (`id_credencial`) REFERENCES `certificacion` (`id_certificacion`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_constancia_curso` FOREIGN KEY (`id_curso`) REFERENCES `curso` (`id_curso`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=41 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+
+CREATE TABLE `certificacion_alumno` (
+  `id_cert_alumno` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `id_alumno` int(10) unsigned NOT NULL,
+  `id_certificacion` int(10) unsigned NOT NULL,
+  `progreso` decimal(5,2) DEFAULT 0.00,
+  `completada` tinyint(1) DEFAULT 0,
+  `fecha_completada` timestamp NULL DEFAULT NULL,
+  `certificado_emitido` tinyint(1) DEFAULT 0,
+  `fecha_certificado` timestamp NULL DEFAULT NULL,
+  `ruta_certificado` varchar(500) DEFAULT NULL,
+  `calificacion_promedio` decimal(5,2) DEFAULT NULL,
+  `fecha_actualizacion` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `descripcion_certificado` text DEFAULT NULL,
+  PRIMARY KEY (`id_cert_alumno`),
+  UNIQUE KEY `uk_alumno_certificacion` (`id_alumno`,`id_certificacion`),
+  KEY `idx_alumno` (`id_alumno`),
+  KEY `idx_certificacion` (`id_certificacion`),
+  KEY `idx_completada` (`completada`),
+  CONSTRAINT `fk_cert_alumno_alumno` FOREIGN KEY (`id_alumno`) REFERENCES `alumno` (`id_alumno`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_cert_alumno_certificacion` FOREIGN KEY (`id_certificacion`) REFERENCES `certificacion` (`id_certificacion`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `entregas_estudiantes` (
+  `id_entrega` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `id_actividad` int(10) unsigned DEFAULT NULL,
+  `id_material` int(10) unsigned DEFAULT NULL,
+  `id_inscripcion` int(10) unsigned NOT NULL,
+  `fecha_entrega` timestamp NULL DEFAULT current_timestamp(),
+  `comentario_estudiante` text DEFAULT NULL,
+  `calificacion` decimal(5,2) DEFAULT NULL,
+  `comentario_profesor` text DEFAULT NULL,
+  `estatus_entrega` enum('no_entregada','entregada','calificada','revision') DEFAULT 'no_entregada',
+  `fecha_calificacion` timestamp NULL DEFAULT NULL,
+  `calificado_por` int(10) unsigned DEFAULT NULL,
+  `es_extemporanea` tinyint(1) DEFAULT 0,
+  PRIMARY KEY (`id_entrega`),
+  UNIQUE KEY `uk_actividad_inscripcion` (`id_actividad`,`id_inscripcion`),
+  KEY `idx_material` (`id_material`),
+  KEY `idx_inscripcion` (`id_inscripcion`),
+  KEY `idx_estatus` (`estatus_entrega`),
+  KEY `idx_calificado_por` (`calificado_por`),
+  CONSTRAINT `fk_entrega_actividad` FOREIGN KEY (`id_actividad`) REFERENCES `calificaciones_actividades` (`id_actividad`) ON DELETE CASCADE,
+  CONSTRAINT `fk_entrega_calificador` FOREIGN KEY (`calificado_por`) REFERENCES `usuario` (`id_usuario`) ON DELETE SET NULL,
+  CONSTRAINT `fk_entrega_inscripcion` FOREIGN KEY (`id_inscripcion`) REFERENCES `inscripcion` (`id_inscripcion`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE `archivos_entrega` (
+  `id_archivo_entrega` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `id_entrega` int(10) unsigned NOT NULL,
+  `nombre_archivo_original` varchar(255) NOT NULL,
+  `nombre_archivo_sistema` varchar(255) NOT NULL,
+  `ruta_archivo` varchar(500) NOT NULL,
+  `tipo_archivo` varchar(20) NOT NULL,
+  `tamano_archivo` int(10) unsigned NOT NULL,
+  `hash_archivo` varchar(64) DEFAULT NULL,
+  `fecha_subida` timestamp NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id_archivo_entrega`),
+  KEY `idx_entrega` (`id_entrega`),
+  KEY `idx_tipo_archivo` (`tipo_archivo`),
+  CONSTRAINT `fk_archivo_entrega` FOREIGN KEY (`id_entrega`) REFERENCES `entregas_estudiantes` (`id_entrega`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+ALTER TABLE `certificacion_alumno`
+ADD CONSTRAINT `chk_calificacion_promedio` CHECK (`calificacion_promedio` >= 0 AND `calificacion_promedio` <= 10);
 
 -- 3. Reactivar verificaciones
 SET FOREIGN_KEY_CHECKS = 1;
@@ -491,8 +623,6 @@ INSERT INTO `universidad` VALUES
 (20,'Universidad de Atenas Queretaro','Atenas1','','','AtenasQro@gmail.com','','/uploads/logos/logo-1768231524811-309485037.png','2026-01-12 15:25:24','2026-01-12 15:25:24'),
 (21,'Universidad Real de Querétaro','RealQro1','','','RealQro1@gmail.com','','/uploads/logos/logo-1768231733645-409063523.svg','2026-01-12 15:28:53','2026-01-12 15:28:53'),
 (22,'New Element','NewElementQro1','','','NewElementQro1@gmail.com','','/uploads/logos/logo-1768231868735-842997067.png','2026-01-12 15:31:08','2026-01-12 15:31:08');
-
-
 
 
 -- 9. Insertar habilidades clave
@@ -643,6 +773,7 @@ INSERT INTO `habilidades_clave` VALUES
 (144,'Monitorear el rendimiento de la infraestructura y responder ante incidentes','','2026-01-08 20:12:00','2026-01-08 20:12:00'),
 (145,'Análisis y monitoreo realizando la revisión y captura de los comportamientos anormales en la operación, para garantizar el perfecto funcionamiento del DC','','2026-01-08 20:12:10','2026-01-08 20:12:10');
 
+
 -- 10. Insertar subgrupos operadores
 INSERT INTO `subgrupos_operadores` VALUES
 (1,'Data Center Operations Manager','','2026-01-08 17:39:18','2026-01-08 17:39:18'),
@@ -671,4 +802,3 @@ INSERT INTO `subgrupos_operadores` VALUES
 (26,'Residente Constructor','','2026-01-08 19:12:10','2026-01-08 19:12:10'),
 (28,'Gerente de Cadena de Suministros','','2026-01-08 19:12:26','2026-01-08 19:12:26'),
 (29,'Ingeniero de Data Center','','2026-01-08 19:12:34','2026-01-08 19:12:34');
-

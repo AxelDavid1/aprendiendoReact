@@ -1,7 +1,6 @@
 import React from 'react'
 import Image from 'next/image'
 import styles from './CursoCard.module.css'
-import { px } from 'framer-motion';
 
 const getStatusChipClass = (estatus) => {
     const statusLower = estatus?.toLowerCase();
