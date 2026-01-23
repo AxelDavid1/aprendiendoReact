@@ -1,18 +1,18 @@
 const pool = require("../config/db");
 
 const getCursosParaConstancias = async (id_alumno) => {
-  // Nota: Se han eliminado los comentarios internos para evitar errores de parseo SQL
   const query = `
     SELECT
       al.nombre_completo AS nombre_alumno,
-
+      /* Contamos todas las actividades obligatorias del curso */
       (SELECT COUNT(*)
-       FROM calificaciones_actividades a
-       WHERE a.id_calificaciones_curso = cal.id_calificaciones
-       AND a.tipo_actividad = 'actividad'
+        FROM calificaciones_actividades a
+        WHERE a.id_calificaciones_curso = cal.id_calificaciones
+        AND a.tipo_actividad IN ('actividad', 'proyecto')
       ) AS total_actividades,
 
-      (SELECT COUNT(DISTINCT a.id_actividad)
+      /* Contamos solo las que el alumno ya tiene con estatus 'calificada' */
+      (SELECT COUNT(DISTINCT e.id_actividad)
        FROM entregas_estudiantes e
        INNER JOIN calificaciones_actividades a ON e.id_actividad = a.id_actividad
        WHERE e.id_inscripcion = i.id_inscripcion
@@ -24,13 +24,12 @@ const getCursosParaConstancias = async (id_alumno) => {
       c.nombre_curso,
       c.descripcion AS descripcion_curso,
       c.creditos_constancia AS creditos_otorgados,
-
       u.id_universidad,
       u.nombre AS nombre_universidad,
       u.logo_url AS logo_universidad,
-
       cal.umbral_aprobatorio,
       
+      /* Cálculo de Calificación Final */
       COALESCE(
         (
           COALESCE(
@@ -61,6 +60,8 @@ const getCursosParaConstancias = async (id_alumno) => {
              AND a.tipo_actividad = 'proyecto'
              AND e.estatus_entrega = 'calificada'), 0
           )
+          /* Nota: Aquí podrías dividir entre el número de proyectos si hubiera más de uno, 
+             actualmente asume que la suma de proyectos se multiplica directo por su peso */
         ) * (cal.porcentaje_proyecto / 100), 
         0
       ) AS calificacion_final,
@@ -69,37 +70,31 @@ const getCursosParaConstancias = async (id_alumno) => {
       co.ruta_constancia,
       co.fecha_emitida,
 
-      rc.id_certificacion AS id_credencial,
-      (SELECT nombre FROM certificacion WHERE id_certificacion = rc.id_certificacion) AS nombre_credencial,
-      (SELECT descripcion FROM certificacion WHERE id_certificacion = rc.id_certificacion) AS descripcion_credencial,
-      (SELECT COUNT(*) FROM requisitos_certificado WHERE id_certificacion = rc.id_certificacion) AS total_cursos_credencial,
-            
+      /* LÓGICA DE GENERACIÓN PROFESIONAL */
       CASE
-        WHEN co.id_constancia IS NOT NULL THEN FALSE
+        WHEN co.id_constancia IS NOT NULL THEN FALSE /* Ya tiene certificado */
         WHEN (
+          /* CONDICIÓN 1: Todas las actividades y proyectos deben estar calificados */
           (SELECT COUNT(*) FROM calificaciones_actividades
-           WHERE id_calificaciones_curso = cal.id_calificaciones) =
-          (SELECT COUNT(DISTINCT a.id_actividad)
-           FROM entregas_estudiantes e
-           INNER JOIN calificaciones_actividades a ON e.id_actividad = a.id_actividad
-           WHERE e.id_inscripcion = i.id_inscripcion
-           AND a.id_calificaciones_curso = cal.id_calificaciones
-           AND e.estatus_entrega = 'calificada')
+           WHERE id_calificaciones_curso = cal.id_calificaciones
+           AND tipo_actividad IN ('actividad', 'proyecto')) 
+          =
+          (SELECT COUNT(DISTINCT e.id_actividad)
+          FROM entregas_estudiantes e
+          INNER JOIN calificaciones_actividades a ON e.id_actividad = a.id_actividad
+          WHERE e.id_inscripcion = i.id_inscripcion
+          AND a.id_calificaciones_curso = cal.id_calificaciones
+          AND a.tipo_actividad IN ('actividad', 'proyecto')
+          AND e.estatus_entrega = 'calificada')
+          
           AND
+          
+          /* CONDICIÓN 2: El promedio debe ser mayor o igual al umbral */
           (
-            COALESCE(
-              ((COALESCE((SELECT SUM(e.calificacion) FROM entregas_estudiantes e JOIN calificaciones_actividades a ON e.id_actividad = a.id_actividad WHERE e.id_inscripcion = i.id_inscripcion AND a.id_calificaciones_curso = cal.id_calificaciones AND a.tipo_actividad = 'actividad' AND e.estatus_entrega = 'calificada'), 0)) 
-               / 
-               NULLIF((SELECT COUNT(*) FROM calificaciones_actividades a WHERE a.id_calificaciones_curso = cal.id_calificaciones AND a.tipo_actividad = 'actividad'), 0)
-              ) * (cal.porcentaje_actividades / 100), 
-              0
-            ) 
+            /* Reutilizamos el cálculo de calificacion_final aquí */
+            COALESCE(((COALESCE((SELECT SUM(e.calificacion) FROM entregas_estudiantes e JOIN calificaciones_actividades a ON e.id_actividad = a.id_actividad WHERE e.id_inscripcion = i.id_inscripcion AND a.id_calificaciones_curso = cal.id_calificaciones AND a.tipo_actividad = 'actividad' AND e.estatus_entrega = 'calificada'), 0)) / NULLIF((SELECT COUNT(*) FROM calificaciones_actividades a WHERE a.id_calificaciones_curso = cal.id_calificaciones AND a.tipo_actividad = 'actividad'), 0)) * (cal.porcentaje_actividades / 100), 0) 
             +
-            COALESCE(
-              (COALESCE((SELECT SUM(e.calificacion) FROM entregas_estudiantes e JOIN calificaciones_actividades a ON e.id_actividad = a.id_actividad WHERE e.id_inscripcion = i.id_inscripcion AND a.id_calificaciones_curso = cal.id_calificaciones AND a.tipo_actividad = 'proyecto' AND e.estatus_entrega = 'calificada'), 0)) 
-              * (cal.porcentaje_proyecto / 100), 
-              0
-            )
+            COALESCE((COALESCE((SELECT SUM(e.calificacion) FROM entregas_estudiantes e JOIN calificaciones_actividades a ON e.id_actividad = a.id_actividad WHERE e.id_inscripcion = i.id_inscripcion AND a.id_calificaciones_curso = cal.id_calificaciones AND a.tipo_actividad = 'proyecto' AND e.estatus_entrega = 'calificada'), 0)) * (cal.porcentaje_proyecto / 100), 0)
           ) >= cal.umbral_aprobatorio
         ) THEN TRUE
         ELSE FALSE

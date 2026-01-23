@@ -148,7 +148,18 @@ const getCalificacionCurso = async (req, res) => {
   try {
     connection = await pool.getConnection();
 
-    // 1. Obtener porcentajes generales del curso
+    // 1. Obtener información del curso incluyendo fecha_fin
+    const [cursoRows] = await connection.query(
+      "SELECT fecha_fin FROM curso WHERE id_curso = ?",
+      [id_curso]
+    );
+
+    if (cursoRows.length === 0) {
+      return res.status(404).json({ error: "No se encontró el curso." });
+    }
+    const cursoInfo = cursoRows[0];
+
+    // 2. Obtener porcentajes generales del curso
     const [califCursoRows] = await connection.query(
       "SELECT * FROM calificaciones_curso WHERE id_curso = ?",
       [id_curso]
@@ -159,7 +170,7 @@ const getCalificacionCurso = async (req, res) => {
     }
     const califCurso = califCursoRows[0];
 
-    // 2. Obtener las actividades (SIN pedir la columna 'porcentaje')
+    // 3. Obtener las actividades (SIN pedir la columna 'porcentaje')
     const [actividadesRows] = await connection.query(
       `SELECT id_actividad, nombre, instrucciones, fecha_limite, 
               max_archivos, max_tamano_mb, tipos_archivo_permitidos, 
@@ -169,17 +180,13 @@ const getCalificacionCurso = async (req, res) => {
     );
 
     // --- CÁLCULO DE PONDERACIÓN DINÁMICA ---
-    // Contamos cuántas actividades y proyectos hay
     const numActividades = actividadesRows.filter(a => a.tipo_actividad === 'actividad').length;
     const numProyectos = actividadesRows.filter(a => a.tipo_actividad === 'proyecto').length;
 
-    // Calculamos cuánto vale cada una individualmente
-    // Ej: Si porcentaje_actividades es 50% y hay 5 tareas, cada una vale 10%
     const valorPorActividad = numActividades > 0 ? (califCurso.porcentaje_actividades / numActividades) : 0;
     const valorPorProyecto = numProyectos > 0 ? (califCurso.porcentaje_proyecto / numProyectos) : 0;
-    // ----------------------------------------
 
-    // Determinar el ID del alumno a consultar
+    // 4. Determinar el ID del alumno a consultar
     let id_alumno_para_buscar = null;
     if (tipo_usuario === 'alumno') {
       id_alumno_para_buscar = id_alumno_sesion;
@@ -201,13 +208,12 @@ const getCalificacionCurso = async (req, res) => {
     const actividadesConEntregas = [];
 
     for (const actividad of actividadesRows) {
-
-      // A) Inyectar el porcentaje calculado para que el Frontend lo muestre
+      // A) Inyectar el porcentaje calculado
       actividad.porcentaje = actividad.tipo_actividad === 'proyecto'
         ? parseFloat(valorPorProyecto.toFixed(2))
         : parseFloat(valorPorActividad.toFixed(2));
 
-      // B) Buscar Entrega (Si hay alumno)
+      // B) Buscar Entrega
       let entregaCompleta = null;
       if (id_inscripcion_objetivo) {
         const [entregaRows] = await connection.query(
@@ -221,7 +227,6 @@ const getCalificacionCurso = async (req, res) => {
 
         if (entregaRows.length > 0) {
           const entregaBase = entregaRows[0];
-          // Traer archivos que subió el alumno
           const [archivosRows] = await connection.query(
             "SELECT id_archivo_entrega, nombre_archivo_original, ruta_archivo, tipo_archivo FROM archivos_entrega WHERE id_entrega = ?",
             [entregaBase.id_entrega]
@@ -230,7 +235,7 @@ const getCalificacionCurso = async (req, res) => {
         }
       }
 
-      // C) Traer Materiales de Apoyo (Lo que subió el profesor)
+      // C) Traer Materiales de Apoyo
       const [materialesApoyo] = await connection.query(
         `SELECT m.id_material, m.nombre_archivo, m.tipo_archivo, m.es_enlace, m.url_enlace, m.descripcion
          FROM material_curso m
@@ -247,20 +252,15 @@ const getCalificacionCurso = async (req, res) => {
       });
     }
 
-    // Cálculo de calificación final del alumno
+    // 5. Cálculo de calificación final del alumno
     let puntosAcumulados = 0;
 
-    // Mapeamos de nuevo para agregar los 'puntos_ganados' a cada actividad
-    // para que el frontend sepa exactamente cuánto sumó cada una.
     const actividadesConPuntos = actividadesConEntregas.map(act => {
       let puntosGanados = 0;
       let calificacionMaestro = 0;
 
       if (act.entrega && act.entrega.calificacion !== null) {
         calificacionMaestro = parseFloat(act.entrega.calificacion);
-
-        // FÓRMULA MAESTRA:
-        // (Calificación 0-100 / 100) * ValorRealDeLaActividad
         puntosGanados = (calificacionMaestro / 100) * act.porcentaje;
         puntosAcumulados += puntosGanados;
       }
@@ -268,16 +268,52 @@ const getCalificacionCurso = async (req, res) => {
       return {
         ...act,
         puntos_ganados: parseFloat(puntosGanados.toFixed(2)),
-        calificacion_maestro: calificacionMaestro // Enviamos la calificación original (0-100)
+        calificacion_maestro: calificacionMaestro
       };
     });
 
+    // 6. Verificar estados de entregas y calificaciones de forma ultra-precisa
+    const totalActividadesYProyectos = actividadesConPuntos.length;
+
+    // Una actividad está REALMENTE entregada cuando su estatus es "entregada" o "calificada"
+    const totalEntregadas = actividadesConPuntos.filter(a =>
+      a.entrega !== null &&
+      ['entregada', 'calificada'].includes(a.entrega.estatus_entrega)
+    ).length;
+
+    // Una actividad está calificada cuando tiene estatus "calificada" y una calificación asignada
+    const totalCalificadas = actividadesConPuntos.filter(a =>
+      a.entrega !== null &&
+      a.entrega.estatus_entrega === 'calificada' &&
+      a.entrega.calificacion !== null &&
+      a.entrega.calificacion !== undefined &&
+      !isNaN(parseFloat(a.entrega.calificacion))
+    ).length;
+
+    const todasEntregadas = (totalEntregadas === totalActividadesYProyectos) && totalActividadesYProyectos > 0;
+    const todasCalificadas = (totalCalificadas === totalActividadesYProyectos) && totalActividadesYProyectos > 0;
+
+    // Verificar si el curso ya finalizó (comparación de fechas)
+    const fechaFin = cursoInfo.fecha_fin ? new Date(cursoInfo.fecha_fin) : null;
+    const ahora = new Date();
+    const cursoFinalizado = fechaFin ? ahora > fechaFin : false;
+
+    // 7. Construir respuesta
     const response = {
       id_curso: califCurso.id_curso,
       umbral_aprobatorio: califCurso.umbral_aprobatorio,
-      actividades: actividadesConPuntos, // <--- Usamos el nuevo array enriquecido
-      calificacion_final: parseFloat(puntosAcumulados.toFixed(2)), // Los "Créditos Finales"
-      aprobado: puntosAcumulados >= califCurso.umbral_aprobatorio,
+      actividades: actividadesConPuntos,
+      calificacion_final: parseFloat(puntosAcumulados.toFixed(2)),
+      // Un alumno está aprobado SOLO si tiene los puntos Y entregó todo Y todo está calificado
+      aprobado: (
+        puntosAcumulados >= califCurso.umbral_aprobatorio &&
+        todasEntregadas &&
+        todasCalificadas
+      ),
+      todas_entregadas: todasEntregadas,
+      todas_calificadas: todasCalificadas,
+      curso_finalizado: cursoFinalizado,
+      fecha_fin: cursoInfo.fecha_fin
     };
 
     res.status(200).json(response);

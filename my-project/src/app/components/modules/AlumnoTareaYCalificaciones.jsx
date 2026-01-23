@@ -356,8 +356,15 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
       const token = localStorage.getItem("token");
       if (!token) return;
 
-      const headers = { Authorization: `Bearer ${token}`, "Content-Type": "application/json" };
-      const response = await fetch(`${API_BASE_URL}/api/calificaciones/${cursoSeleccionado.id}`, { headers });
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      };
+
+      const response = await fetch(
+        `${API_BASE_URL}/api/calificaciones/${cursoSeleccionado.id}`,
+        { headers }
+      );
 
       if (!response.ok) {
         if (response.status === 404) {
@@ -368,31 +375,32 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
       }
 
       const data = await response.json();
-      console.log("Datos Calificaciones:", data);
+      console.log("Datos Calificaciones RAW:", data);
 
-      // Transformar datos para la vista
+      // ✅ MAPEAR TODOS LOS CAMPOS QUE VIENEN DEL BACKEND
       const calificacionesFormateadas = {
         evaluaciones: (data.actividades || []).map((actividad) => ({
           id: actividad.id_actividad,
           nombre: actividad.nombre,
-          // Muestra cuánto vale esta tarea del total del curso (ej: 20%)
           porcentaje_valor: actividad.porcentaje,
-
-          // Muestra qué sacó el alumno (ej: 100 de 100)
           calificacion: actividad.entrega ? actividad.entrega.calificacion : null,
-
-          // Muestra cuántos puntos reales sumó (ej: 20 puntos)
           puntos_ganados: actividad.puntos_ganados || 0,
-
           feedback: actividad.entrega?.comentario_profesor || null,
           entregada: !!actividad.entrega
         })),
         total: data.calificacion_final || 0,
         umbral_aprobatorio: data.umbral_aprobatorio || 70,
         aprobado: data.aprobado,
+        // ✅ AGREGAR ESTOS CAMPOS QUE FALTAN
+        todas_entregadas: data.todas_entregadas,
+        todas_calificadas: data.todas_calificadas,
+        curso_finalizado: data.curso_finalizado,
+        fecha_fin: data.fecha_fin
       };
 
+      console.log("Calificaciones Formateadas:", calificacionesFormateadas);
       setCalificaciones(calificacionesFormateadas);
+
     } catch (error) {
       console.error(error);
       showToast("Error al cargar calificaciones", "error");
@@ -1810,15 +1818,65 @@ const AlumnoTareaYCalificaciones = ({ userId }) => {
                         }}
                       ></div>
                     </div>
-                    <div
-                      className={styles.gradeStatus}
+                    <div className={styles.gradeStatus}
                       style={{
-                        color: calificaciones.aprobado ? "#4caf50" : "#f44336",
+                        color: calificaciones.aprobado ? "#4caf50" :
+                          (calificaciones.todas_entregadas && !calificaciones.todas_calificadas) ? "#ff9800" :
+                            "#f44336",
                       }}
                     >
-                      {calificaciones.aprobado
-                        ? "¡Felicidades! Has aprobado este curso"
-                        : `Necesitas ${calificaciones.umbral_aprobatorio} para aprobar`}
+                      {(() => {
+                        const {
+                          total,
+                          umbral_aprobatorio: umbral,
+                          todas_entregadas,
+                          todas_calificadas,
+                          aprobado,
+                          curso_finalizado
+                        } = calificaciones;
+
+                        const alcanzaUmbral = total >= umbral;
+
+                        // 🔍 Debug para verificar qué está llegando
+                        console.log('DEBUG CASOS CALIFICACIONES:', {
+                          total,
+                          umbral,
+                          todas_entregadas,
+                          todas_calificadas,
+                          aprobado,
+                          curso_finalizado,
+                          alcanzaUmbral
+                        });
+
+                        // ✅ CASO 1: Aprobado
+                        if (aprobado === true) {
+                          return "¡Felicidades! Has aprobado este curso";
+                        }
+
+                        // ✅ CASOS 6 y 7: Todo entregado pero falta calificar
+                        if (todas_entregadas === true && todas_calificadas === false) {
+                          if (alcanzaUmbral) {
+                            // CASO 6: Ya alcanzó el umbral, solo espera que califiquen
+                            return "Espera a que tus actividades o proyecto sean calificados para generar constancia";
+                          }
+                          // CASO 7: No alcanza umbral y falta calificar
+                          return "Espera a que todas tus actividades y/o proyecto sean calificados";
+                        }
+
+                        // ✅ CASOS 2 y 3: Todo entregado, todo calificado, pero no aprobó
+                        if (todas_entregadas === true && todas_calificadas === true && !alcanzaUmbral) {
+                          return "No alcanzaste el total de créditos necesarios para el curso";
+                        }
+
+                        // ✅ CASOS 4 y 5: Faltan entregas (sin importar si alcanza umbral)
+                        if (todas_entregadas === false) {
+                          return `Necesitas ${umbral} créditos y entregar todas tus actividades o proyecto`;
+                        }
+
+                        // ⚠️ Fallback - No debería llegar aquí si todo está bien
+                        console.error('⚠️ CASO NO MANEJADO:', calificaciones);
+                        return `Necesitas ${umbral} créditos para aprobar`;
+                      })()}
                     </div>
                   </div>
                 </div>
