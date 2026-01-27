@@ -1,31 +1,245 @@
-import React, { useEffect, useState } from "react";
-import styles from "./Dashboard.module.css";
+"use client"
+import { useState, useEffect } from "react"
+import styles from "./TeacherDashboard.module.css"
+import GestionCursos from "../modules/GestionCursos"
+import Inscripciones from "../modules/Inscripciones"
+import CalificacionCurso from "../modules/CalificacionCurso"
+
+const API_URL_USERS = "/api/users"
 
 function TeacherDashboard({ userId }) {
-  const [courses, setCourses] = useState([]);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [activeModule, setActiveModule] = useState("welcome")
+  const [userUniversityId, setUserUniversityId] = useState(null)
+  const [teacherId, setTeacherId] = useState(null)
+  const [teacherName, setTeacherName] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [expandedCategories, setExpandedCategories] = useState({
+    educativo: true,
+    academica: false,
+  })
 
+  // Obtener el id_universidad y id del maestro actual
   useEffect(() => {
-    // Mock API call to fetch taught courses
-    setCourses([
-      { id: 1, title: "Intro to Programming", students: 30 },
-      { id: 2, title: "Data Science Basics", students: 25 },
-    ]);
-    // Replace with API call: fetch(`/api/teachers/${userId}/courses`)
-  }, [userId]);
+    const fetchTeacherInfo = async () => {
+      if (userId) {
+        try {
+          const response = await fetch(`${API_URL_USERS}/${userId}`)
+          if (response.ok) {
+            const userData = await response.json()
+            if (userData) {
+              setUserUniversityId(userData.id_universidad?.toString() || null)
+              setTeacherId(userData.id_maestro?.toString() || userId.toString())
+              setTeacherName(userData.nombre || "Maestro")
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching teacher info:", error)
+        } finally {
+          setLoading(false)
+        }
+      } else {
+        setLoading(false)
+      }
+    }
+    fetchTeacherInfo()
+  }, [userId])
+
+  const toggleCategory = (category) => {
+    setExpandedCategories((prev) => ({
+      ...prev,
+      [category]: !prev[category],
+    }))
+  }
+
+  // Estructura del menú - Solo los módulos a los que el maestro tiene acceso
+  const menuStructure = [
+    {
+      id: "educativo",
+      label: "Mis Cursos",
+      icon: "📚",
+      modules: [
+        { id: "cursos", label: "Gestión de Cursos", icon: "📝" },
+      ],
+    },
+    {
+      id: "academica",
+      label: "Gestión Académica",
+      icon: "📊",
+      modules: [
+        { id: "calificaciones", label: "Calificaciones", icon: "✍️" },
+        { id: "inscripciones", label: "Solicitudes de Inscripción", icon: "📋" },
+      ],
+    },
+  ]
+
+  const renderModuleContent = () => {
+    // Si aún está cargando la información del usuario
+    if (loading) {
+      return (
+        <div className={styles.welcomeContainer}>
+          <p>Cargando información del maestro...</p>
+        </div>
+      )
+    }
+
+    // Si no se pudo obtener el id de universidad o maestro
+    if ((!userUniversityId || !teacherId) && activeModule !== "welcome") {
+      return (
+        <div className={styles.welcomeContainer}>
+          <h1>Error de Configuración</h1>
+          <p>No se pudo determinar tu información. Contacta al administrador.</p>
+        </div>
+      )
+    }
+
+    switch (activeModule) {
+      case "cursos":
+        // Maestro: Solo cursos de su universidad que él imparte
+        return (
+          <div className={styles.moduleContainer}>
+            <GestionCursos 
+              userId={userId} 
+              canEdit={true}
+              dashboardType="teacher"
+              userUniversityId={userUniversityId}
+              teacherId={teacherId}
+              // Restricción: Solo ver/editar cursos de su universidad que él imparte
+              // No puede crear nuevos cursos
+              // No puede ver cursos de otros maestros
+            />
+          </div>
+        )
+      case "calificaciones":
+        // Maestro: Solo calificar cursos que él imparte
+        return (
+          <div className={styles.moduleContainer}>
+            <CalificacionCurso 
+              rol="teacher"
+              userUniversityId={userUniversityId}
+              teacherId={teacherId}
+              // Restricción: Solo ver cursos vigentes de su universidad que él imparte
+              // Solo puede calificar alumnos inscritos en sus cursos
+            />
+          </div>
+        )
+      case "inscripciones":
+        // Maestro: Solo aprobar inscripciones de sus cursos
+        return (
+          <div className={styles.moduleContainer}>
+            <Inscripciones 
+              userId={userId} 
+              canEdit={true}
+              dashboardType="teacher"
+              userUniversityId={userUniversityId}
+              teacherId={teacherId}
+              // Restricción: Solo puede aprobar/rechazar solicitudes de inscripción
+              // Solo de cursos de su universidad que él imparte
+              // No puede ver inscripciones de otros cursos
+            />
+          </div>
+        )
+      default:
+        return (
+          <div className={styles.welcomeContainer}>
+            <h1>Bienvenido, {teacherName}</h1>
+            <p>Panel de Control del Maestro</p>
+            <div className={styles.statsGrid}>
+              <div 
+                className={styles.statCard} 
+                onClick={() => {
+                  setActiveModule("cursos")
+                  if (!expandedCategories.educativo) toggleCategory("educativo")
+                }}
+                style={{ cursor: 'pointer' }}
+              >
+                <span className={styles.statIcon}>📚</span>
+                <h3>Mis Cursos</h3>
+                <p>Visualiza y gestiona los cursos que impartes</p>
+              </div>
+              <div 
+                className={styles.statCard} 
+                onClick={() => {
+                  setActiveModule("calificaciones")
+                  if (!expandedCategories.academica) toggleCategory("academica")
+                }}
+                style={{ cursor: 'pointer' }}
+              >
+                <span className={styles.statIcon}>✍️</span>
+                <h3>Calificaciones</h3>
+                <p>Califica a los alumnos inscritos en tus cursos</p>
+              </div>
+              <div 
+                className={styles.statCard} 
+                onClick={() => {
+                  setActiveModule("inscripciones")
+                  if (!expandedCategories.academica) toggleCategory("academica")
+                }}
+                style={{ cursor: 'pointer' }}
+              >
+                <span className={styles.statIcon}>📋</span>
+                <h3>Solicitudes de Inscripción</h3>
+                <p>Aprueba o rechaza las solicitudes a tus cursos</p>
+              </div>
+            </div>
+          </div>
+        )
+    }
+  }
 
   return (
-    <div className={styles.section}>
-      <h2>My Taught Courses</h2>
-      <ul className={styles.courseList}>
-        {courses.map((course) => (
-          <li key={course.id}>
-            {course.title} - Students: {course.students}
-            <button>View Students</button>
-          </li>
-        ))}
-      </ul>
+    <div className={styles.dashboardContainer}>
+      {/* Sidebar */}
+      <aside className={`${styles.sidebar} ${sidebarCollapsed ? styles.collapsed : ""}`}>
+        <div className={styles.sidebarHeader}>
+          <h2 className={styles.sidebarTitle}>{!sidebarCollapsed && "Panel Maestro"}</h2>
+          <button
+            className={styles.toggleButton}
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            aria-label={sidebarCollapsed ? "Expandir sidebar" : "Colapsar sidebar"}
+          >
+            {sidebarCollapsed ? "→" : "←"}
+          </button>
+        </div>
+        <nav className={styles.sidebarNav}>
+          {menuStructure.map((category) => (
+            <div key={category.id} className={styles.categoryGroup}>
+              <button
+                className={styles.categoryButton}
+                onClick={() => toggleCategory(category.id)}
+                aria-expanded={expandedCategories[category.id]}
+              >
+                <span className={styles.categoryIcon}>{category.icon}</span>
+                {!sidebarCollapsed && (
+                  <>
+                    <span className={styles.categoryLabel}>{category.label}</span>
+                    <span className={styles.expandIcon}>{expandedCategories[category.id] ? "▼" : "▶"}</span>
+                  </>
+                )}
+              </button>
+              {expandedCategories[category.id] && (
+                <div className={styles.moduleList}>
+                  {category.modules.map((module) => (
+                    <button
+                      key={module.id}
+                      className={`${styles.moduleButton} ${activeModule === module.id ? styles.active : ""}`}
+                      onClick={() => setActiveModule(module.id)}
+                    >
+                      <span className={styles.moduleIcon}>{module.icon}</span>
+                      {!sidebarCollapsed && <span className={styles.moduleLabel}>{module.label}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </nav>
+      </aside>
+
+      {/* Main Content */}
+      <main className={styles.mainContent}>{renderModuleContent()}</main>
     </div>
-  );
+  )
 }
 
-export default TeacherDashboard;
+export default TeacherDashboard
