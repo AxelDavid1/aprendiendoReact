@@ -484,6 +484,7 @@ const CertificadosYConstancias = () => {
                     )}
                     <option value="universidad">Universidad</option>
                     <option value="coordinador">Coordinador</option>
+                    <option value="sedeq">Sedeq</option>
                   </select>
                 </div>
 
