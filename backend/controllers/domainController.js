@@ -7,7 +7,7 @@ const JWT_SECRET =
   process.env.JWT_SECRET ||
   "0d86c1e9aaf0192c1234673d06d6ed452beb5ca2a12014cfa913818b114444bd7a6ee2c64fde53f98503a98a153754becdf0fe8ec53304adb233f0c4fec0bf31";
 
-exports.verifyAdmin = (req, res, next) => {
+exports.verifyAdmin = async (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
   if (!token) {
     return res.status(401).json({ error: "Token de autorización requerido" });
@@ -20,7 +20,18 @@ exports.verifyAdmin = (req, res, next) => {
         .status(403)
         .json({ error: "Acceso denegado: Solo administradores" });
     }
-    req.user = decoded;
+
+    // Obtener datos completos del usuario desde la BD
+    const [users] = await pool.execute(
+      "SELECT id_usuario, username, email, tipo_usuario, id_universidad FROM usuario WHERE id_usuario = ?",
+      [decoded.id_usuario],
+    );
+
+    if (users.length === 0) {
+      return res.status(401).json({ error: "Usuario no encontrado." });
+    }
+
+    req.user = users[0];
     next();
   } catch (error) {
     console.error("verifyAdmin: Error:", error.message);
@@ -30,13 +41,26 @@ exports.verifyAdmin = (req, res, next) => {
 
 exports.getDomains = async (req, res) => {
   try {
+    const { universidadId } = req.query;
     const db = await pool.getConnection();
     try {
-      const [rows] = await db.execute(`
+      let query = `
         SELECT d.id_dominio, d.dominio, d.estatus, d.id_universidad, u.nombre AS nombre_universidad 
         FROM dominiosUniversidades d
         LEFT JOIN universidad u ON d.id_universidad = u.id_universidad
-      `);
+      `;
+      
+      const params = [];
+      
+      // Si se proporciona universidadId, filtrar por esa universidad
+      if (universidadId) {
+        query += ` WHERE d.id_universidad = ?`;
+        params.push(universidadId);
+      }
+      
+      query += ` ORDER BY d.dominio ASC`;
+      
+      const [rows] = await db.execute(query, params);
       res.json(rows);
     } finally {
       db.release();
@@ -58,6 +82,13 @@ exports.addDomain = async (req, res) => {
   }
   if (!id_universidad) {
     return res.status(400).json({ error: "La universidad es requerida" });
+  }
+
+  // Validación para admin_universidad: solo puede crear dominios de su universidad
+  if (req.user.tipo_usuario === 'admin_universidad' && req.user.id_universidad) {
+    if (parseInt(id_universidad) !== parseInt(req.user.id_universidad)) {
+      return res.status(403).json({ error: "Solo puede crear dominios de tu universidad" });
+    }
   }
 
   try {
@@ -118,6 +149,20 @@ exports.updateDomain = async (req, res) => {
         return res.status(404).json({ error: "Dominio no encontrado" });
       }
 
+      const domain = existing[0];
+
+      // Validación para admin_universidad: solo puede actualizar dominios de su universidad
+      if (req.user.tipo_usuario === 'admin_universidad' && req.user.id_universidad) {
+        if (parseInt(domain.id_universidad) !== parseInt(req.user.id_universidad)) {
+          return res.status(403).json({ error: "Solo puede actualizar dominios de tu universidad" });
+        }
+        
+        // Si intenta cambiar la universidad, validar que sea a su universidad
+        if (id_universidad && parseInt(id_universidad) !== parseInt(req.user.id_universidad)) {
+          return res.status(403).json({ error: "Solo puede asignar dominios a tu universidad" });
+        }
+      }
+
       const updates = [];
       const params = [];
       if (dominio) {
@@ -166,6 +211,15 @@ exports.deleteDomain = async (req, res) => {
       );
       if (existing.length === 0) {
         return res.status(404).json({ error: "Dominio no encontrado" });
+      }
+
+      const domain = existing[0];
+
+      // Validación para admin_universidad: solo puede eliminar dominios de su universidad
+      if (req.user.tipo_usuario === 'admin_universidad' && req.user.id_universidad) {
+        if (parseInt(domain.id_universidad) !== parseInt(req.user.id_universidad)) {
+          return res.status(403).json({ error: "Solo puede eliminar dominios de tu universidad" });
+        }
       }
 
       await db.execute(

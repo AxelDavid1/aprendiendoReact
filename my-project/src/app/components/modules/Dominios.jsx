@@ -23,7 +23,7 @@ const initialFormState = {
   estatus: "activo",
 };
 
-function Dominios() {
+function Dominios({ dashboardType = "sedeq", userUniversityId = null }) {
   const [domains, setDomains] = useState([]);
   const [universities, setUniversities] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,8 +44,16 @@ function Dominios() {
         throw new Error("No se encontró token de autenticación.");
       }
 
-      // Fetch with a large limit to get all universities
-      const response = await fetch(`${UNIVERSITIES_API_URL}?limit=9999`, {
+      let url;
+      if (dashboardType === "university" && userUniversityId) {
+        // Para admin_universidad, solo obtener su universidad
+        url = `${UNIVERSITIES_API_URL}/${userUniversityId}`;
+      } else {
+        // Para SEDEQ, obtener todas las universidades
+        url = `${UNIVERSITIES_API_URL}?limit=9999`;
+      }
+
+      const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -57,12 +65,19 @@ function Dominios() {
       }
 
       const data = await response.json();
-      setUniversities(data.universities || []);
+      
+      if (dashboardType === "university") {
+        // Para admin_universidad, establecer directamente la universidad
+        setUniversities([data]);
+      } else {
+        // Para SEDEQ, mantener la lógica actual
+        setUniversities(data.universities || []);
+      }
     } catch (err) {
       console.error("Failed to fetch universities:", err);
       setUniversities([]);
     }
-  }, []);
+  }, [dashboardType, userUniversityId]);
 
   const fetchDomains = useCallback(async () => {
     setLoading(true);
@@ -73,7 +88,14 @@ function Dominios() {
         throw new Error("No se encontró token de autenticación.");
       }
 
-      const response = await fetch(API_URL, {
+      let url = API_URL;
+      
+      // Para admin_universidad, agregar filtro por universidad
+      if (dashboardType === "university" && userUniversityId) {
+        url += `?universidadId=${userUniversityId}`;
+      }
+
+      const response = await fetch(url, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -91,7 +113,7 @@ function Dominios() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [dashboardType, userUniversityId]);
 
   useEffect(() => {
     fetchDomains();
@@ -110,7 +132,12 @@ function Dominios() {
       setFormState(domain);
     } else {
       setIsEditing(false);
-      setFormState(initialFormState);
+      // Para admin_universidad, preseleccionar su universidad
+      const initialState = { ...initialFormState };
+      if (dashboardType === "university" && userUniversityId) {
+        initialState.id_universidad = userUniversityId;
+      }
+      setFormState(initialState);
     }
     setIsModalOpen(true);
   };
@@ -340,6 +367,8 @@ function Dominios() {
                   value={formState.id_universidad}
                   onChange={handleFormChange}
                   required
+                  disabled={dashboardType === "university"}
+                  className={dashboardType === "university" ? styles.disabledSelect : ""}
                 >
                   <option value="">Seleccione una universidad</option>
                   {universities.map((university) => (
@@ -351,6 +380,11 @@ function Dominios() {
                     </option>
                   ))}
                 </select>
+                {dashboardType === "university" && (
+                  <small className={styles.helperText}>
+                    Solo puedes gestionar dominios de tu universidad
+                  </small>
+                )}
               </div>
               <div
                 className={styles.formGroup}
