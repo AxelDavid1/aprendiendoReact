@@ -20,13 +20,43 @@ const handleError = async (res, error, message, connection) => {
   res.status(statusCode).json({ error: errorMessage });
 };
 
+// Helper function to get user's university ID
+const getUserUniversityId = async (userId) => {
+  const [users] = await pool.execute(
+    "SELECT id_universidad FROM usuario WHERE id_usuario = ? AND tipo_usuario = 'admin_universidad'",
+    [userId]
+  );
+  return users.length > 0 ? users[0].id_universidad : null;
+};
+
 // @desc    Get all universities with pagination and search
 // @route   GET /api/universidades
-// @access  Public
+// @access  Private (Admin)
 exports.getAllUniversidades = async (req, res) => {
   try {
     const { searchTerm = "", page = 1, limit = 10, onlyWithAdmin = false } = req.query;
 
+    // Si es admin_universidad, solo puede ver su universidad
+    if (req.user.tipo_usuario === 'admin_universidad') {
+      const userUniversityId = await getUserUniversityId(req.user.id_usuario);
+      if (!userUniversityId) {
+        return res.status(403).json({ error: "No tienes una universidad asignada." });
+      }
+      
+      const university = await Universidad.findById(userUniversityId);
+      if (!university) {
+        return res.status(404).json({ error: "Universidad no encontrada." });
+      }
+      
+      return res.status(200).json({
+        universities: [university],
+        total: 1,
+        page: 1,
+        totalPages: 1
+      });
+    }
+
+    // Para admin_sedeq, mantener la lógica actual
     const parsedLimit = parseInt(limit, 10);
     const finalLimit = parsedLimit > 999 ? null : parsedLimit;
 
@@ -34,7 +64,7 @@ exports.getAllUniversidades = async (req, res) => {
       searchTerm,
       page: parseInt(page, 10),
       limit: finalLimit,
-      onlyWithAdmin: onlyWithAdmin === 'true' || onlyWithAdmin === true, // ✅ Nuevo parámetro
+      onlyWithAdmin: onlyWithAdmin === 'true' || onlyWithAdmin === true,
     };
 
     const result = await Universidad.findAll(options);
@@ -46,10 +76,19 @@ exports.getAllUniversidades = async (req, res) => {
 
 // @desc    Get a single university by ID
 // @route   GET /api/universidades/:id
-// @access  Public
+// @access  Private (Admin)
 exports.getUniversidadById = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // Si es admin_universidad, verificar que solo pueda ver su universidad
+    if (req.user.tipo_usuario === 'admin_universidad') {
+      const userUniversityId = await getUserUniversityId(req.user.id_usuario);
+      if (!userUniversityId || parseInt(id) !== userUniversityId) {
+        return res.status(403).json({ error: "No puedes ver esta universidad." });
+      }
+    }
+
     const universidad = await Universidad.findById(id);
     if (!universidad) {
       const err = new Error("University not found");
@@ -65,10 +104,15 @@ exports.getUniversidadById = async (req, res) => {
 
 // @desc    Create a new university and its admin user
 // @route   POST /api/universidades
-// @access  Private/Admin (should be protected)
+// @access  Private (SEDEQ Admin only)
 exports.createUniversidad = async (req, res) => {
-  let connection;
   try {
+    // Solo admin_sedeq puede crear universidades
+    if (req.user.tipo_usuario !== 'admin_sedeq') {
+      return res.status(403).json({ error: "Solo el administrador de SEDEQ puede crear universidades." });
+    }
+
+    let connection;
     connection = await pool.getConnection();
     await connection.beginTransaction();
 
@@ -136,17 +180,26 @@ exports.createUniversidad = async (req, res) => {
       error.statusCode = 409;
       error.isOperational = true;
     }
-    await handleError(res, error, "Failed to create university", connection);
+    await handleError(res, error, "Failed to create university", null);
   }
 };
 
 // @desc    Update a university and its admin user
 // @route   PUT /api/universidades/:id
-// @access  Private/Admin (should be protected)
+// @access  Private (Admin)
 exports.updateUniversidad = async (req, res) => {
   let connection;
   try {
     const { id } = req.params;
+
+    // Si es admin_universidad, verificar que solo pueda editar su universidad
+    if (req.user.tipo_usuario === 'admin_universidad') {
+      const userUniversityId = await getUserUniversityId(req.user.id_usuario);
+      if (!userUniversityId || parseInt(id) !== userUniversityId) {
+        return res.status(403).json({ error: "No puedes editar esta universidad." });
+      }
+    }
+
     connection = await pool.getConnection();
     await connection.beginTransaction();
 
@@ -158,7 +211,25 @@ exports.updateUniversidad = async (req, res) => {
       throw err;
     }
 
-    const { email_admin, password, ...universityUpdateData } = req.body;
+    const { email_admin, password, clave_universidad, ...universityUpdateData } = req.body;
+
+    // Restricciones para admin_universidad
+    if (req.user.tipo_usuario === 'admin_universidad') {
+      // No puede cambiar clave_universidad
+      if (clave_universidad && clave_universidad !== existingUniversity.clave_universidad) {
+        return res.status(403).json({ error: "No puedes modificar la clave de la universidad." });
+      }
+      
+      // No puede cambiar email_admin (solo SEDEQ puede asignar administradores)
+      if (email_admin && email_admin !== existingUniversity.email_admin) {
+        return res.status(403).json({ error: "No puedes modificar el email del administrador." });
+      }
+    } else {
+      // Para admin_sedeq, permitir cambiar clave_universidad si se proporciona
+      if (clave_universidad) {
+        universityUpdateData.clave_universidad = clave_universidad;
+      }
+    }
 
     if (req.file) {
       universityUpdateData.logo_url = `/uploads/logos/${req.file.filename}`;
@@ -176,7 +247,13 @@ exports.updateUniversidad = async (req, res) => {
 
     await Universidad.update(id, universityUpdateData, connection);
 
-    await User.createOrUpdateAdmin(id, email_admin, password, connection);
+    // Solo admin_sedex puede modificar administradores
+    if (req.user.tipo_usuario === 'admin_sedeq') {
+      await User.createOrUpdateAdmin(id, email_admin, password, connection);
+    } else if (password) {
+      // admin_universidad puede cambiar su propia contraseña
+      await User.createOrUpdateAdmin(id, existingUniversity.email_admin, password, connection);
+    }
 
     await connection.commit();
     connection.release();
@@ -196,9 +273,14 @@ exports.updateUniversidad = async (req, res) => {
 
 // @desc    Delete a university
 // @route   DELETE /api/universidades/:id
-// @access  Private/Admin
+// @access  Private (SEDEQ Admin only)
 exports.deleteUniversidad = async (req, res) => {
   try {
+    // Solo admin_sedeq puede eliminar universidades
+    if (req.user.tipo_usuario !== 'admin_sedeq') {
+      return res.status(403).json({ error: "Solo el administrador de SEDEQ puede eliminar universidades." });
+    }
+
     const { id } = req.params;
     const university = await Universidad.findById(id);
     if (!university) {
@@ -232,10 +314,15 @@ exports.deleteUniversidad = async (req, res) => {
 
 // @desc    Delete an admin user for a specific university
 // @route   DELETE /api/universidades/:id/admin
-// @access  Private/Admin
+// @access  Private (SEDEQ Admin only)
 exports.deleteUniversidadAdmin = async (req, res) => {
   let connection;
   try {
+    // Solo admin_sedeq puede eliminar administradores
+    if (req.user.tipo_usuario !== 'admin_sedeq') {
+      return res.status(403).json({ error: "Solo el administrador de SEDEQ puede eliminar administradores." });
+    }
+
     const { id } = req.params;
 
     const university = await Universidad.findById(id);

@@ -77,7 +77,7 @@ function SEDEQDashboard({ userId }) {
       case "universidades":
         return (
           <div className={styles.moduleContainer}>
-            <ManejoUniversidades userId={userId} canEdit={true} />
+            <ManejoUniversidades dashboardType="sedeq" canEdit={true} />
           </div>
         )
       case "carreras":

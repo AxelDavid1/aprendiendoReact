@@ -8,6 +8,8 @@ import {
   faMinus,
 } from "@fortawesome/free-solid-svg-icons";
 import styles from "./CredencialesCursos.module.css";
+import { authenticatedFetch } from "@/utils/api";
+
 
 const API_URL = "/api/credenciales";
 const API_URL_UNIVERSIDADES = "/api/universidades";
@@ -66,7 +68,7 @@ function CredencialesCursos({ userId, dashboardType, userUniversityId }) {
 
   const fetchUniversidades = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL_UNIVERSIDADES}?limit=9999`);
+      const response = await authenticatedFetch(`${API_URL_UNIVERSIDADES}?limit=9999`);
       if (!response.ok)
         throw new Error("No se pudieron cargar las universidades");
       const data = await response.json();

@@ -8,6 +8,7 @@ const {
   deleteUniversidad,
   deleteUniversidadAdmin,
 } = require("../controllers/universidadController");
+const { protect, admin, isSedeqAdmin } = require("../middleware/authMiddleware");
 
 // Middleware for handling file uploads, e.g., for university logos
 const multer = require("multer");
@@ -50,29 +51,20 @@ const upload = multer({
   fileFilter: fileFilter,
 });
 
-/*
- * Note: For a real-world application, you would add authentication and authorization
- * middleware to the routes that modify data (POST, PUT, DELETE).
- * Example:
- * const { protect, admin } = require('../middleware/authMiddleware');
- * router.route('/').post(protect, admin, upload.single('logo'), createUniversidad);
- */
-
 // Routes for the collection of universities
 router
   .route("/")
-  .get(getAllUniversidades)
-  // The 'logo' in upload.single('logo') must match the name attribute of the file input in the frontend form
-  .post(upload.single("logo"), createUniversidad);
+  .get(protect, admin, getAllUniversidades)
+  .post(protect, isSedeqAdmin, upload.single("logo"), createUniversidad);
 
 // Routes for a single university identified by ID
 router
   .route("/:id")
-  .get(getUniversidadById)
-  .put(upload.single("logo"), updateUniversidad)
-  .delete(deleteUniversidad);
+  .get(protect, admin, getUniversidadById)
+  .put(protect, admin, upload.single("logo"), updateUniversidad)
+  .delete(protect, isSedeqAdmin, deleteUniversidad);
 
 // Route for deleting just the admin of a university
-router.route("/:id/admin").delete(deleteUniversidadAdmin);
+router.route("/:id/admin").delete(protect, isSedeqAdmin, deleteUniversidadAdmin);
 
 module.exports = router;

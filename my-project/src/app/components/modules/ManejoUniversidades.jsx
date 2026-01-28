@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState, useEffect, useCallback } from "react";
 import styles from "./ManejoUniversidades.module.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -27,8 +29,30 @@ const initialUniversityState = {
   email_admin: "",
   password: "",
 };
+// Función para obtener el token de autenticación
+const getAuthToken = () => {
+  return localStorage.getItem('token');
+};
 
-function ManejoUniversidades() {
+// Función para hacer llamadas autenticadas
+const authenticatedFetch = async (url, options = {}) => {
+  const token = getAuthToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return fetch(url, {
+    ...options,
+    headers,
+  });
+};
+
+function ManejoUniversidades({ dashboardType = "sedeq", userUniversityId = null, canEdit = true }) {
   const [activeView, setActiveView] = useState("universidades"); // "universidades" or "admins"
   // Data and loading state
   const [universities, setUniversities] = useState([]);
@@ -57,6 +81,7 @@ function ManejoUniversidades() {
   // Logo file state for form handling
   const [logoFile, setLogoFile] = useState(null);
   const [logoPreview, setLogoPreview] = useState("");
+  const [currentUniversity, setCurrentUniversity] = useState(null);
 
   // Toast notification state
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
@@ -74,15 +99,23 @@ function ManejoUniversidades() {
     };
   }, [searchTerm]);
 
-  // Fetch universities from the backend API
   const fetchUniversities = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const currentPage = activeView === "universidades" ? pageUniversidades : pageAdmins;
-      const onlyWithAdmin = activeView === "admins"; // ✅ Agregar este parámetro
-      const url = `${API_URL}?page=${currentPage}&limit=10&searchTerm=${debouncedSearchTerm}&onlyWithAdmin=${onlyWithAdmin}`;
-      const response = await fetch(url);
+      let url;
+
+      if (dashboardType === "university" && userUniversityId) {
+        // Para admin_universidad, solo obtener su universidad
+        url = `${API_URL}/${userUniversityId}`;
+      } else {
+        // Para SEDEQ, mantener la lógica actual
+        const currentPage = activeView === "universidades" ? pageUniversidades : pageAdmins;
+        const onlyWithAdmin = activeView === "admins";
+        url = `${API_URL}?page=${currentPage}&limit=10&searchTerm=${debouncedSearchTerm}&onlyWithAdmin=${onlyWithAdmin}`;
+      }
+
+      const response = await authenticatedFetch(url);
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(
@@ -90,17 +123,28 @@ function ManejoUniversidades() {
           `Failed to fetch data: ${response.status} ${response.statusText}`,
         );
       }
-      const data = await response.json();
-      setUniversities(data.universities);
-      setTotalPages(data.totalPages);
-      setTotalUniversities(data.total);
+
+      if (dashboardType === "university") {
+        // Para admin_universidad, establecer directamente la universidad
+        const data = await response.json();
+        setUniversities([data]);
+        setTotalPages(1);
+        setTotalUniversities(1);
+        setCurrentUniversity(data);
+      } else {
+        // Para SEDEQ, mantener la lógica actual
+        const data = await response.json();
+        setUniversities(data.universities);
+        setTotalPages(data.totalPages);
+        setTotalUniversities(data.total);
+      }
     } catch (err) {
       setError(err.message);
       setUniversities([]);
     } finally {
       setLoading(false);
     }
-  }, [pageUniversidades, pageAdmins, activeView, debouncedSearchTerm]);
+  }, [pageUniversidades, pageAdmins, activeView, debouncedSearchTerm, dashboardType, userUniversityId]);
 
 
   useEffect(() => {
@@ -108,21 +152,22 @@ function ManejoUniversidades() {
   }, [fetchUniversities]);
 
   // Fetch all universities for the dropdown menu
-  useEffect(() => {
-    const fetchAll = async () => {
-      try {
-        // Fetch with a large limit to get all universities
-        const response = await fetch(`${API_URL}?limit=9999`);
-        if (!response.ok) throw new Error("Could not fetch university list");
-        const data = await response.json();
-        setAllUniversities(data.universities || []);
-      } catch (err) {
-        console.error("Failed to fetch all universities:", err);
-        // Optionally, show a toast or error message
-      }
-    };
-    fetchAll();
+  const fetchAllUniversities = useCallback(async () => {
+    try {
+      // Fetch with a large limit to get all universities
+      const response = await authenticatedFetch(`${API_URL}?limit=9999`);
+      if (!response.ok) throw new Error("Could not fetch university list");
+      const data = await response.json();
+      setAllUniversities(data.universities || []);
+    } catch (err) {
+      console.error("Failed to fetch all universities:", err);
+      // Optionally, show a toast or error message
+    }
   }, []);
+
+  useEffect(() => {
+    fetchAllUniversities();
+  }, [fetchAllUniversities]);
 
   const showToast = (message, type = "success") => {
     setToast({ show: true, message, type });
@@ -186,7 +231,7 @@ function ManejoUniversidades() {
   const removeLogo = () => {
     setLogoFile(null);
     setLogoPreview("");
-    if (currentUniversity.id_universidad) {
+    if (currentUniversity && currentUniversity.id_universidad) {
       setCurrentUniversity((prev) => ({ ...prev, logo_url: "" }));
     }
   };
@@ -229,7 +274,11 @@ function ManejoUniversidades() {
     }
 
     try {
-      const response = await fetch(url, { method, body: formData });
+      const response = await authenticatedFetch(url, { 
+        method, 
+        body: formData,
+        headers: {} // No incluir Content-Type para FormData, el navegador lo establece automáticamente
+      });
       const result = await response.json();
       if (!response.ok) {
         throw new Error(result.error || "Ocurrió un error desconocido.");
@@ -255,7 +304,7 @@ function ManejoUniversidades() {
       : "Universidad eliminada con éxito.";
 
     try {
-      const response = await fetch(url, { method: "DELETE" });
+      const response = await authenticatedFetch(url, { method: "DELETE" });
       if (!response.ok) {
         const result = await response.json();
         throw new Error(result.error || "La eliminación falló.");
@@ -294,6 +343,75 @@ function ManejoUniversidades() {
         </div>
       );
     }
+
+    // Para admin_universidad, mostrar una vista detallada de su universidad
+    if (dashboardType === "university" && universities.length > 0) {
+      const university = universities[0];
+      return (
+        <div className={styles.universityProfileContainer}>
+          <div className={styles.profileCard}>
+            <div className={styles.profileHeader}>
+              <div className={styles.profileLogoWrapper}>
+                <img
+                  src={
+                    university.logo_url
+                      ? `${SERVER_URL}${university.logo_url.startsWith('/') ? '' : '/'}${university.logo_url}`
+                      : "/placeholder-logo.png"
+                  }
+                  alt={`${university.nombre} Logo`}
+                  className={styles.profileLogo}
+                />
+              </div>
+              <div className={styles.profileTitleSection}>
+                <h2 className={styles.profileTitle}>{university.nombre}</h2>
+                <span className={styles.profileBadge}>
+                  <FontAwesomeIcon icon={faSchool} /> Universidad Registrada
+                </span>
+              </div>
+            </div>
+
+            <div className={styles.profileDetails}>
+              <div className={styles.detailItem}>
+                <span className={styles.detailLabel}>Clave de Universidad</span>
+                <span className={styles.detailValue}>{university.clave_universidad || "N/A"}</span>
+              </div>
+              <div className={styles.detailItem}>
+                <span className={styles.detailLabel}>Direccion</span>
+                <span className={styles.detailValue}>{university.direccion || "No especificada"}</span>
+              </div>
+              <div className={styles.detailItem}>
+                <span className={styles.detailLabel}>Telefono</span>
+                <span className={styles.detailValue}>{university.telefono || "No especificado"}</span>
+              </div>
+              <div className={styles.detailItem}>
+                <span className={styles.detailLabel}>Email de Contacto</span>
+                <span className={styles.detailValue}>{university.email_contacto || "No especificado"}</span>
+              </div>
+              <div className={styles.detailItem}>
+                <span className={styles.detailLabel}>Ubicacion</span>
+                <span className={styles.detailValue}>{university.ubicacion || "No especificada"}</span>
+              </div>
+              <div className={styles.detailItem}>
+                <span className={styles.detailLabel}>Email del Administrador</span>
+                <span className={styles.detailValue}>{university.email_admin || "No asignado"}</span>
+              </div>
+            </div>
+
+            <div className={styles.profileActions}>
+              <button
+                onClick={() => handleOpenModal(university)}
+                className={styles.profileEditButton}
+                disabled={!canEdit}
+              >
+                <FontAwesomeIcon icon={faEdit} /> Editar Informacion
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Para SEDEQ, mantener la lógica actual
     const universitiesToDisplay = universities;
 
     if (universitiesToDisplay.length === 0) {
@@ -323,6 +441,7 @@ function ManejoUniversidades() {
         </div>
       );
     }
+
     return (
       <>
         <div className={styles.mobileView}>
@@ -352,12 +471,14 @@ function ManejoUniversidades() {
                 >
                   <i className="fas fa-edit"></i> Editar
                 </button>
-                <button
-                  onClick={() => handleOpenDeleteModal(uni)}
-                  className={styles.deleteButton}
-                >
-                  <i className="fas fa-trash"></i> Borrar
-                </button>
+                {dashboardType === "sedeq" && (
+                  <button
+                    onClick={() => handleOpenDeleteModal(uni)}
+                    className={styles.deleteButton}
+                  >
+                    <i className="fas fa-trash"></i> Borrar
+                  </button>
+                )}
               </div>
             </div>
           ))}
@@ -398,12 +519,14 @@ function ManejoUniversidades() {
                       >
                         <FontAwesomeIcon icon={faEdit} />
                       </button>
-                      <button
-                        onClick={() => handleOpenDeleteModal(uni)}
-                        className={styles.deleteButton}
-                      >
-                        <FontAwesomeIcon icon={faTrash} />
-                      </button>
+                      {dashboardType === "sedeq" && (
+                        <button
+                          onClick={() => handleOpenDeleteModal(uni)}
+                          className={styles.deleteButton}
+                        >
+                          <FontAwesomeIcon icon={faTrash} />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -419,9 +542,13 @@ function ManejoUniversidades() {
     <div className={styles.container}>
       <header className={styles.header}>
         <div className={styles.headerContent}>
-          <h1 className={styles.title}>Manejo de Universidades</h1>
+          <h1 className={styles.title}>
+            {dashboardType === "sedeq" ? "Manejo de Universidades" : "Configuración de mi Universidad"}
+          </h1>
           <div className={styles.userInfo}>
-            <span className={styles.userName}>SEDEQ</span>
+            <span className={styles.userName}>
+              {dashboardType === "sedeq" ? "SEDEQ" : "Administrador"}
+            </span>
             <button className={styles.userButton}>
               <i className="fas fa-user"></i>
             </button>
@@ -430,45 +557,47 @@ function ManejoUniversidades() {
       </header>
 
       <main className={styles.main}>
-        <div className={styles.tabContainer}>
-          <button
-            className={`${styles.tabButton} ${activeView === "universidades" ? styles.activeTab : ""
-              }`}
-            onClick={() => handleTabChange("universidades")}
-          >
-            <FontAwesomeIcon icon={faSchool} /> Universidades
-          </button>
-          <button
-            className={`${styles.tabButton} ${activeView === "admins" ? styles.activeTab : ""
-              }`}
-            onClick={() => handleTabChange("admins")}
-          >
-            <FontAwesomeIcon icon={faUserShield} /> Administradores
-          </button>
-        </div>
-        <div className={styles.toolbar}>
-          <button
-            onClick={() => handleOpenModal()}
-            className={styles.addButton}
-          >
-            <FontAwesomeIcon icon={faPlus} />{" "}
-            {activeView === "universidades"
-              ? "Agregar Universidad"
-              : "Agregar Administrador"}
-          </button>
-          <div className={styles.searchContainer}>
-            <i className="fas fa-search"></i>
-            <input
-              type="text"
-              placeholder="Search by name..."
-              className={styles.searchInput}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
+        {dashboardType === "sedeq" && (
+          <div className={styles.tabContainer}>
+            <button
+              className={`${styles.tabButton} ${activeView === "universidades" ? styles.activeTab : ""}`}
+              onClick={() => handleTabChange("universidades")}
+            >
+              <FontAwesomeIcon icon={faSchool} /> Universidades
+            </button>
+            <button
+              className={`${styles.tabButton} ${activeView === "admins" ? styles.activeTab : ""}`}
+              onClick={() => handleTabChange("admins")}
+            >
+              <FontAwesomeIcon icon={faUserShield} /> Administradores
+            </button>
           </div>
-        </div>
+        )}
+        {dashboardType === "sedeq" && (
+          <div className={styles.toolbar}>
+            <button
+              onClick={() => handleOpenModal()}
+              className={styles.addButton}
+            >
+              <FontAwesomeIcon icon={faPlus} />{" "}
+              {activeView === "universidades"
+                ? "Agregar Universidad"
+                : "Agregar Administrador"}
+            </button>
+            <div className={styles.searchContainer}>
+              <i className="fas fa-search"></i>
+              <input
+                type="text"
+                placeholder="Search by name..."
+                className={styles.searchInput}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
         {renderContent()}
-        {universities.length > 0 && totalPages > 1 && (
+        {dashboardType === "sedeq" && universities.length > 0 && totalPages > 1 && (
           <div className={styles.pagination}>
             <div className={styles.paginationInfo}>
               Showing{" "}
@@ -624,6 +753,8 @@ function ManejoUniversidades() {
                         value={formState.clave_universidad}
                         onChange={handleFormChange}
                         required
+                        readOnly={dashboardType === "university"}
+                        className={dashboardType === "university" ? styles.readOnlyInput : ""}
                       />
                     </div>
                     <div className={styles.formGroup}>
@@ -690,7 +821,7 @@ function ManejoUniversidades() {
                       />
                       {logoPreview && (
                         <div className={styles.logoPreview}>
-                          <img src={logoPreview} alt="Logo Preview" />
+                          <img src={logoPreview || "/placeholder.svg"} alt="Logo Preview" />
                           <button
                             type="button"
                             onClick={removeLogo}

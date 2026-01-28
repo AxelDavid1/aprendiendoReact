@@ -129,6 +129,7 @@ const verificacionHomeConstanciasYcertificadosRoutes = require("./routes/verific
 const publicFilesRoutes = require("./routes/publicFilesRoutes");
 const subgrupoOperadorRoutes = require("./routes/subgrupoOperadorRoutes");
 const habilidadClaveRoutes = require("./routes/habilidadClaveRoutes");
+const universidadPublicRoutes = require("./routes/universidadPublicRoutes");
 
 log(`✅ Rutas importadas correctamente`);
 
@@ -154,6 +155,7 @@ app.use("/api/firmas", firmasRoutes);
 app.use("/api/alumno", certificadoConstanciaRoutes);
 app.use("/api/subgrupos-operadores", subgrupoOperadorRoutes);
 app.use("/api/habilidades-clave", habilidadClaveRoutes);
+app.use("/api/public", universidadPublicRoutes);
 log(`🔌 Rutas configuradas en la aplicación`);
 
 log(`💾 Conectando a la base de datos...`);

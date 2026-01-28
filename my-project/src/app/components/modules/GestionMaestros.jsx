@@ -7,6 +7,8 @@ import {
   faChalkboardTeacher,
   faPlus,
 } from "@fortawesome/free-solid-svg-icons";
+import { authenticatedFetch } from "@/utils/api";
+
 
 // Define the base URL of your backend API
 const API_URL = "/api/maestros";
@@ -109,9 +111,7 @@ function GestionMaestros() {
   // Fetch universidades for dropdown
   const fetchUniversidades = useCallback(async () => {
     try {
-      const response = await fetch(
-        "/api/universidades?limit=9999",
-      ); 
+      const response = await authenticatedFetch("/api/universidades?limit=9999");
       if (!response.ok) throw new Error("Could not fetch universities");
       const data = await response.json();
       setUniversidades(data.universities || []);

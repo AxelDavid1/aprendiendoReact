@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import styles from "./CertificadosYConstancias.module.css";
 import { useAuth } from "@/hooks/useAuth";
 import axios from "axios";
+import { authenticatedFetch } from "@/utils/api";
 
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import {
@@ -71,20 +72,13 @@ const CertificadosYConstancias = () => {
       try {
         console.log("Fetching universidades from: /api/universidades");
         
-        // Intenta obtener todas las universidades sin límite de paginación
-        const response = await axios.get("/api/universidades", {
-          params: {
-            limit: 1000, // Solicita hasta 1000 universidades
-            // Si tu API usa otros parámetros, ajusta aquí:
-            // page_size: 1000,
-            // per_page: 1000,
-            // all: true,
-          }
-        });
+        const response = await authenticatedFetch("/api/universidades?limit=1000");
+        if (!response.ok) throw new Error("Error al obtener universidades");
+        const data = await response.json();
         
-        console.log("Universidades response:", response.data);
+        console.log("Universidades response:", data);
 
-        const universidadesData = response.data.universities || response.data;
+        const universidadesData = data.universities || data;
         setUniversidades(
           Array.isArray(universidadesData) ? universidadesData : [],
         );

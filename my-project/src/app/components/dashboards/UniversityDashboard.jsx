@@ -15,6 +15,28 @@ import CertificadosYConstancia from "../modules/CertificadosYConstancias"
 
 const API_URL_USERS = "/api/users"
 
+// Función para obtener el token de autenticación
+const getAuthToken = () => {
+  return localStorage.getItem('token');
+};
+
+// Función para hacer llamadas autenticadas
+const authenticatedFetch = async (url, options = {}) => {
+  const token = getAuthToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+  
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  
+  return fetch(url, {
+    ...options,
+    headers,
+  });
+};
 function UniversityDashboard({ userId }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [activeModule, setActiveModule] = useState("welcome")
@@ -34,7 +56,7 @@ function UniversityDashboard({ userId }) {
     const fetchUserUniversity = async () => {
       if (userId) {
         try {
-          const response = await fetch(`${API_URL_USERS}/${userId}`)
+          const response = await authenticatedFetch(`/api/usuarios/${userId}`)
           if (response.ok) {
             const userData = await response.json()
             if (userData && userData.id_universidad) {
@@ -141,7 +163,6 @@ function UniversityDashboard({ userId }) {
               canEdit={true}
               dashboardType="university"
               userUniversityId={userUniversityId}
-              // Restricción: Solo ver/editar su universidad, no crear nuevas
             />
           </div>
         )

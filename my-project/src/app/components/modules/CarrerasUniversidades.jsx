@@ -9,6 +9,8 @@ import {
   faEdit,
   faPlus,
 } from "@fortawesome/free-solid-svg-icons";
+import { authenticatedFetch } from "@/utils/api";
+
 
 // Define the base URL of your backend API
 const API_URL_UNIVERSIDADES = "/api/universidades";
@@ -55,7 +57,7 @@ function CarrerasUniversidades() {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_URL_UNIVERSIDADES}?limit=9999`);
+      const response = await authenticatedFetch(`${API_URL_UNIVERSIDADES}?limit=9999`);
       if (!response.ok) throw new Error("Error al obtener universidades");
       const data = await response.json();
       setUniversidades(data.universities || []);

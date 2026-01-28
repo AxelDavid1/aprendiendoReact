@@ -357,7 +357,32 @@ exports.getUsers = async (req, res) => {
     res.status(500).json({ error: "Error al obtener usuarios" });
   }
 };
+// @desc    Get user by ID
+// @route   GET /api/users/:id
+// @access  Private
+exports.getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const [users] = await pool.execute(
+      `SELECT u.id_usuario, u.username, u.email, u.tipo_usuario, 
+              u.id_universidad, uni.nombre as nombre_universidad
+       FROM usuario u 
+       LEFT JOIN universidad uni ON u.id_universidad = uni.id_universidad 
+       WHERE u.id_usuario = ?`,
+      [id]
+    );
 
+    if (users.length === 0) {
+      return res.status(404).json({ error: "Usuario no encontrado" });
+    }
+
+    res.status(200).json(users[0]);
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    res.status(500).json({ error: "Error al obtener usuario" });
+  }
+};
 // @desc    Crear un nuevo usuario (para gestión administrativa)
 // @route   POST /api/usuarios
 // @access  Private (Admin only)

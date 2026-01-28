@@ -1,5 +1,4 @@
 "use client"
-
 import { useState, useEffect, useCallback } from "react"
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome"
 import {
@@ -17,6 +16,8 @@ import GestionHorarios from "./GestionHorarios"
 import PlaneacionCurso from "./PlaneacionCurso"
 import MaterialADescargar from "./MaterialADescargar"
 import { useAuth } from "@/hooks/useAuth"
+import { authenticatedFetch } from "@/utils/api";
+
 
 const API_URL = "/api/cursos"
 const API_URL_UNIVERSIDADES = "/api/universidades"
@@ -225,7 +226,7 @@ function CourseManagement({ userId }) {
 
   const fetchUniversidades = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL_UNIVERSIDADES}?limit=9999`)
+      const response = await authenticatedFetch(`${API_URL_UNIVERSIDADES}?limit=9999`);
       if (!response.ok) throw new Error("No se pudieron cargar las universidades")
       const data = await response.json()
       setUniversidades(data.universities || [])

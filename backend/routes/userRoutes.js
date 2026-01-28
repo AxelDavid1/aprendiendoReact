@@ -3,6 +3,7 @@ const router = express.Router();
 const userController = require("../controllers/userController");
 const domainController = require("../controllers/domainController");
 
+router.get("/usuarios/:id", userController.getUserById); // Ruta para obtener usuario por ID
 router.get("/usuarios", userController.getUsers); // Ruta para obtener usuarios (incluyendo administradores)
 router.post("/usuarios", userController.createUser); // Ruta para crear nuevos usuarios (incluye admins)
 router.put("/usuarios/:id", userController.updateUser); // Ruta para actualizar usuarios

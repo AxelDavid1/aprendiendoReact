@@ -13,6 +13,7 @@ import {
   faFilter,
 } from "@fortawesome/free-solid-svg-icons";
 import styles from "./Convocatorias.module.css";
+import { authenticatedFetch } from "@/utils/api";
 
 const API_URL_CONVOCATORIAS = "/api/convocatorias";
 const API_URL_UNIVERSIDADES = "/api/universidades";
@@ -132,7 +133,7 @@ function GestionConvocatorias() {
 
   const fetchUniversidades = useCallback(async () => {
     try {
-      const response = await fetch(`${API_URL_UNIVERSIDADES}?limit=9999`);
+      const response = await authenticatedFetch(`${API_URL_UNIVERSIDADES}?limit=9999`);
       if (!response.ok) throw new Error("Error al cargar las universidades.");
       const data = await response.json();
       setAllUniversidades(data.universities || []);

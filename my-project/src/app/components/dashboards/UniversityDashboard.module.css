@@ -253,6 +253,38 @@
   margin: 0;
   line-height: 1.5;
 }
+.readOnlyInput {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.universityEditContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 2rem;
+}
+
+.universityHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  text-align: center;
+}
+
+.universityHeader .logo {
+  width: 120px;
+  height: 120px;
+  object-fit: contain;
+}
+
+.universityHeader h2 {
+  margin: 0;
+  color: #333;
+}
 /* Responsive Design */
 @media (max-width: 768px) {
   .sidebar {
