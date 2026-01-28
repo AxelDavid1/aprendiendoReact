@@ -51,7 +51,7 @@ const initialCourseState = {
   costo: null,
 }
 
-function CourseManagement({ userId }) {
+function CourseManagement({ userId, dashboardType, userUniversityId }) {
   const [universidades, setUniversidades] = useState([])
   const [facultades, setFacultades] = useState([])
   const [carreras, setCarreras] = useState([])
@@ -126,6 +126,7 @@ function CourseManagement({ userId }) {
 
   const isMaestroUser = currentUser?.tipo_usuario === "maestro"
   const isAdminSedeq = currentUser?.tipo_usuario === "admin_sedeq"
+  const isAdminUniversidad = currentUser?.tipo_usuario === "admin_universidad"
   const canAssignTeacher = isEditing && !!selectedUniversidad && !!selectedFacultad
 
   // Función para obtener los cursos
@@ -144,8 +145,13 @@ function CourseManagement({ userId }) {
       params.append("limit", "10")
       params.append("searchTerm", debouncedSearchTerm)
 
-      // Solo filtrar por maestro si NO es admin_sedeq
-      if (user.tipo_usuario !== "admin_sedeq" && userId) {
+      // Filtrar por universidad si es admin_universidad
+      if (isAdminUniversidad && userUniversityId) {
+        params.append("universidadId", userUniversityId)
+      }
+      
+      // Solo filtrar por maestro si es maestro (no admin)
+      if (isMaestroUser && userId) {
         params.append("id_maestro", userId)
       }
 
@@ -180,7 +186,7 @@ function CourseManagement({ userId }) {
     } finally {
       setLoading(false)
     }
-  }, [userId, page])
+  }, [userId, page, isAdminUniversidad, userUniversityId, isMaestroUser])
 
   // Obtener Subgrupos Operadores
   const fetchSubgrupos = useCallback(async () => {
@@ -277,8 +283,8 @@ function CourseManagement({ userId }) {
     }
   }, [])
 
-  const fetchTeachers = useCallback(async ({ universidadId, facultadId, carreraId = null }) => {
-    if (!universidadId || !facultadId) {
+  const fetchTeachers = useCallback(async ({ facultadId, carreraId = null }) => {
+    if (!facultadId) {
       setTeachers([])
       return
     }
@@ -287,8 +293,8 @@ function CourseManagement({ userId }) {
     setTeachers([])
 
     try {
+      const token = localStorage.getItem("token")
       const params = new URLSearchParams({
-        id_universidad: universidadId,
         id_facultad: facultadId,
       })
 
@@ -296,7 +302,12 @@ function CourseManagement({ userId }) {
         params.append("id_carrera", carreraId)
       }
 
-      const response = await fetch(`${API_URL_MAESTROS}?${params.toString()}`)
+      const response = await fetch(`${API_URL_MAESTROS}?${params.toString()}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
       const data = await response.json()
       setTeachers(data.maestros || [])
     } catch (err) {
@@ -403,10 +414,10 @@ function CourseManagement({ userId }) {
       }
       if (course.id_carrera || course.id_facultad) {
         setSelectedCarrera(course.id_carrera || "")
+        // Siempre cargar maestros solo por facultad, sin filtrar por carrera
         await fetchTeachers({
-          universidadId: course.id_universidad,
           facultadId: course.id_facultad,
-          carreraId: course.id_carrera || null,
+          carreraId: null, // No filtrar por carrera para ver todos los maestros de la facultad
         })
       }
     } else {
@@ -537,10 +548,10 @@ function CourseManagement({ userId }) {
     }))
     setTeachers([])
     if (isEditing) {
+      // No filtrar por carrera automáticamente, mantener todos los maestros de la facultad visibles
       await fetchTeachers({
-        universidadId: selectedUniversidad,
         facultadId: selectedFacultad,
-        carreraId: carId,
+        carreraId: null, // Siempre null para ver todos los maestros de la facultad
       })
     }
   }
@@ -585,9 +596,13 @@ function CourseManagement({ userId }) {
     }
 
     try {
+      const token = localStorage.getItem("token")
       const response = await fetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify(bodyToSend),
       })
       const result = await response.json()

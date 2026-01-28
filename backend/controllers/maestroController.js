@@ -58,21 +58,37 @@ exports.getMaestros = async (req, res) => {
             error: "No tienes una universidad asignada.",
           });
         }
+        // Para admin_universidad, siempre filtrar por su universidad
         whereClauses.push("m.id_universidad = ?");
         params.push(parseInt(req.user.id_universidad, 10));
+        
+        // Pero permitir filtrar por facultad específica de su universidad
+        if (id_facultad) {
+          whereClauses.push("m.id_facultad = ?");
+          params.push(parseInt(id_facultad, 10));
+        }
+        
+        // Y por carrera si se especifica
+        if (id_carrera) {
+          whereClauses.push("m.id_carrera = ?");
+          params.push(parseInt(id_carrera, 10));
+        }
       } else if (id_universidad) {
         whereClauses.push("m.id_universidad = ?");
         params.push(parseInt(id_universidad, 10));
       }
-
-      if (id_facultad) {
-        whereClauses.push("m.id_facultad = ?");
-        params.push(parseInt(id_facultad, 10));
-      }
-
-      if (id_carrera) {
-        whereClauses.push("m.id_carrera = ?");
-        params.push(parseInt(id_carrera, 10));
+      
+      // Para usuarios no admin_universidad, aplicar filtros si se proporcionan
+      if (!isUniversityAdmin) {
+        if (id_facultad) {
+          whereClauses.push("m.id_facultad = ?");
+          params.push(parseInt(id_facultad, 10));
+        }
+        
+        if (id_carrera) {
+          whereClauses.push("m.id_carrera = ?");
+          params.push(parseInt(id_carrera, 10));
+        }
       }
 
       if (whereClauses.length > 0) {

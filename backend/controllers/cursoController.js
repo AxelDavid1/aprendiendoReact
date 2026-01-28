@@ -35,6 +35,16 @@ const getAllCursos = async (req, res) => {
     let whereClauses = [];
     let queryParams = [];
 
+    // --- FILTRADO AUTOMÁTICO PARA ADMIN_UNIVERSIDAD ---
+    // Si el usuario es admin_universidad y no se proporciona universidadId, filtrar por su universidad
+    if (req.user && req.user.tipo_usuario === 'admin_universidad' && !universidadId) {
+      if (!req.user.id_universidad) {
+        return res.status(403).json({ error: "No tienes una universidad asignada." });
+      }
+      whereClauses.push("c.id_universidad = ?");
+      queryParams.push(req.user.id_universidad);
+    }
+
     // --- CONSTRUCCIÓN DEL WHERE ---
     if (searchTerm) {
       whereClauses.push("c.nombre_curso LIKE ?");

@@ -15,12 +15,12 @@ const { guardarPlaneacion, obtenerPlaneacion } = require("../controllers/planeac
 const { protect } = require("../middleware/authMiddleware.js");
 
 // Rutas para los cursos
-router.get("/", getAllCursos);
-router.get("/:id", getCursoById);
+router.get("/", protect, getAllCursos);
+router.get("/:id", protect, getCursoById);
 router.get("/:id/alumnos", protect, getAlumnosPorCurso);
-router.post("/", createCurso);
-router.put("/:id", updateCurso);
-router.delete("/:id", deleteCurso);
+router.post("/", protect, createCurso);
+router.put("/:id", protect, updateCurso);
+router.delete("/:id", protect, deleteCurso);
 
 router.post("/:id/planeacion", protect, guardarPlaneacion);
 router.get("/:id/planeacion", protect, obtenerPlaneacion);
