@@ -20,6 +20,7 @@ exports.getMaestros = async (req, res) => {
   const parsedLimit = parseInt(limit, 10) || 10;
   const parsedPage = parseInt(page, 10) || 1;
   const offset = (parsedPage - 1) * parsedLimit;
+  const isUniversityAdmin = req.user?.tipo_usuario === "admin_universidad";
 
   try {
     const db = await pool.getConnection();
@@ -51,7 +52,15 @@ exports.getMaestros = async (req, res) => {
         params.push(`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`);
       }
 
-      if (id_universidad) {
+      if (isUniversityAdmin) {
+        if (!req.user.id_universidad) {
+          return res.status(403).json({
+            error: "No tienes una universidad asignada.",
+          });
+        }
+        whereClauses.push("m.id_universidad = ?");
+        params.push(parseInt(req.user.id_universidad, 10));
+      } else if (id_universidad) {
         whereClauses.push("m.id_universidad = ?");
         params.push(parseInt(id_universidad, 10));
       }
@@ -125,17 +134,27 @@ exports.createMaestro = async (req, res) => {
     fecha_ingreso,
     password,
   } = req.body;
+  const isUniversityAdmin = req.user?.tipo_usuario === "admin_universidad";
+  const resolvedUniversityId = isUniversityAdmin
+    ? req.user.id_universidad
+    : id_universidad;
 
   if (
     !nombre_completo ||
     !email_institucional ||
-    !id_universidad ||
+    !resolvedUniversityId ||
     !grado_academico
   ) {
     return res.status(400).json({
       error:
         "Nombre completo, email institucional, universidad y grado académico son requeridos.",
     });
+  }
+
+  if (isUniversityAdmin && !req.user.id_universidad) {
+    return res
+      .status(403)
+      .json({ error: "No tienes una universidad asignada." });
   }
 
   let connection;
@@ -166,7 +185,7 @@ exports.createMaestro = async (req, res) => {
         password_hash,
         "maestro",
         "activo",
-        id_universidad,
+        resolvedUniversityId,
       ],
     );
     const id_usuario = userResult.insertId;
@@ -175,7 +194,7 @@ exports.createMaestro = async (req, res) => {
       "INSERT INTO maestro (id_usuario, id_universidad, id_facultad, id_carrera, nombre_completo, email_institucional, especialidad, grado_academico, fecha_ingreso) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
       [
         id_usuario,
-        id_universidad,
+        resolvedUniversityId,
         id_facultad || null,
         id_carrera || null,
         nombre_completo,
@@ -218,6 +237,7 @@ exports.updateMaestro = async (req, res) => {
     id_carrera,
     password,
   } = req.body;
+  const isUniversityAdmin = req.user?.tipo_usuario === "admin_universidad";
 
   // --- LOG PARA DEPURACIÓN ---
   console.log(`[Debug] Actualizando maestro ID: ${id}`);
@@ -229,7 +249,7 @@ exports.updateMaestro = async (req, res) => {
     await connection.beginTransaction();
 
     const [existingMaestro] = await connection.execute(
-      "SELECT id_usuario FROM maestro WHERE id_maestro = ?",
+      "SELECT id_usuario, id_universidad FROM maestro WHERE id_maestro = ?",
       [id],
     );
 
@@ -238,6 +258,19 @@ exports.updateMaestro = async (req, res) => {
       return res.status(404).json({ error: "Maestro no encontrado." });
     }
     const id_usuario = existingMaestro[0].id_usuario;
+    const maestroUniversityId = existingMaestro[0].id_universidad;
+
+    if (
+      isUniversityAdmin &&
+      (!req.user.id_universidad ||
+        parseInt(req.user.id_universidad, 10) !==
+          parseInt(maestroUniversityId, 10))
+    ) {
+      await connection.rollback();
+      return res.status(403).json({
+        error: "No puedes editar maestros de otra universidad.",
+      });
+    }
 
     const userUpdates = [];
     const userParams = [];
@@ -261,7 +294,7 @@ exports.updateMaestro = async (req, res) => {
       userUpdates.push("password_hash = ?");
       userParams.push(password_hash);
     }
-    if (id_universidad) {
+    if (id_universidad && !isUniversityAdmin) {
       userUpdates.push("id_universidad = ?");
       userParams.push(id_universidad);
     }
@@ -282,7 +315,7 @@ exports.updateMaestro = async (req, res) => {
     if (req.body.hasOwnProperty('email_institucional')) { maestroUpdates.push("email_institucional = ?"); maestroParams.push(email_institucional); }
     if (req.body.hasOwnProperty('especialidad')) { maestroUpdates.push("especialidad = ?"); maestroParams.push(especialidad); }
     if (req.body.hasOwnProperty('grado_academico')) { maestroUpdates.push("grado_academico = ?"); maestroParams.push(grado_academico); }
-    if (req.body.hasOwnProperty('id_universidad')) { maestroUpdates.push("id_universidad = ?"); maestroParams.push(id_universidad); }
+    if (req.body.hasOwnProperty('id_universidad') && !isUniversityAdmin) { maestroUpdates.push("id_universidad = ?"); maestroParams.push(id_universidad); }
     if (req.body.hasOwnProperty('id_facultad')) { maestroUpdates.push("id_facultad = ?"); maestroParams.push(id_facultad || null); }
     if (req.body.hasOwnProperty('id_carrera')) { maestroUpdates.push("id_carrera = ?"); maestroParams.push(id_carrera || null); }
 
@@ -320,7 +353,7 @@ exports.deleteMaestro = async (req, res) => {
     await connection.beginTransaction();
 
     const [maestroRows] = await connection.execute(
-      "SELECT id_usuario FROM maestro WHERE id_maestro = ?",
+      "SELECT id_usuario, id_universidad FROM maestro WHERE id_maestro = ?",
       [id],
     );
 
@@ -329,6 +362,19 @@ exports.deleteMaestro = async (req, res) => {
       return res.status(404).json({ error: "Maestro no encontrado." });
     }
     const id_usuario_asociado = maestroRows[0].id_usuario;
+    const maestroUniversityId = maestroRows[0].id_universidad;
+
+    if (
+      req.user?.tipo_usuario === "admin_universidad" &&
+      (!req.user.id_universidad ||
+        parseInt(req.user.id_universidad, 10) !==
+          parseInt(maestroUniversityId, 10))
+    ) {
+      await connection.rollback();
+      return res.status(403).json({
+        error: "No puedes eliminar maestros de otra universidad.",
+      });
+    }
 
     await connection.execute("DELETE FROM maestro WHERE id_maestro = ?", [id]);
     await connection.execute("DELETE FROM usuario WHERE id_usuario = ?", [

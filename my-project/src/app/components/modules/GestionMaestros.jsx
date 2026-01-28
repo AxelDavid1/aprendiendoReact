@@ -40,7 +40,12 @@ const gradosAcademicos = [
   { value: "posdoctorado", label: "Posdoctorado" },
 ];
 
-function GestionMaestros() {
+function GestionMaestros({
+  userId,
+  canEdit = true,
+  dashboardType = "sedeq",
+  userUniversityId,
+}) {
   // Data and loading state
   const [maestros, setMaestros] = useState([]);
   const [universidades, setUniversidades] = useState([]);
@@ -70,6 +75,9 @@ function GestionMaestros() {
   // Toast notification state
   const [toast, setToast] = useState({ show: false, message: "", type: "" });
 
+  const isUniversityDashboard =
+    dashboardType === "university" && userUniversityId;
+
   // Debounce search term
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -87,8 +95,18 @@ function GestionMaestros() {
     setLoading(true);
     setError(null);
     try {
-      const url = `${API_URL}?page=${page}&limit=10&searchTerm=${debouncedSearchTerm}`;
-      const response = await fetch(url);
+      const params = new URLSearchParams({
+        page,
+        limit: "10",
+        searchTerm: debouncedSearchTerm,
+      });
+
+      if (isUniversityDashboard) {
+        params.append("id_universidad", userUniversityId);
+      }
+
+      const url = `${API_URL}?${params.toString()}`;
+      const response = await authenticatedFetch(url);
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(
@@ -106,7 +124,7 @@ function GestionMaestros() {
     } finally {
       setLoading(false);
     }
-  }, [page, debouncedSearchTerm]);
+  }, [page, debouncedSearchTerm, isUniversityDashboard, userUniversityId]);
 
   // Fetch universidades for dropdown
   const fetchUniversidades = useCallback(async () => {
@@ -114,12 +132,20 @@ function GestionMaestros() {
       const response = await authenticatedFetch("/api/universidades?limit=9999");
       if (!response.ok) throw new Error("Could not fetch universities");
       const data = await response.json();
-      setUniversidades(data.universities || []);
+      const universities = data.universities || [];
+      if (isUniversityDashboard) {
+        const filtered = universities.filter(
+          (uni) => uni.id_universidad?.toString() === userUniversityId,
+        );
+        setUniversidades(filtered);
+      } else {
+        setUniversidades(universities);
+      }
     } catch (err) {
       console.error("Failed to fetch universities:", err);
       setUniversidades([]);
     }
-  }, []);
+  }, [isUniversityDashboard, userUniversityId]);
 
   useEffect(() => {
     fetchMaestros();
@@ -200,9 +226,15 @@ function GestionMaestros() {
     } else {
       // Add operation
       setIsEditing(false);
-      setFormState(initialMaestroState);
+      setFormState({
+        ...initialMaestroState,
+        id_universidad: isUniversityDashboard ? userUniversityId : "",
+      });
       setFacultades([]);
       setCarreras([]);
+      if (isUniversityDashboard) {
+        fetchFacultades(userUniversityId);
+      }
     }
     setIsModalOpen(true);
   };
@@ -241,7 +273,9 @@ function GestionMaestros() {
   const handleFormSubmit = async (e) => {
     e.preventDefault();
     const body = {
-      id_universidad: formState.id_universidad,
+      id_universidad: isUniversityDashboard
+        ? userUniversityId
+        : formState.id_universidad,
       id_facultad: formState.id_facultad, // <-- Añadido
       id_carrera: formState.id_carrera, // <-- Añadido
       nombre_completo: formState.nombre_completo,
@@ -261,7 +295,7 @@ function GestionMaestros() {
       : "Maestro creado con éxito.";
 
     try {
-      const response = await fetch(url, {
+      const response = await authenticatedFetch(url, {
         method,
         headers: {
           "Content-Type": "application/json",
@@ -289,7 +323,7 @@ function GestionMaestros() {
     const successMessage = "Maestro eliminado con éxito.";
 
     try {
-      const response = await fetch(url, { method: "DELETE" });
+      const response = await authenticatedFetch(url, { method: "DELETE" });
       if (!response.ok) {
         const result = await response.json();
         throw new Error(result.error || "La eliminación falló.");
@@ -547,8 +581,11 @@ function GestionMaestros() {
                     value={formState.id_universidad}
                     onChange={handleFormChange}
                     required
+                    disabled={isUniversityDashboard}
                   >
-                    <option value="">Seleccione una</option>
+                    {!isUniversityDashboard && (
+                      <option value="">Seleccione una</option>
+                    )}
                     {universidades.map((uni) => (
                       <option
                         key={uni.id_universidad}
