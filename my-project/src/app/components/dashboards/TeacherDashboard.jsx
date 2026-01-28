@@ -5,8 +5,6 @@ import GestionCursos from "../modules/GestionCursos"
 import Inscripciones from "../modules/Inscripciones"
 import CalificacionCurso from "../modules/CalificacionCurso"
 
-const API_URL_USERS = "/api/users"
-
 function TeacherDashboard({ userId }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [activeModule, setActiveModule] = useState("welcome")
@@ -24,26 +22,54 @@ function TeacherDashboard({ userId }) {
     const fetchTeacherInfo = async () => {
       if (userId) {
         try {
-          const response = await fetch(`${API_URL_USERS}/${userId}`)
+          const token = localStorage.getItem("token");
+          
+          if (!token) {
+            console.error("No hay token en localStorage");
+            setLoading(false);
+            return;
+          }
+
+          // Obtener información completa del usuario desde el backend usando el token
+          const response = await fetch("/api/auth/me", {
+            headers: {
+              "Authorization": `Bearer ${token}`,
+              "Content-Type": "application/json"
+            }
+          });
+
           if (response.ok) {
-            const userData = await response.json()
-            if (userData) {
-              setUserUniversityId(userData.id_universidad?.toString() || null)
-              setTeacherId(userData.id_maestro?.toString() || userId.toString())
-              setTeacherName(userData.nombre || "Maestro")
+            const userData = await response.json();
+            
+            // Guardar información completa en localStorage
+            localStorage.setItem("user", JSON.stringify(userData));
+            
+            setUserUniversityId(userData.id_universidad?.toString() || null);
+            setTeacherId(userData.id_maestro?.toString() || userId.toString());
+            setTeacherName(userData.username || userData.nombre || "Maestro");
+          } else {
+            console.error("Error al obtener datos del usuario:", response.status);
+            // Como fallback, usar lo que haya en localStorage
+            const userStr = localStorage.getItem("user");
+            if (userStr) {
+              const user = JSON.parse(userStr);
+              setUserUniversityId(user.id_universidad?.toString() || null);
+              setTeacherId(user.id_maestro?.toString() || userId.toString());
+              setTeacherName(user.username || user.nombre || "Maestro");
             }
           }
         } catch (error) {
-          console.error("Error fetching teacher info:", error)
+          console.error("Error al obtener información del maestro:", error);
+          setLoading(false);
         } finally {
-          setLoading(false)
+          setLoading(false);
         }
       } else {
-        setLoading(false)
+        setLoading(false);
       }
-    }
-    fetchTeacherInfo()
-  }, [userId])
+    };
+    fetchTeacherInfo();
+  }, [userId]);
 
   const toggleCategory = (category) => {
     setExpandedCategories((prev) => ({

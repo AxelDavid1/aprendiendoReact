@@ -54,6 +54,17 @@ const protect = async (req, res, next) => {
         }
       }
 
+      // Si el usuario es un maestro, también adjuntamos su id_maestro para las validaciones
+      if (req.user.tipo_usuario === "maestro") {
+        const [maestros] = await pool.query(
+          "SELECT id_maestro FROM maestro WHERE id_usuario = ?",
+          [req.user.id_usuario],
+        );
+        if (maestros.length > 0) {
+          req.user.id_maestro = maestros[0].id_maestro;
+        }
+      }
+
       console.log("Usuario autenticado:", req.user);
       console.log("=== FIN DEBUG AUTH MIDDLEWARE ===");
       next();

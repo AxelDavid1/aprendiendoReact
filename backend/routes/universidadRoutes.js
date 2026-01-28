@@ -54,13 +54,13 @@ const upload = multer({
 // Routes for the collection of universities
 router
   .route("/")
-  .get(protect, admin, getAllUniversidades)
+  .get(protect, getAllUniversidades)  // Solo requiere autenticación, no rol de admin
   .post(protect, isSedeqAdmin, upload.single("logo"), createUniversidad);
 
 // Routes for a single university identified by ID
 router
   .route("/:id")
-  .get(protect, admin, getUniversidadById)
+  .get(protect, getUniversidadById)  // Solo requiere autenticación, no rol de admin
   .put(protect, admin, upload.single("logo"), updateUniversidad)
   .delete(protect, isSedeqAdmin, deleteUniversidad);
 

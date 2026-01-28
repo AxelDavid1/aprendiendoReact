@@ -262,6 +262,11 @@ const createCurso = async (req, res) => {
       .json({ error: "Faltan campos obligatorios para crear el curso." });
   }
 
+  // Validación: Los maestros no pueden crear cursos
+  if (req.user && req.user.tipo_usuario === 'maestro') {
+    return res.status(403).json({ error: "Los maestros no pueden crear nuevos cursos." });
+  }
+
   const totalHoras = parseInt(duracion_horas, 10);
   const teoriaHoras = parseInt(horas_teoria, 10) || 0;
   const practicaHoras = parseInt(horas_practica, 10) || 0;
@@ -400,6 +405,22 @@ const updateCurso = async (req, res) => {
       .json({ error: "Faltan campos obligatorios para actualizar el curso." });
   }
 
+  // Validación: Si es maestro, verificar que el curso le pertenece
+  if (req.user && req.user.tipo_usuario === 'maestro') {
+    const [courseCheck] = await pool.query(
+      "SELECT id_maestro FROM curso WHERE id_curso = ?",
+      [id]
+    );
+    
+    if (courseCheck.length === 0) {
+      return res.status(404).json({ error: "Curso no encontrado." });
+    }
+    
+    if (courseCheck[0].id_maestro !== req.user.id_maestro) {
+      return res.status(403).json({ error: "Solo puedes modificar cursos que te han sido asignados." });
+    }
+  }
+
   // ... (Validaciones de horas y maestro se mantienen igual) ...
   const totalHoras = parseInt(duracion_horas, 10);
   const teoriaHoras = parseInt(horas_teoria, 10) || 0;
@@ -487,6 +508,12 @@ const updateCurso = async (req, res) => {
 
 const deleteCurso = async (req, res) => {
   const { id } = req.params;
+  
+  // Validación: Los maestros no pueden eliminar cursos
+  if (req.user && req.user.tipo_usuario === 'maestro') {
+    return res.status(403).json({ error: "Los maestros no pueden eliminar cursos." });
+  }
+  
   try {
     const [result] = await pool.query("DELETE FROM curso WHERE id_curso = ?", [
       id,
@@ -494,7 +521,7 @@ const deleteCurso = async (req, res) => {
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: "Curso no encontrado." });
     }
-    res.json({ message: "Curso eliminado con éxito." });
+    res.json({ message: "Curso eliminado exitosamente." });
   } catch (error) {
     console.error(`Error al eliminar el curso ${id}:`, error);
     if (error.code === "ER_ROW_IS_REFERENCED_2") {

@@ -736,3 +736,29 @@ exports.login = async (req, res) => {
     handleError(res, error, "Fallo el Login");
   }
 };
+
+// Obtener información completa del usuario autenticado
+exports.getMe = async (req, res) => {
+  try {
+    // El middleware protect ya incluye toda la información del usuario en req.user
+    // incluyendo id_maestro, id_alumno, id_universidad, etc.
+    
+    const user = req.user;
+    
+    // Construir respuesta con toda la información relevante
+    const response = {
+      id_usuario: user.id_usuario,
+      username: user.username,
+      email: user.email,
+      tipo_usuario: user.tipo_usuario,
+      id_universidad: user.id_universidad,
+      id_maestro: user.id_maestro || null,
+      id_alumno: user.id_alumno || null,
+    };
+
+    res.json(response);
+  } catch (error) {
+    console.error("Error en getMe:", error);
+    res.status(500).json({ error: "Error al obtener información del usuario" });
+  }
+};

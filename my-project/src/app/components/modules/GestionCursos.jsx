@@ -51,7 +51,7 @@ const initialCourseState = {
   costo: null,
 }
 
-function CourseManagement({ userId, dashboardType, userUniversityId }) {
+function CourseManagement({ userId, dashboardType, userUniversityId, teacherId }) {
   const [universidades, setUniversidades] = useState([])
   const [facultades, setFacultades] = useState([])
   const [carreras, setCarreras] = useState([])
@@ -151,8 +151,9 @@ function CourseManagement({ userId, dashboardType, userUniversityId }) {
       }
       
       // Solo filtrar por maestro si es maestro (no admin)
-      if (isMaestroUser && userId) {
-        params.append("id_maestro", userId)
+      if (isMaestroUser && (teacherId || userId)) {
+        const maestroId = teacherId || userId; // Usar teacherId si está disponible, sino userId
+        params.append("id_maestro", maestroId)
       }
 
       url += `?${params.toString()}`
@@ -186,7 +187,7 @@ function CourseManagement({ userId, dashboardType, userUniversityId }) {
     } finally {
       setLoading(false)
     }
-  }, [userId, page, isAdminUniversidad, userUniversityId, isMaestroUser])
+  }, [userId, page, isAdminUniversidad, userUniversityId, isMaestroUser, teacherId])
 
   // Obtener Subgrupos Operadores
   const fetchSubgrupos = useCallback(async () => {
@@ -232,7 +233,13 @@ function CourseManagement({ userId, dashboardType, userUniversityId }) {
 
   const fetchUniversidades = useCallback(async () => {
     try {
-      const response = await authenticatedFetch(`${API_URL_UNIVERSIDADES}?limit=9999`);
+      const token = localStorage.getItem("token");
+      const response = await fetch(`${API_URL_UNIVERSIDADES}?limit=9999`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
       if (!response.ok) throw new Error("No se pudieron cargar las universidades")
       const data = await response.json()
       setUniversidades(data.universities || [])
@@ -319,10 +326,18 @@ function CourseManagement({ userId, dashboardType, userUniversityId }) {
 
   // Efecto para cargar datos iniciales
   useEffect(() => {
+    // Para maestros, esperar a tener teacherId antes de cargar cursos
+    if (dashboardType === "teacher" && !teacherId) {
+      // No cargar cursos hasta tener teacherId
+      fetchSubgrupos()
+      fetchUniversidades()
+      return
+    }
+    
     fetchCourses()
     fetchSubgrupos()
     fetchUniversidades()
-  }, [fetchCourses, fetchSubgrupos, fetchUniversidades])
+  }, [fetchCourses, fetchSubgrupos, fetchUniversidades, dashboardType, teacherId])
 
   // Función para mostrar notificaciones toast
   const showToast = (message, type = "success") => {
@@ -422,7 +437,7 @@ function CourseManagement({ userId, dashboardType, userUniversityId }) {
       }
     } else {
       setIsEditing(false)
-      const presetMaestro = isMaestroUser && userId ? String(userId) : ""
+      const presetMaestro = isMaestroUser && (teacherId || userId) ? String(teacherId || userId) : ""
       setFormState({ ...initialCourseState, id_maestro: presetMaestro })
       setSelectedUniversidad("")
       setSelectedFacultad("")
@@ -662,9 +677,11 @@ function CourseManagement({ userId, dashboardType, userUniversityId }) {
           <FontAwesomeIcon icon={faBook} size="3x" />
           <h3>No se encontraron cursos</h3>
           <p>Comienza agregando un nuevo curso para empezar.</p>
-          <button onClick={() => handleOpenModal()} className={styles.emptyStateButton}>
-            <i className="fas fa-plus"></i> Agregar Curso
-          </button>
+          {!isMaestroUser && (
+            <button onClick={() => handleOpenModal()} className={styles.emptyStateButton}>
+              <i className="fas fa-plus"></i> Agregar Curso
+            </button>
+          )}
         </div>
       )
     }
@@ -766,9 +783,11 @@ function CourseManagement({ userId, dashboardType, userUniversityId }) {
       </header>
       <main className={styles.main}>
         <div className={styles.toolbar}>
-          <button onClick={() => handleOpenModal()} className={styles.addButton}>
-            <FontAwesomeIcon icon={faPlus} /> Agregar Curso
-          </button>
+          {!isMaestroUser && (
+            <button onClick={() => handleOpenModal()} className={styles.addButton}>
+              <FontAwesomeIcon icon={faPlus} /> Agregar Curso
+            </button>
+          )}
           <div className={styles.searchContainer}>
             <i className="fas fa-search"></i>
             <input
