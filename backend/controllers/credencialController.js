@@ -105,6 +105,7 @@ const getAllCredenciales = async (req, res) => {
         cr.estatus,
         cr.descripcion,
         cr.fecha_creacion,
+        cr.id_universidad,
         u.nombre as nombre_universidad,
         f.nombre as nombre_facultad,
         COUNT(DISTINCT rc.id_curso) as num_cursos,

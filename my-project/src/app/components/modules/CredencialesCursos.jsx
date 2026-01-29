@@ -48,9 +48,22 @@ function CredencialesCursos({ userId, dashboardType, userUniversityId }) {
     setError(null);
     try {
       let url = API_URL;
+      const params = new URLSearchParams();
+      
       if (userId) {
-        url += `?id_maestro=${userId}`;
+        params.append("id_maestro", userId);
       }
+      
+      // Filtrar por universidad cuando el dashboardType es "university"
+      if (dashboardType === "university" && userUniversityId) {
+        params.append("universidades", userUniversityId);
+      }
+      
+      const queryString = params.toString();
+      if (queryString) {
+        url += `?${queryString}`;
+      }
+      
       const response = await fetch(url);
       if (!response.ok) {
         const errData = await response.json();
@@ -64,7 +77,7 @@ function CredencialesCursos({ userId, dashboardType, userUniversityId }) {
     } finally {
       setLoading(false);
     }
-  }, [userId]);
+  }, [userId, dashboardType, userUniversityId]);
 
   const fetchUniversidades = useCallback(async () => {
     try {
@@ -117,7 +130,7 @@ function CredencialesCursos({ userId, dashboardType, userUniversityId }) {
           url.searchParams.append("editing_credential_id", editingCredentialId);
         }
 
-        const response = await fetch(url);
+        const response = await authenticatedFetch(url);
         if (!response.ok) {
           const errData = await response.json();
           throw new Error(errData.error || "Error al cargar los cursos");
@@ -160,7 +173,7 @@ function CredencialesCursos({ userId, dashboardType, userUniversityId }) {
         url.searchParams.append("editing_credential_id", editingCredentialId);
         url.searchParams.append("only_active", "true"); // NUEVO: Solo cursos vigentes
 
-        const response = await fetch(url);
+        const response = await authenticatedFetch(url);
         if (!response.ok) {
           const errData = await response.json();
           throw new Error(errData.error || "Error al cargar los cursos");
@@ -460,18 +473,27 @@ function CredencialesCursos({ userId, dashboardType, userUniversityId }) {
                 <td>{cred.cursos ? cred.cursos.length : 0}</td>
                 <td>
                   <div className={styles.tableActions}>
-                    <button
-                      onClick={() => handleOpenModal(cred)}
-                      className={styles.editButton}
-                    >
-                      <FontAwesomeIcon icon={faEdit} />
-                    </button>
-                    <button
-                      onClick={() => handleOpenDeleteModal(cred)}
-                      className={styles.deleteButton}
-                    >
-                      <FontAwesomeIcon icon={faTrash} />
-                    </button>
+                    {dashboardType !== "university" || 
+                     (cred.id_universidad && cred.id_universidad.toString() === userUniversityId) ? (
+                      <>
+                        <button
+                          onClick={() => handleOpenModal(cred)}
+                          className={styles.editButton}
+                        >
+                          <FontAwesomeIcon icon={faEdit} />
+                        </button>
+                        <button
+                          onClick={() => handleOpenDeleteModal(cred)}
+                          className={styles.deleteButton}
+                        >
+                          <FontAwesomeIcon icon={faTrash} />
+                        </button>
+                      </>
+                    ) : (
+                      <span style={{ color: '#999', fontSize: '0.9em' }}>
+                        Solo lectura
+                      </span>
+                    )}
                   </div>
                 </td>
               </tr>
