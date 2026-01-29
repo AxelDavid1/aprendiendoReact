@@ -25,6 +25,7 @@ const getAllCursos = async (req, res) => {
     groupByCourse,
     universidadId,
     facultadId,
+    carreraId,
     id_subgrupo,
     only_active = "false", // NUEVO PARÁMETRO: filtrar solo cursos vigentes
   } = req.query;
@@ -90,6 +91,12 @@ const getAllCursos = async (req, res) => {
     } else if (facultadId && facultadId !== "undefined" && facultadId !== "") {
       whereClauses.push("c.id_facultad = ?");
       queryParams.push(facultadId);
+    }
+
+    // Filtro por Carrera
+    if (carreraId && carreraId !== "undefined" && carreraId !== "") {
+      whereClauses.push("c.id_carrera = ?");
+      queryParams.push(carreraId);
     }
 
     // NUEVO: Filtro de cursos vigentes (solo si only_active es "true")

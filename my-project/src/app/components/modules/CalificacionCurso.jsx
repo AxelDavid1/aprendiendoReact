@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import styles from "./CalificacionCurso.module.css";
 import VistaCalificacion from "./vistaCalificado";
@@ -31,6 +31,9 @@ const CalificacionCurso = ({ rol, entidadId }) => {
     carreraId: "",
     searchTerm: "",
   });
+
+  // Ref para el debounce
+  const debounceTimeoutRef = useRef(null);
 
   const fetchData = async (page = 1, filtrosActuales = filtros) => {
     setLoading(true);
@@ -86,6 +89,9 @@ const CalificacionCurso = ({ rol, entidadId }) => {
           // Cargar Universidades
           const uniRes = await fetch(
             `${API_BASE_URL}/api/universidades?limit=9999`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
           );
           const uniData = await uniRes.json();
           setUniversidades(uniData.universities || []);
@@ -94,6 +100,9 @@ const CalificacionCurso = ({ rol, entidadId }) => {
           if (filtros.universidadId) {
             const facRes = await fetch(
               `${API_BASE_URL}/api/facultades/universidad/${filtros.universidadId}`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              },
             );
             const facData = await facRes.json();
             setFacultades(facData.data || []);
@@ -105,6 +114,9 @@ const CalificacionCurso = ({ rol, entidadId }) => {
           if (filtros.facultadId) {
             const carRes = await fetch(
               `${API_BASE_URL}/api/carreras/facultad/${filtros.facultadId}`,
+              {
+                headers: { Authorization: `Bearer ${token}` },
+              },
             );
             const carData = await carRes.json();
             setCarreras(carData.data || []);
@@ -128,7 +140,7 @@ const CalificacionCurso = ({ rol, entidadId }) => {
   };
 
   const handleFiltroChange = (campo, valor) => {
-    // Si se cambia la universidad, se resetea la facultad
+    // Si se cambia la universidad, se resetea la facultad y carrera
     const nuevosFiltros = { ...filtros, [campo]: valor };
     if (campo === "universidadId") {
       nuevosFiltros.facultadId = "";
@@ -137,11 +149,38 @@ const CalificacionCurso = ({ rol, entidadId }) => {
     if (campo === "facultadId") {
       nuevosFiltros.carreraId = "";
     }
+    
+    // Actualizar el estado inmediatamente (sin llamar a la API aún)
     setFiltros(nuevosFiltros);
-    setPaginaActual(1); // Resetear a página 1 cuando se filtran
-    fetchData(1, nuevosFiltros);
+    
+    // Para el campo de búsqueda, usar debounce
+    if (campo === "searchTerm") {
+      // Limpiar el timeout anterior
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+      
+      // Establecer nuevo timeout
+      debounceTimeoutRef.current = setTimeout(() => {
+        setPaginaActual(1);
+        fetchData(1, nuevosFiltros);
+      }, 500); // 500ms de debounce
+    } else {
+      // Para filtros de select, ejecutar inmediatamente
+      setPaginaActual(1);
+      fetchData(1, nuevosFiltros);
+    }
   };
 
+
+  // Cleanup del timeout cuando el componente se desmonte
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, []);
 
   if (loading)
     return (
