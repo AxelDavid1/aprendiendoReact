@@ -7,7 +7,7 @@ import VistaCalificacion from "./vistaCalificado";
 
 const API_BASE_URL = "";
 
-const CalificacionCurso = ({ rol, entidadId }) => {
+const CalificacionCurso = ({ rol, entidadId, userUniversityId, teacherId }) => {
   const { token } = useAuth();
   const [cursos, setCursos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -21,7 +21,7 @@ const CalificacionCurso = ({ rol, entidadId }) => {
   const [totalCursos, setTotalCursos] = useState(0);
   const cursosPerPage = 15;
 
-  // Estados para los filtros
+  // Estados para los filtros - para maestros solo necesita carreras
   const [universidades, setUniversidades] = useState([]);
   const [facultades, setFacultades] = useState([]);
   const [carreras, setCarreras] = useState([]);
@@ -35,6 +35,9 @@ const CalificacionCurso = ({ rol, entidadId }) => {
   // Ref para el debounce
   const debounceTimeoutRef = useRef(null);
 
+  // Determinar si es maestro para ocultar filtros
+  const isTeacher = rol === "teacher";
+
   const fetchData = async (page = 1, filtrosActuales = filtros) => {
     setLoading(true);
     setError(null);
@@ -47,6 +50,11 @@ const CalificacionCurso = ({ rol, entidadId }) => {
         exclude_assigned: "false", // <-- Añadir este para ver TODOS los cursos
         ...filtrosActuales,
       });
+
+      // Para maestros, agregar el filtro por teacherId
+      if (isTeacher && teacherId) {
+        params.append("id_maestro", teacherId);
+      }
 
       // Filtrar parámetros vacíos para limpiar la URL
       for (const [key, value] of [...params.entries()]) {
@@ -86,42 +94,104 @@ const CalificacionCurso = ({ rol, entidadId }) => {
       // Cargar datos para los filtros
       const fetchFilterData = async () => {
         try {
-          // Cargar Universidades
-          const uniRes = await fetch(
-            `${API_BASE_URL}/api/universidades?limit=9999`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            },
-          );
-          const uniData = await uniRes.json();
-          setUniversidades(uniData.universities || []);
-
-          // Cargar Facultades (si una universidad está seleccionada)
-          if (filtros.universidadId) {
-            const facRes = await fetch(
-              `${API_BASE_URL}/api/facultades/universidad/${filtros.universidadId}`,
+          // Para maestros, cargar carreras de su facultad
+          if (isTeacher) {
+            // Obtener información completa del maestro desde el backend
+            let maestroFacultadId = "";
+            try {
+              console.log("DEBUG: Obteniendo info del maestro ID:", teacherId);
+              const maestroRes = await fetch(
+                `${API_BASE_URL}/api/maestros/${teacherId}`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                },
+              );
+              
+              if (maestroRes.ok) {
+                const maestroData = await maestroRes.json();
+                console.log("DEBUG: Info maestro desde backend:", maestroData.data);
+                maestroFacultadId = maestroData.data.id_facultad?.toString() || "";
+                
+                // Actualizar localStorage con la información completa
+                const userStr = localStorage.getItem("user");
+                if (userStr) {
+                  const user = JSON.parse(userStr);
+                  user.id_facultad = maestroData.data.id_facultad;
+                  localStorage.setItem("user", JSON.stringify(user));
+                }
+              } else {
+                console.error("Error al obtener info del maestro:", maestroRes.status);
+              }
+            } catch (error) {
+              console.error("Error al obtener información del maestro:", error);
+            }
+            
+            console.log("DEBUG: maestroFacultadId:", maestroFacultadId);
+            
+            // Cargar carreras de la facultad del maestro
+            if (maestroFacultadId) {
+              console.log("DEBUG: Cargando carreras de facultad:", maestroFacultadId);
+              const carRes = await fetch(
+                `${API_BASE_URL}/api/carreras/facultad/${maestroFacultadId}`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                },
+              );
+              const carData = await carRes.json();
+              console.log("DEBUG: Carreras recibidas:", carData);
+              setCarreras(carData.data || []);
+            } else {
+              console.log("DEBUG: No hay facultad, cargando todas las carreras");
+              // Fallback: cargar todas las carreras si no tiene facultad
+              const carRes = await fetch(
+                `${API_BASE_URL}/api/carreras?limit=9999`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                },
+              );
+              const carData = await carRes.json();
+              console.log("DEBUG: Todas las carreras recibidas:", carData);
+              setCarreras(carData.data || []);
+            }
+          } else {
+            // Para otros roles, cargar universidades y facultades como antes
+            // Cargar Universidades
+            const uniRes = await fetch(
+              `${API_BASE_URL}/api/universidades?limit=9999`,
               {
                 headers: { Authorization: `Bearer ${token}` },
               },
             );
-            const facData = await facRes.json();
-            setFacultades(facData.data || []);
-          } else {
-            setFacultades([]); // Limpiar si no hay universidad
-          }
+            const uniData = await uniRes.json();
+            setUniversidades(uniData.universities || []);
 
-          // Cargar Carreras (si una facultad está seleccionada)
-          if (filtros.facultadId) {
-            const carRes = await fetch(
-              `${API_BASE_URL}/api/carreras/facultad/${filtros.facultadId}`,
-              {
-                headers: { Authorization: `Bearer ${token}` },
-              },
-            );
-            const carData = await carRes.json();
-            setCarreras(carData.data || []);
-          } else {
-            setCarreras([]);
+            // Cargar Facultades (si una universidad está seleccionada)
+            if (filtros.universidadId) {
+              const facRes = await fetch(
+                `${API_BASE_URL}/api/facultades/universidad/${filtros.universidadId}`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                },
+              );
+              const facData = await facRes.json();
+              setFacultades(facData.data || []);
+            } else {
+              setFacultades([]); // Limpiar si no hay universidad
+            }
+
+            // Cargar Carreras (si una facultad está seleccionada)
+            if (filtros.facultadId) {
+              const carRes = await fetch(
+                `${API_BASE_URL}/api/carreras/facultad/${filtros.facultadId}`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                },
+              );
+              const carData = await carRes.json();
+              setCarreras(carData.data || []);
+            } else {
+              setCarreras([]);
+            }
           }
         } catch (error) {
           console.error("Error al cargar datos de filtros:", error);
@@ -210,38 +280,45 @@ const CalificacionCurso = ({ rol, entidadId }) => {
         {/* Sección de Filtros */}
         <div className={styles.filterBar}>
           <div className={styles.filters}>
-            <select
-              className={styles.input}
-              value={filtros.universidadId}
-              onChange={(e) =>
-                handleFiltroChange("universidadId", e.target.value)
-              }
-            >
-              <option value="">Todas las Universidades</option>
-              {universidades.map((uni) => (
-                <option key={uni.id_universidad} value={uni.id_universidad}>
-                  {uni.nombre}
-                </option>
-              ))}
-            </select>
-            <select
-              className={styles.input}
-              value={filtros.facultadId}
-              onChange={(e) => handleFiltroChange("facultadId", e.target.value)}
-              disabled={!filtros.universidadId || facultades.length === 0}
-            >
-              <option value="">Facultad</option>
-              {facultades.map((fac) => (
-                <option key={fac.id_facultad} value={fac.id_facultad}>
-                  {fac.nombre}
-                </option>
-              ))}
-            </select>
+            {/* Mostrar filtros de universidad y facultad solo para roles que no sean maestros */}
+            {!isTeacher && (
+              <>
+                <select
+                  className={styles.input}
+                  value={filtros.universidadId}
+                  onChange={(e) =>
+                    handleFiltroChange("universidadId", e.target.value)
+                  }
+                >
+                  <option value="">Todas las Universidades</option>
+                  {universidades.map((uni) => (
+                    <option key={uni.id_universidad} value={uni.id_universidad}>
+                      {uni.nombre}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className={styles.input}
+                  value={filtros.facultadId}
+                  onChange={(e) => handleFiltroChange("facultadId", e.target.value)}
+                  disabled={!filtros.universidadId || facultades.length === 0}
+                >
+                  <option value="">Facultad</option>
+                  {facultades.map((fac) => (
+                    <option key={fac.id_facultad} value={fac.id_facultad}>
+                      {fac.nombre}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
+            
+            {/* Filtro de carrera - visible para todos los roles */}
             <select
               className={styles.input}
               value={filtros.carreraId}
               onChange={(e) => handleFiltroChange("carreraId", e.target.value)}
-              disabled={!filtros.facultadId || carreras.length === 0}
+              disabled={!isTeacher && (!filtros.facultadId || carreras.length === 0)}
             >
               <option value="">Carrera</option>
               {carreras.map((car) => (

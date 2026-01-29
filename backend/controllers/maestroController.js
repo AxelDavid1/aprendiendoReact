@@ -240,6 +240,44 @@ exports.createMaestro = async (req, res) => {
   }
 };
 
+// Obtener información completa de un maestro por su ID
+exports.getMaestroById = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const db = await pool.getConnection();
+    try {
+      const [maestro] = await db.execute(
+        `SELECT 
+          m.*, 
+          u.email, 
+          u.username, 
+          u.tipo_usuario, 
+          uni.nombre AS nombre_universidad,
+          fac.nombre AS nombre_facultad,
+          car.nombre AS nombre_carrera
+         FROM maestro m 
+         JOIN usuario u ON m.id_usuario = u.id_usuario 
+         JOIN universidad uni ON m.id_universidad = uni.id_universidad
+         LEFT JOIN facultades fac ON m.id_facultad = fac.id_facultad
+         LEFT JOIN carreras car ON m.id_carrera = car.id_carrera
+         WHERE m.id_maestro = ?`,
+        [id],
+      );
+
+      if (maestro.length === 0) {
+        return res.status(404).json({ error: "Maestro no encontrado" });
+      }
+
+      res.json({ success: true, data: maestro[0] });
+    } finally {
+      db.release();
+    }
+  } catch (error) {
+    handleError(res, error, "Error al obtener información del maestro");
+  }
+};
+
 // Actualizar un maestro
 exports.updateMaestro = async (req, res) => {
   const { id } = req.params;

@@ -73,6 +73,26 @@ exports.getCarrerasByUniversidad = async (req, res) => {
 };
 
 /**
+ * Obtiene todas las carreras (para filtros de maestros).
+ * GET /api/carreras
+ */
+exports.getAllCarreras = async (req, res) => {
+  try {
+    const db = await pool.getConnection();
+    const [carreras] = await db.execute(
+      `SELECT c.id_carrera, c.nombre, c.clave_carrera
+       FROM carreras c
+       ORDER BY c.nombre ASC`,
+    );
+    db.release();
+    res.json({ success: true, data: carreras });
+  } catch (error) {
+    console.error("Error al obtener todas las carreras:", error);
+    res.status(500).json({ error: "Error en el servidor." });
+  }
+};
+
+/**
  * Obtiene todas las carreras de una facultad específica.
  * GET /api/carreras/facultad/:idFacultad
  */
