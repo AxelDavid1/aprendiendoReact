@@ -255,9 +255,9 @@ function UniversityDashboard({ userId }) {
         return (
           <div className={styles.moduleContainer}>
             <Inscripciones 
+              rol="admin_universidad"
               userId={userId} 
               canEdit={true}
-              dashboardType="university"
               userUniversityId={userUniversityId}
               // Restricción: Solo aceptar/rechazar inscripciones de su universidad
             />

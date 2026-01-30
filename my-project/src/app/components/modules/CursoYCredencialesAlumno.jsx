@@ -215,16 +215,16 @@ const CursoYCredencialesAlumno = ({
                     // Si NO estamos en convocatoria, filtramos por la universidad del alumno.
                     cursosUrl += `&universidades=${universidadAlumno.id_universidad}`;
                     credencialesUrl += `?universidades=${universidadAlumno.id_universidad}`;
-                    fetchUniversidadesPromise = fetch("/api/universidades");
+                    fetchUniversidadesPromise = fetch("/api/universidades", { headers });
                 } else {
                     // En modo normal, fetcheamos todas las universidades (el backend debería filtrar por la del alumno si es necesario)
-                    fetchUniversidadesPromise = fetch("/api/universidades");
+                    fetchUniversidadesPromise = fetch("/api/universidades", { headers });
                 }
 
                 // 1. Peticiones de datos críticos (cursos, credenciales, etc.)
                 const [cursosRes, credencialesRes, universidadesRes, subgruposRes, habilidadesRes] = await Promise.all([
-                    fetch(cursosUrl),
-                    fetch(credencialesUrl),
+                    fetch(cursosUrl, { headers }),
+                    fetch(credencialesUrl, { headers }),
                     fetchUniversidadesPromise,
                     fetch("/api/subgrupos-operadores", { headers }),
                     fetch("/api/habilidades-clave", { headers }),

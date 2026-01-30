@@ -125,7 +125,11 @@ function SEDEQDashboard({ userId }) {
       case "inscripciones":
         return (
           <div className={styles.moduleContainer}>
-            <Inscripciones userId={userId} canEdit={true} dashboardType="sedeq" />
+            <Inscripciones 
+              rol="admin_sedeq"
+              userId={userId} 
+              canEdit={true} 
+            />
           </div>
         )
       case "certificados":

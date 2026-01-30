@@ -59,10 +59,11 @@ const manageCursosInCredencial = async (
 // @desc    Obtener todas las credenciales con paginación y filtros
 // @route   GET /api/credenciales
 const getAllCredenciales = async (req, res) => {
-  // Cambiamos id_universidad por universidades para ser consistentes
+  // Soportar ambos parámetros: id_universidad (singular) y universidades (plural)
   const {
     page = 1, limit = 10, searchTerm = "",
-    universidades
+    universidades,
+    id_universidad
   } = req.query;
   const offset = (page - 1) * limit;
 
@@ -80,9 +81,10 @@ const getAllCredenciales = async (req, res) => {
       queryParams.push(`%${searchTerm}%`);
     }
 
-    // **AQUÍ ESTÁ EL CAMBIO CLAVE**
-    if (universidades) {
-      const uniIds = universidades.split(',').map(id => parseInt(id.trim(), 10));
+    // **CAMBIO CLAVE: Soportar ambos parámetros**
+    const universidadFilter = id_universidad || universidades;
+    if (universidadFilter) {
+      const uniIds = universidadFilter.split(',').map(id => parseInt(id.trim(), 10));
       if (uniIds.length > 0) {
         // Usamos el alias 'cr' para la tabla certificacion
         whereClauses.push(`cr.id_universidad IN (?)`);

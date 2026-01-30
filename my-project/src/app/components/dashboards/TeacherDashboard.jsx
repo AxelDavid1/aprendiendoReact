@@ -154,9 +154,9 @@ function TeacherDashboard({ userId }) {
         return (
           <div className={styles.moduleContainer}>
             <Inscripciones 
+              rol="teacher"
               userId={userId} 
               canEdit={true}
-              dashboardType="teacher"
               userUniversityId={userUniversityId}
               teacherId={teacherId}
               // Restricción: Solo puede aprobar/rechazar solicitudes de inscripción

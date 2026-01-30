@@ -110,20 +110,24 @@ const getAllInscripciones = async (req, res) => {
                 c.id_curso,
                 c.nombre_curso,
                 cat.nombre_categoria,
-                uni.nombre AS nombre_universidad
+                uni.nombre AS nombre_universidad,
+                cert.nombre AS nombre_credencial,
+                cert.id_certificacion AS id_credencial
             FROM inscripcion i
             JOIN alumno a ON i.id_alumno = a.id_alumno
             JOIN usuario u ON a.id_usuario = u.id_usuario
             JOIN curso c ON i.id_curso = c.id_curso
             LEFT JOIN categoria_curso cat ON c.id_categoria = cat.id_categoria
             LEFT JOIN universidad uni ON c.id_universidad = uni.id_universidad
+            LEFT JOIN requisitos_certificado rc ON c.id_curso = rc.id_curso
+            LEFT JOIN certificacion cert ON rc.id_certificacion = cert.id_certificacion
         `;
 
     const conditions = [];
     const params = [];
 
     if (id_credencial && id_credencial !== "todas") {
-      conditions.push("cat.id_categoria = ?");
+      conditions.push("cert.id_certificacion = ?");
       params.push(id_credencial);
     }
     if (id_curso && id_curso !== "todos") {
@@ -133,6 +137,15 @@ const getAllInscripciones = async (req, res) => {
     if (estado && estado !== "todos") {
       conditions.push("i.estatus_inscripcion = ?");
       params.push(estado);
+    }
+
+    // Filtros por rol
+    if (req.user && req.user.tipo_usuario === "maestro" && req.user.id_maestro) {
+      conditions.push("c.id_maestro = ?");
+      params.push(req.user.id_maestro);
+    } else if (req.user && req.user.tipo_usuario === "admin_universidad" && req.user.id_universidad) {
+      conditions.push("c.id_universidad = ?");
+      params.push(req.user.id_universidad);
     }
 
     if (conditions.length > 0) {
