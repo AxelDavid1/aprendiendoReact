@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const logger = require("../config/logger");
 
 const DEFAULT_ACTIVITY_FILE_TYPES = ["pdf", "link"];
 
@@ -29,6 +30,17 @@ const getAllCursos = async (req, res) => {
     id_subgrupo,
     only_active = "false", // NUEVO PARÁMETRO: filtrar solo cursos vigentes
   } = req.query;
+
+  // DEBUG: Agregar logging para diagnóstico
+  console.log("🔍 getAllCursos - Parámetros recibidos:", {
+    exclude_assigned,
+    only_active,
+    id_maestro,
+    universidadId: req.user?.id_universidad,
+    tipo_usuario: req.user?.tipo_usuario,
+    searchTerm,
+    editing_credential_id
+  });
 
   const offset = (page - 1) * limit;
 
@@ -116,6 +128,17 @@ const getAllCursos = async (req, res) => {
           "c.id_curso NOT IN (SELECT rc.id_curso FROM requisitos_certificado rc)"
         );
       }
+      
+      // CORRECCIÓN: No aplicar filtro only_active cuando estamos buscando cursos sin credencial
+      // para no excluir cursos válidos que podrían no estar vigentes actualmente
+      if (only_active === "true" && req.query.exclude_assigned !== "true") {
+        whereClauses.push("c.fecha_inicio <= CURDATE() AND c.fecha_fin >= CURDATE()");
+      }
+    } else {
+      // Aplicar filtro only_active solo si no es exclude_assigned
+      if (only_active === "true") {
+        whereClauses.push("c.fecha_inicio <= CURDATE() AND c.fecha_fin >= CURDATE()");
+      }
     }
 
     const whereString =
@@ -187,11 +210,19 @@ const getAllCursos = async (req, res) => {
             LIMIT ? OFFSET ?
         `;
 
+    // DEBUG: Agregar logging de la query SQL
+    console.log("🔍 getAllCursos - Query SQL:", dataQuery);
+    console.log("🔍 getAllCursos - Parámetros:", [...queryParams, parseInt(limit), parseInt(offset)]);
+
     const [cursos] = await pool.query(dataQuery, [
       ...queryParams,
       parseInt(limit),
       parseInt(offset),
     ]);
+
+    // DEBUG: Agregar logging de resultados
+    console.log("🔍 getAllCursos - Cursos encontrados:", cursos.length);
+    console.log("🔍 getAllCursos - Total cursos:", totalCursos);
 
     res.json({
       cursos,
@@ -780,6 +811,33 @@ const actualizarPlaneacion = async (req, res) => {
     if (connection) connection.release();
   }
 };
+// @desc    Obtener cursos de un maestro
+// @route   GET /api/cursos/maestro
+// @access  Private (Maestro)
+const getCursosMaestro = async (req, res) => {
+  try {
+    const id_maestro = req.user.id_maestro;
+    
+    const [cursos] = await pool.query(
+      `SELECT 
+        c.id_curso,
+        c.nombre_curso,
+        c.estatus_curso,
+        u.nombre as nombre_universidad
+      FROM curso c
+      LEFT JOIN universidad u ON c.id_universidad = u.id_universidad
+      WHERE c.id_maestro = ?
+      ORDER BY c.nombre_curso ASC`,
+      [id_maestro]
+    );
+
+    res.json({ cursos });
+  } catch (error) {
+    logger.error(`Error al obtener cursos del maestro: ${error.message}`);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+};
+
 module.exports = {
   getAllCursos,
   getCursoById,
@@ -789,4 +847,5 @@ module.exports = {
   getAlumnosPorCurso,
   obtenerPlaneacion,
   actualizarPlaneacion,
+  getCursosMaestro,
 };

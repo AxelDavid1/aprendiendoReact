@@ -96,50 +96,76 @@ const getInscripcionesAlumno = async (req, res) => {
 // @route   GET /api/inscripciones/all
 // @access  Private (Admin)
 const getAllInscripciones = async (req, res) => {
-  const { id_credencial, id_curso, estado } = req.query;
+  const { id_credencial, id_curso, estado, sin_credencial } = req.query;
+
+  // DEBUG: Agregar logging para diagnóstico
+  console.log("🔍 getAllInscripciones - Parámetros recibidos:", {
+    id_credencial,
+    id_curso,
+    estado,
+    sin_credencial,
+    usuario_tipo: req.user?.tipo_usuario,
+    usuario_id: req.user?.id_maestro || req.user?.id_universidad
+  });
 
   try {
     let query = `
-            SELECT
-                i.id_inscripcion,
-                i.fecha_solicitud,
-                i.estatus_inscripcion AS estado,
-                i.motivo_rechazo,
-                u.username AS nombre_alumno,
-                u.email AS email_alumno,
-                c.id_curso,
-                c.nombre_curso,
-                cat.nombre_categoria,
-                uni.nombre AS nombre_universidad,
-                cert.nombre AS nombre_credencial,
-                cert.id_certificacion AS id_credencial
-            FROM inscripcion i
-            JOIN alumno a ON i.id_alumno = a.id_alumno
-            JOIN usuario u ON a.id_usuario = u.id_usuario
-            JOIN curso c ON i.id_curso = c.id_curso
-            LEFT JOIN categoria_curso cat ON c.id_categoria = cat.id_categoria
-            LEFT JOIN universidad uni ON c.id_universidad = uni.id_universidad
-            LEFT JOIN requisitos_certificado rc ON c.id_curso = rc.id_curso
-            LEFT JOIN certificacion cert ON rc.id_certificacion = cert.id_certificacion
-        `;
+      SELECT
+        i.id_inscripcion,
+        i.fecha_solicitud,
+        i.estatus_inscripcion AS estado,
+        i.motivo_rechazo,
+        u.username AS nombre_alumno,
+        u.email AS email_alumno,
+        c.id_curso,
+        c.nombre_curso,
+        cat.nombre_categoria,
+        uni.nombre AS nombre_universidad,
+        cert.nombre AS nombre_credencial,
+        cert.id_certificacion AS id_credencial
+      FROM inscripcion i
+      JOIN alumno a ON i.id_alumno = a.id_alumno
+      JOIN usuario u ON a.id_usuario = u.id_usuario
+      JOIN curso c ON i.id_curso = c.id_curso
+      LEFT JOIN categoria_curso cat ON c.id_categoria = cat.id_categoria
+      LEFT JOIN universidad uni ON c.id_universidad = uni.id_universidad
+      LEFT JOIN requisitos_certificado rc ON c.id_curso = rc.id_curso
+      LEFT JOIN certificacion cert ON rc.id_certificacion = cert.id_certificacion
+    `;
 
     const conditions = [];
     const params = [];
 
-    if (id_credencial && id_credencial !== "todas") {
+    // Filtro por credencial (mutuamente excluyente con sin_credencial)
+    if (id_credencial && sin_credencial !== 'true') {
       conditions.push("cert.id_certificacion = ?");
       params.push(id_credencial);
     }
-    if (id_curso && id_curso !== "todos") {
-      conditions.push("c.id_curso = ?");
-      params.push(id_curso);
+    
+    // Filtro por cursos SIN credencial
+    if (sin_credencial === 'true') {
+      conditions.push("cert.id_certificacion IS NULL");
+      
+      // Si además especifican un curso sin credencial
+      if (id_curso) {
+        conditions.push("c.id_curso = ?");
+        params.push(id_curso);
+      }
     }
+    
+    // Filtro por estado
     if (estado && estado !== "todos") {
       conditions.push("i.estatus_inscripcion = ?");
       params.push(estado);
     }
 
-    // Filtros por rol
+    // Filtro por curso específico (aplicable a todos los casos)
+    if (id_curso) {
+      conditions.push("c.id_curso = ?");
+      params.push(id_curso);
+    }
+
+    // Filtros por rol (mantener la lógica existente)
     if (req.user && req.user.tipo_usuario === "maestro" && req.user.id_maestro) {
       conditions.push("c.id_maestro = ?");
       params.push(req.user.id_maestro);
@@ -154,11 +180,16 @@ const getAllInscripciones = async (req, res) => {
 
     query += " ORDER BY i.fecha_solicitud DESC";
 
+    // DEBUG: Agregar logging de la query SQL
+    console.log("🔍 getAllInscripciones - Query SQL:", query);
+    console.log("🔍 getAllInscripciones - Parámetros:", params);
+
     const [inscripciones] = await pool.query(query, params);
 
-    const responseData = { inscripciones };
+    // DEBUG: Agregar logging de resultados
+    console.log("🔍 getAllInscripciones - Inscripciones encontradas:", inscripciones.length);
 
-    res.json(responseData);
+    res.json({ inscripciones });
   } catch (error) {
     logger.error(`Error en getAllInscripciones: ${error.message}`);
     res.status(500).json({ error: "Error interno del servidor" });

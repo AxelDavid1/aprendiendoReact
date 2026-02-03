@@ -441,6 +441,78 @@
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
+/* Botón de limpiar filtros */
+.clearFiltersButton {
+  padding: 0.625rem 1rem;
+  background-color: #6b7280;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  align-self: flex-end;
+  height: fit-content;
+}
+
+.clearFiltersButton:hover {
+  background-color: #4b5563;
+}
+
+/* Indicador de filtros activos */
+.activeFiltersIndicator {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: #1e40af;
+  margin-top: 0.5rem;
+}
+
+.activeFiltersIndicator span:first-child {
+  font-weight: 600;
+}
+
+.activeFiltersIndicator span:not(:first-child) {
+  background-color: #dbeafe;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-weight: 500;
+}
+
+/* Acciones de credenciales */
+.credentialActions {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid #f3f4f6;
+  display: flex;
+  justify-content: center;
+}
+
+.filterButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background-color: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.filterButton:hover {
+  background-color: #4338ca;
+  transform: translateY(-1px);
+}
+
 /* Seccion de tabla */
 .tableSection {
   padding: 1.5rem;

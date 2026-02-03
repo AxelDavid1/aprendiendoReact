@@ -28,7 +28,8 @@ import {
   faBuilding,
   faUserTie,
   faChalkboardTeacher,
-  faInfoCircle
+  faInfoCircle,
+  faFilter
 } from '@fortawesome/free-solid-svg-icons';
 
 function Inscripciones({ rol, userUniversityId, teacherId }) {
@@ -42,10 +43,10 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
     return isTeacher ? 'inscripciones' : 'credenciales';
   });
 
-  const [selectedFilter, setSelectedFilter] = useState({
-    credencial: 'todas',
-    curso: 'todos',
-    estado: 'todos'
+  const [filtros, setFiltros] = useState({
+    tipo_filtro: "todos", // 'todos', 'credencial', 'sin_credencial'
+    id_valor: "", // ID de la credencial o curso según tipo_filtro
+    estado: "todos",
   });
   const [showModal, setShowModal] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
@@ -71,10 +72,13 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
   const [applicationsLoading, setApplicationsLoading] = useState(false);
   const [applicationsError, setApplicationsError] = useState(null);
 
-  // Estados para todos los cursos
-  const [allAvailableCourses, setAllAvailableCourses] = useState([]);
-  const [allCoursesLoading, setAllCoursesLoading] = useState(true);
-  const [allCoursesError, setAllCoursesError] = useState(null);
+  // Estados para los cursos del maestro
+  const [teacherCourses, setTeacherCourses] = useState([]);
+  const [teacherCoursesLoading, setTeacherCoursesLoading] = useState(false);
+  const [teacherCoursesError, setTeacherCoursesError] = useState(null);
+
+  // Nuevo estado para cursos disponibles según rol
+  const [availableCoursesForFilter, setAvailableCoursesForFilter] = useState([]);
 
   // Estados para analisis
   const [analyticsData, setAnalyticsData] = useState(null);
@@ -146,17 +150,34 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
   const fetchApplications = useCallback(async () => {
     setApplicationsLoading(true);
     setApplicationsError(null);
+    
+    // DEBUG: Agregar logging para diagnóstico
+    console.log("🔍 fetchApplications - Filtros:", filtros);
+    
+    const token = getToken();
+    if (!token) {
+      setApplicationsError("No autorizado.");
+      setApplicationsLoading(false);
+      return;
+    }
+
     try {
       const params = new URLSearchParams();
       
-      if (selectedFilter.credencial !== 'todas') {
-        params.append('id_credencial', selectedFilter.credencial);
+      if (filtros.tipo_filtro === 'credencial' && filtros.id_valor) {
+        params.append('id_credencial', filtros.id_valor);
+      } else if (filtros.tipo_filtro === 'sin_credencial') {
+        if (filtros.id_valor) {
+          params.append('id_curso', filtros.id_valor);
+        }
+        params.append('sin_credencial', 'true');
+      } else if (filtros.tipo_filtro === 'mis_cursos' && filtros.id_valor) {
+        // CORRECCIÓN: Asegurar que se envíe el id_curso correctamente
+        params.append('id_curso', filtros.id_valor);
       }
-      if (selectedFilter.curso !== 'todos') {
-        params.append('id_curso', selectedFilter.curso);
-      }
-      if (selectedFilter.estado !== 'todos') {
-        params.append('estado', selectedFilter.estado);
+      
+      if (filtros.estado !== 'todos') {
+        params.append('estado', filtros.estado);
       }
 
       // Para inscripciones: mostrar TODAS las solicitudes a los cursos del maestro/universidad
@@ -168,41 +189,38 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
       }
       // NOTA: No filtramos por universidad del alumno, solo por universidad del curso
 
-      let url = '/api/inscripciones/all';
-      const queryString = params.toString();
-      if (queryString) {
-        url += `?${queryString}`;
-      }
-
-      const token = getToken();
-      if (!token) {
-        setApplicationsError("No autorizado, no se encontro token.");
-        setApplicationsLoading(false);
-        return;
-      }
+      const url = `/api/inscripciones/all?${params.toString()}`;
+      console.log("🔍 fetchApplications URL:", url); // Debug
 
       const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      if (!response.ok) {
-        const errData = await response.json();
-        throw new Error(errData.error || "Error al obtener las inscripciones");
-      }
+
+      if (!response.ok) throw new Error("Error al cargar las inscripciones.");
+      
       const data = await response.json();
+      console.log("🔍 fetchApplications Data:", data); // Debug
       setApplications(data.inscripciones || []);
-    } catch (err) {
-      setApplicationsError(err.message);
-      setApplications([]);
+    } catch (error) {
+      console.error("🔍 fetchApplications Error:", error); // Debug
+      setApplicationsError(error.message);
     } finally {
       setApplicationsLoading(false);
     }
-  }, [selectedFilter, isTeacher, isUniversityAdmin, teacherId, userUniversityId]);
+  }, [filtros, isTeacher, teacherId, isUniversityAdmin, userUniversityId]);
 
   const fetchUnassignedCourses = useCallback(async () => {
     setUnassignedCoursesLoading(true);
     setUnassignedCoursesError(null);
+    
+    // DEBUG: Agregar logging para diagnóstico
+    console.log("🔍 fetchUnassignedCourses - Parámetros:", {
+      isTeacher,
+      teacherId,
+      isUniversityAdmin,
+      userUniversityId
+    });
+    
     try {
       const token = getToken();
       if (!token) {
@@ -210,7 +228,8 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
         return;
       }
 
-      let url = "/api/cursos?exclude_assigned=true&limit=999&activo=true";
+      // CORRECCIÓN: No usar only_active para ver todos los cursos sin credencial
+      let url = "/api/cursos?exclude_assigned=true&limit=999";
       
       if (isTeacher && teacherId) {
         url += `&id_maestro=${teacherId}`;
@@ -218,18 +237,23 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
         url += `&id_universidad=${userUniversityId}`;
       }
 
+      console.log("🔍 fetchUnassignedCourses URL:", url); // Debug
+
       const response = await fetch(url, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
       });
+      
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(errData.error || "Error al obtener los cursos sin credencial");
       }
       const data = await response.json();
+      console.log("🔍 fetchUnassignedCourses Data:", data); // Debug
       setUnassignedCourses(data.cursos || []);
     } catch (err) {
+      console.error("🔍 fetchUnassignedCourses Error:", err); // Debug
       setUnassignedCoursesError(err.message);
       setUnassignedCourses([]);
     } finally {
@@ -237,7 +261,43 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
     }
   }, [isTeacher, isUniversityAdmin, teacherId, userUniversityId]);
 
+  // Cargar cursos disponibles cuando cambia el tipo de filtro
+  useEffect(() => {
+    const fetchAvailableCoursesForFilter = async () => {
+      console.log("🔍 fetchAvailableCoursesForFilter - Tipo filtro:", filtros.tipo_filtro); // Debug
+      
+      if (filtros.tipo_filtro === 'sin_credencial') {
+        // Usar los cursos sin credencial ya cargados
+        console.log("🔍 Disponibles para filtro sin_credencial:", unassignedCourses); // Debug
+        setAvailableCoursesForFilter(unassignedCourses);
+      } else if (filtros.tipo_filtro === 'mis_cursos' && isTeacher) {
+        // Cargar cursos del maestro
+        const token = getToken();
+        if (!token) return;
+        
+        try {
+          const response = await fetch('/api/cursos/maestro', {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (response.ok) {
+            const data = await response.json();
+            console.log("🔍 Cursos del maestro:", data.cursos); // Debug
+            setAvailableCoursesForFilter(data.cursos || []);
+          }
+        } catch (error) {
+          console.error('Error cargando cursos del maestro:', error);
+        }
+      } else {
+        setAvailableCoursesForFilter([]);
+      }
+    };
+
+    fetchAvailableCoursesForFilter();
+  }, [filtros.tipo_filtro, unassignedCourses, isTeacher]);
+
   const fetchAllCourses = useCallback(async () => {
+    if (isTeacher) return; // Los maestros usan fetchTeacherCourses
+    
     setAllCoursesLoading(true);
     setAllCoursesError(null);
     try {
@@ -247,11 +307,9 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
         return;
       }
 
-      let url = "/api/cursos?limit=999&activo=true";
+      let url = "/api/cursos?limit=999&only_active=true";
       
-      if (isTeacher && teacherId) {
-        url += `&id_maestro=${teacherId}`;
-      } else if (isUniversityAdmin && userUniversityId) {
+      if (isUniversityAdmin && userUniversityId) {
         url += `&id_universidad=${userUniversityId}`;
       }
 
@@ -272,7 +330,12 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
     } finally {
       setAllCoursesLoading(false);
     }
-  }, [isTeacher, isUniversityAdmin, teacherId, userUniversityId]);
+  }, [isTeacher, isUniversityAdmin, userUniversityId]);
+
+  // Estados para todos los cursos
+  const [allAvailableCourses, setAllAvailableCourses] = useState([]);
+  const [allCoursesLoading, setAllCoursesLoading] = useState(true);
+  const [allCoursesError, setAllCoursesError] = useState(null);
 
   const fetchAnalytics = useCallback(async () => {
     setAnalyticsLoading(true);
@@ -321,8 +384,10 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
 
   useEffect(() => {
     fetchCredentials();
-    fetchAllCourses();
-  }, [fetchCredentials, fetchAllCourses]);
+    if (!isTeacher) {
+      fetchAllCourses();
+    }
+  }, [fetchCredentials, fetchAllCourses, isTeacher]);
 
   useEffect(() => {
     if (activeTab === 'inscripciones') {
@@ -332,7 +397,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
     } else if (activeTab === 'analisis') {
       fetchAnalytics();
     }
-  }, [activeTab, fetchApplications, fetchUnassignedCourses, fetchAnalytics]);
+  }, [activeTab, fetchApplications, fetchUnassignedCourses, fetchAnalytics, filtros]);
 
   // --- DERIVED DATA ---
 
@@ -365,17 +430,16 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
   };
 
   const handleFilterChange = (filterType, value) => {
-    setSelectedFilter(prev => {
-      const newFilter = { ...prev, [filterType]: value };
-      
-      // Hacer los filtros mutuamente excluyentes
-      if (filterType === 'credencial' && value !== 'todas') {
-        newFilter.curso = 'todos';
-      } else if (filterType === 'curso' && value !== 'todos') {
-        newFilter.credencial = 'todas';
+    setFiltros(prev => {
+      if (filterType === 'tipo_filtro') {
+        // Al cambiar el tipo de filtro, resetear el valor
+        return { ...prev, tipo_filtro: value, id_valor: "" };
+      } else if (filterType === 'id_valor') {
+        return { ...prev, id_valor: value };
+      } else if (filterType === 'estado') {
+        return { ...prev, estado: value };
       }
-      
-      return newFilter;
+      return prev;
     });
   };
 
@@ -424,9 +488,23 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
   };
 
   const handleCourseClick = (course) => {
-    handleFilterChange('curso', course.id_curso);
+    setFiltros({
+      tipo_filtro: isTeacher ? 'mis_cursos' : 'sin_credencial',
+      id_valor: course.id_curso.toString(),
+      estado: 'todos'
+    });
     handleTabChange('inscripciones');
-  }
+  };
+
+  // Agregar nueva función para clicks en credenciales
+  const handleCredentialFilterClick = (credentialId) => {
+    setFiltros({
+      tipo_filtro: 'credencial',
+      id_valor: credentialId.toString(),
+      estado: 'todos'
+    });
+    handleTabChange('inscripciones');
+  };
 
   const handleShowDetails = (application) => {
     setSelectedApplication(application);
@@ -1311,6 +1389,19 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
                           className={`${styles.chevronIcon} ${expandedCredentialId === cred.id_credencial ? styles.expanded : ''}`}
                         />
                       </div>
+                      
+                      <div className={styles.credentialActions}>
+                        <button 
+                          className={styles.filterButton}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCredentialFilterClick(cred.id_credencial);
+                          }}
+                          title="Filtrar inscripciones por esta credencial"
+                        >
+                          <FontAwesomeIcon icon={faFilter} /> Filtrar Inscripciones
+                        </button>
+                      </div>
 
                       {expandedCredentialId === cred.id_credencial && (
                         <div className={styles.courseListContainer}>
@@ -1395,43 +1486,64 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
             </div>
 
             <div className={styles.filters}>
-              <div className={styles.filterInfo}>
-                <p style={{ fontSize: '14px', color: '#6b7280', marginBottom: '10px' }}>
-                  <FontAwesomeIcon icon={faInfoCircle} style={{ marginRight: '5px' }} />
-                  Los filtros de Credencial y Cursos sin Credencial son mutuamente excluyentes.
-                </p>
-              </div>
               <div className={styles.filterGroup}>
-                <label>Filtrar por Credencial</label>
+                <label>Tipo de Filtro</label>
                 <select
-                  value={selectedFilter.credencial}
-                  onChange={(e) => handleFilterChange('credencial', e.target.value)}
+                  value={filtros.tipo_filtro}
+                  onChange={(e) => handleFilterChange('tipo_filtro', e.target.value)}
                 >
-                  <option value="todas">Todas las Credenciales</option>
-                  {credentials.map(cred => (
-                    <option key={cred.id_credencial} value={cred.id_credencial}>{cred.nombre_credencial}</option>
-                  ))}
+                  <option value="todos">Todas las Inscripciones</option>
+                  {isTeacher && <option value="mis_cursos">Mis Cursos</option>}
+                  {!isTeacher && <option value="credencial">Por Credencial</option>}
+                  {!isTeacher && <option value="sin_credencial">Cursos sin Credencial</option>}
                 </select>
               </div>
+
+              {filtros.tipo_filtro === 'credencial' && (
+                <div className={styles.filterGroup}>
+                  <label>Seleccionar Credencial</label>
+                  <select
+                    value={filtros.id_valor}
+                    onChange={(e) => handleFilterChange('id_valor', e.target.value)}
+                  >
+                    <option value="">Todas las Credenciales</option>
+                    {credentials.map(cred => (
+                      <option key={cred.id_credencial} value={cred.id_credencial}>
+                        {cred.nombre_credencial}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {(filtros.tipo_filtro === 'sin_credencial' || filtros.tipo_filtro === 'mis_cursos') && (
+                <div className={styles.filterGroup}>
+                  <label>Seleccionar Curso</label>
+                  <select
+                    value={filtros.id_valor}
+                    onChange={(e) => handleFilterChange('id_valor', e.target.value)}
+                  >
+                    <option value="">
+                      {filtros.tipo_filtro === 'sin_credencial' 
+                        ? 'Todos los Cursos sin Credencial' 
+                        : 'Todos Mis Cursos'}
+                    </option>
+                    {availableCoursesForFilter.map(curso => (
+                      <option key={curso.id_curso} value={curso.id_curso}>
+                        {curso.nombre_curso}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className={styles.filterGroup}>
-                <label>Filtrar por Cursos sin Credencial</label>
+                <label>Estado</label>
                 <select
-                  value={selectedFilter.curso}
-                  onChange={(e) => handleFilterChange('curso', e.target.value)}
-                >
-                  <option value="todos">Todos los Cursos sin Credencial</option>
-                  {unassignedCourses.map(curso => (
-                    <option key={curso.id_curso} value={curso.id_curso}>{curso.nombre_curso}</option>
-                  ))}
-                </select>
-              </div>
-              <div className={styles.filterGroup}>
-                <label>Filtrar por Estado</label>
-                <select
-                  value={selectedFilter.estado}
+                  value={filtros.estado}
                   onChange={(e) => handleFilterChange('estado', e.target.value)}
                 >
-                  <option value="todos">Todos los Estados</option>
+                  <option value="todos">Todos</option>
                   <option value="solicitada">Solicitada</option>
                   <option value="aprobada">Aprobada</option>
                   <option value="rechazada">Rechazada</option>
@@ -1439,6 +1551,23 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
                   <option value="abandonada">Abandonada</option>
                 </select>
               </div>
+
+              <button 
+                className={styles.clearFiltersButton}
+                onClick={() => setFiltros({ tipo_filtro: 'todos', id_valor: '', estado: 'todos' })}
+              >
+                Limpiar Filtros
+              </button>
+
+              {((!isTeacher && filtros.tipo_filtro !== 'todos') || filtros.id_valor !== '' || filtros.estado !== 'todos') && (
+                <div className={styles.activeFiltersIndicator}>
+                  <span>Filtros activos:</span>
+                  {isTeacher && filtros.tipo_filtro === 'mis_cursos' && filtros.id_valor !== '' && <span>Curso específico</span>}
+                  {!isTeacher && filtros.tipo_filtro === 'credencial' && <span>Credencial</span>}
+                  {!isTeacher && filtros.tipo_filtro === 'sin_credencial' && <span>Sin Credencial</span>}
+                  {filtros.estado !== 'todos' && <span>{filtros.estado}</span>}
+                </div>
+              )}
             </div>
 
             <div className={styles.tableSection}>

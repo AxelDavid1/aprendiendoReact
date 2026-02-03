@@ -7,6 +7,7 @@ const {
   updateCurso,
   deleteCurso,
   getAlumnosPorCurso,
+  getCursosMaestro,
 } = require("../controllers/cursoController");
 
 // Importamos las funciones de planeacionController
@@ -16,6 +17,7 @@ const { protect } = require("../middleware/authMiddleware.js");
 
 // Rutas para los cursos
 router.get("/", protect, getAllCursos);
+router.get("/maestro", protect, getCursosMaestro);
 router.get("/:id", protect, getCursoById);
 router.get("/:id/alumnos", protect, getAlumnosPorCurso);
 router.post("/", protect, createCurso);
