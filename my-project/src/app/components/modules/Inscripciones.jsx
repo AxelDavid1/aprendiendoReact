@@ -3,15 +3,16 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import styles from "./Inscripciones.module.css";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { 
-  faAddressCard, 
-  faBook, 
-  faClipboardList, 
-  faChartBar, 
-  faSyncAlt, 
-  faCheck, 
-  faTimes, 
-  faChevronRight, 
+import {
+  faAddressCard,
+  faBook,
+  faClipboardList,
+  faChartBar,
+  faChartPie,
+  faSyncAlt,
+  faCheck,
+  faTimes,
+  faChevronRight,
   faSpinner,
   faUsers,
   faCheckCircle,
@@ -85,17 +86,16 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState(null);
   const [analyticsPeriod, setAnalyticsPeriod] = useState('6meses');
-  const [analyticsGrouping, setAnalyticsGrouping] = useState('mes');
 
   // Determinar qué pestañas mostrar según el rol
   const availableTabs = useMemo(() => {
     const tabs = ['inscripciones', 'analisis'];
-    
+
     if (!isTeacher) {
       tabs.unshift('credenciales');
       tabs.splice(1, 0, 'cursos'); // Insertar 'cursos' después de 'credenciales'
     }
-    
+
     return tabs;
   }, [isTeacher]);
 
@@ -120,7 +120,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
       }
 
       let url = "/api/credenciales";
-      
+
       if (isTeacher && teacherId) {
         url += `?id_maestro=${teacherId}`;
       } else if (isUniversityAdmin && userUniversityId) {
@@ -132,7 +132,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(errData.error || "Error al obtener las credenciales");
@@ -150,10 +150,10 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
   const fetchApplications = useCallback(async () => {
     setApplicationsLoading(true);
     setApplicationsError(null);
-    
+
     // DEBUG: Agregar logging para diagnóstico
     console.log("🔍 fetchApplications - Filtros:", filtros);
-    
+
     const token = getToken();
     if (!token) {
       setApplicationsError("No autorizado.");
@@ -163,7 +163,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
 
     try {
       const params = new URLSearchParams();
-      
+
       if (filtros.tipo_filtro === 'credencial' && filtros.id_valor) {
         params.append('id_credencial', filtros.id_valor);
       } else if (filtros.tipo_filtro === 'sin_credencial') {
@@ -175,7 +175,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
         // CORRECCIÓN: Asegurar que se envíe el id_curso correctamente
         params.append('id_curso', filtros.id_valor);
       }
-      
+
       if (filtros.estado !== 'todos') {
         params.append('estado', filtros.estado);
       }
@@ -197,7 +197,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
       });
 
       if (!response.ok) throw new Error("Error al cargar las inscripciones.");
-      
+
       const data = await response.json();
       console.log("🔍 fetchApplications Data:", data); // Debug
       setApplications(data.inscripciones || []);
@@ -212,7 +212,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
   const fetchUnassignedCourses = useCallback(async () => {
     setUnassignedCoursesLoading(true);
     setUnassignedCoursesError(null);
-    
+
     // DEBUG: Agregar logging para diagnóstico
     console.log("🔍 fetchUnassignedCourses - Parámetros:", {
       isTeacher,
@@ -220,7 +220,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
       isUniversityAdmin,
       userUniversityId
     });
-    
+
     try {
       const token = getToken();
       if (!token) {
@@ -230,7 +230,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
 
       // CORRECCIÓN: No usar only_active para ver todos los cursos sin credencial
       let url = "/api/cursos?exclude_assigned=true&limit=999";
-      
+
       if (isTeacher && teacherId) {
         url += `&id_maestro=${teacherId}`;
       } else if (isUniversityAdmin && userUniversityId) {
@@ -244,7 +244,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(errData.error || "Error al obtener los cursos sin credencial");
@@ -265,7 +265,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
   useEffect(() => {
     const fetchAvailableCoursesForFilter = async () => {
       console.log("🔍 fetchAvailableCoursesForFilter - Tipo filtro:", filtros.tipo_filtro); // Debug
-      
+
       if (filtros.tipo_filtro === 'sin_credencial') {
         // Usar los cursos sin credencial ya cargados
         console.log("🔍 Disponibles para filtro sin_credencial:", unassignedCourses); // Debug
@@ -274,7 +274,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
         // Cargar cursos del maestro
         const token = getToken();
         if (!token) return;
-        
+
         try {
           const response = await fetch('/api/cursos/maestro', {
             headers: { 'Authorization': `Bearer ${token}` }
@@ -297,7 +297,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
 
   const fetchAllCourses = useCallback(async () => {
     if (isTeacher) return; // Los maestros usan fetchTeacherCourses
-    
+
     setAllCoursesLoading(true);
     setAllCoursesError(null);
     try {
@@ -308,7 +308,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
       }
 
       let url = "/api/cursos?limit=999&only_active=true";
-      
+
       if (isUniversityAdmin && userUniversityId) {
         url += `&id_universidad=${userUniversityId}`;
       }
@@ -347,8 +347,8 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
         return;
       }
 
-      let url = `/api/inscripciones/analytics?periodo=${analyticsPeriod}&agrupacion=${analyticsGrouping}`;
-      
+      let url = `/api/inscripciones/analytics?periodo=${analyticsPeriod}`;
+
       if (isTeacher && teacherId) {
         url += `&id_maestro=${teacherId}`;
       } else if (isUniversityAdmin && userUniversityId) {
@@ -360,7 +360,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
           'Authorization': `Bearer ${token}`
         }
       });
-      
+
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(errData.error || "Error al obtener los datos de analisis");
@@ -373,7 +373,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
     } finally {
       setAnalyticsLoading(false);
     }
-  }, [analyticsPeriod, analyticsGrouping, isTeacher, isUniversityAdmin, teacherId, userUniversityId]);
+  }, [analyticsPeriod, isTeacher, isUniversityAdmin, teacherId, userUniversityId]);
 
   // Asegurar que la pestaña activa siempre sea válida
   useEffect(() => {
@@ -403,7 +403,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
 
   const allCourses = useMemo(() => {
     const coursesMap = new Map();
-    
+
     allAvailableCourses.forEach(curso => {
       if (curso && !coursesMap.has(curso.id_curso)) {
         coursesMap.set(curso.id_curso, curso);
@@ -513,18 +513,18 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
 
   const handleUpdateStatus = async (newStatus, reason = null) => {
     if (!selectedApplication) return;
-    
+
     // Validar si el curso ya terminó
     if (selectedApplication.fecha_fin) {
       const fechaFin = new Date(selectedApplication.fecha_fin);
       const hoy = new Date();
-      
+
       if (fechaFin < hoy) {
         showToast('No se puede modificar el estado. El curso ya ha finalizado.', 'error');
         return;
       }
     }
-    
+
     setIsUpdating(true);
 
     const body = { estado: newStatus };
@@ -591,25 +591,11 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
     const hoy = new Date();
     return fechaFin < hoy;
   };
-  const getAbandonoIndicator = (tasa) => {
-    if (tasa > 40) return { level: 'critico', icon: faExclamationTriangle, label: 'Critico' };
-    if (tasa > 30) return { level: 'alto', icon: faExclamationTriangle, label: 'Alto' };
-    if (tasa > 20) return { level: 'moderado', icon: faExclamationTriangle, label: 'Moderado' };
-    return { level: 'bajo', icon: faCheckCircle, label: 'Normal' };
-  };
 
-  // Helper para indicador de completacion de subgrupos
-  const getCompletacionIndicator = (tasa) => {
-    if (tasa >= 80) return { level: 'excelente', color: '#10b981' };
-    if (tasa >= 60) return { level: 'bueno', color: '#f59e0b' };
-    return { level: 'bajo', color: '#ef4444' };
-  };
-
-  // Helper para indicador de desempeno institucional
-  const getDesempenoIndicator = (tasa) => {
-    if (tasa >= 80) return { level: 'excelente', color: '#10b981' };
-    if (tasa >= 60) return { level: 'bueno', color: '#f59e0b' };
-    return { level: 'bajo', color: '#ef4444' };
+  // Helper para colores de gráficas
+  const getColorByIndex = (index) => {
+    const colors = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16', '#f97316', '#ec4899', '#6366f1'];
+    return colors[index % colors.length];
   };
 
   // --- RENDER FUNCTIONS ---
@@ -638,28 +624,12 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
 
     if (!analyticsData) return null;
 
-    const { 
-      kpis, 
-      tendencia_temporal, 
-      cursos_mas_solicitados, 
-      cursos_mayor_abandono, 
-      cursos_mayor_completacion,
-      subgrupos_distribucion,
-      subgrupos_desempeno,
-      universidades_desempeno,
-      carreras_participacion,
-      facultades_desempeno,
-      maestro_cursos,
-      maestro_calificaciones
+    const {
+      kpis,
+      cursos_mas_solicitados,
+      distribucion_por_entidad,
+      tipo_distribucion
     } = analyticsData;
-
-    // Calcular max para grafica de lineas
-    const maxTendencia = Math.max(
-      ...tendencia_temporal.map(t => Math.max(t.solicitadas, t.aprobadas, t.completadas))
-    );
-
-    // Calcular max para carreras
-    const maxCarreras = carreras_participacion.length > 0 ? carreras_participacion[0].solicitudes : 1;
 
     return (
       <div className={styles.analyticsContainer}>
@@ -668,46 +638,29 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
           <div className={styles.filterSection}>
             <span className={styles.filterLabel}>Rango temporal:</span>
             <div className={styles.periodButtons}>
-              <button 
+              <button
                 className={`${styles.periodButton} ${analyticsPeriod === '1mes' ? styles.active : ''}`}
                 onClick={() => setAnalyticsPeriod('1mes')}
               >
                 1 Mes
               </button>
-              <button 
+              <button
                 className={`${styles.periodButton} ${analyticsPeriod === '3meses' ? styles.active : ''}`}
                 onClick={() => setAnalyticsPeriod('3meses')}
               >
                 3 Meses
               </button>
-              <button 
+              <button
                 className={`${styles.periodButton} ${analyticsPeriod === '6meses' ? styles.active : ''}`}
                 onClick={() => setAnalyticsPeriod('6meses')}
               >
                 6 Meses
               </button>
-              <button 
+              <button
                 className={`${styles.periodButton} ${analyticsPeriod === '1ano' ? styles.active : ''}`}
                 onClick={() => setAnalyticsPeriod('1ano')}
               >
-                1 Ano
-              </button>
-            </div>
-          </div>
-          <div className={styles.filterSection}>
-            <span className={styles.filterLabel}>Agrupacion:</span>
-            <div className={styles.periodButtons}>
-              <button 
-                className={`${styles.periodButton} ${analyticsGrouping === 'semana' ? styles.active : ''}`}
-                onClick={() => setAnalyticsGrouping('semana')}
-              >
-                Semana
-              </button>
-              <button 
-                className={`${styles.periodButton} ${analyticsGrouping === 'mes' ? styles.active : ''}`}
-                onClick={() => setAnalyticsGrouping('mes')}
-              >
-                Mes
+                1 Año
               </button>
             </div>
           </div>
@@ -717,7 +670,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
         <section className={styles.analyticsSection}>
           <h3 className={styles.sectionTitle}>
             <FontAwesomeIcon icon={faChartBar} />
-            Metricas Principales
+            Métricas Principales
           </h3>
           <div className={styles.kpiGrid}>
             <div className={styles.kpiCard}>
@@ -726,10 +679,10 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
               </div>
               <div className={styles.kpiContent}>
                 <span className={styles.kpiLabel}>Total Inscripciones</span>
-                <span className={styles.kpiValue}>{kpis.total_inscripciones.toLocaleString()}</span>
+                <span className={styles.kpiValue}>{(kpis.total_inscripciones || 0).toLocaleString()}</span>
                 <span className={styles.kpiChange} data-positive={kpis.cambio_total >= 0}>
                   <FontAwesomeIcon icon={kpis.cambio_total >= 0 ? faArrowUp : faArrowDown} />
-                  {Math.abs(kpis.cambio_total)}% vs periodo anterior
+                  {Math.abs(kpis.cambio_total || 0)}% vs período anterior
                 </span>
               </div>
             </div>
@@ -739,11 +692,11 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
                 <FontAwesomeIcon icon={faCheckCircle} />
               </div>
               <div className={styles.kpiContent}>
-                <span className={styles.kpiLabel}>Tasa de Aprobacion</span>
-                <span className={styles.kpiValue}>{kpis.tasa_aprobacion}%</span>
+                <span className={styles.kpiLabel}>Tasa de Aprobación</span>
+                <span className={styles.kpiValue}>{(kpis.tasa_aprobacion || 0)}%</span>
                 <span className={styles.kpiChange} data-positive={kpis.cambio_aprobacion >= 0}>
                   <FontAwesomeIcon icon={kpis.cambio_aprobacion >= 0 ? faArrowUp : faArrowDown} />
-                  {Math.abs(kpis.cambio_aprobacion)}% vs periodo anterior
+                  {Math.abs(kpis.cambio_aprobacion || 0)}% vs período anterior
                 </span>
               </div>
             </div>
@@ -753,11 +706,11 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
                 <FontAwesomeIcon icon={faGraduationCap} />
               </div>
               <div className={styles.kpiContent}>
-                <span className={styles.kpiLabel}>Tasa de Completacion</span>
-                <span className={styles.kpiValue}>{kpis.tasa_completacion}%</span>
+                <span className={styles.kpiLabel}>Tasa de Completación</span>
+                <span className={styles.kpiValue}>{(kpis.tasa_completacion || 0)}%</span>
                 <span className={styles.kpiChange} data-positive={kpis.cambio_completacion >= 0}>
                   <FontAwesomeIcon icon={kpis.cambio_completacion >= 0 ? faArrowUp : faArrowDown} />
-                  {Math.abs(kpis.cambio_completacion)}% vs periodo anterior
+                  {Math.abs(kpis.cambio_completacion || 0)}% vs período anterior
                 </span>
               </div>
             </div>
@@ -768,139 +721,74 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
               </div>
               <div className={styles.kpiContent}>
                 <span className={styles.kpiLabel}>Tasa de Abandono</span>
-                <span className={styles.kpiValue}>{kpis.tasa_abandono}%</span>
+                <span className={styles.kpiValue}>{(kpis.tasa_abandono || 0)}%</span>
                 <span className={styles.kpiChange} data-positive={kpis.cambio_abandono <= 0}>
                   <FontAwesomeIcon icon={kpis.cambio_abandono <= 0 ? faArrowDown : faArrowUp} />
-                  {Math.abs(kpis.cambio_abandono)}% vs periodo anterior
+                  {Math.abs(kpis.cambio_abandono || 0)}% vs período anterior
                 </span>
               </div>
             </div>
           </div>
         </section>
 
-        {/* SECCION 2: Tendencias Temporales - Grafica de Lineas */}
-        <section className={styles.analyticsSection}>
-          <h3 className={styles.sectionTitle}>
-            <FontAwesomeIcon icon={faChartLine} />
-            Evolucion de Inscripciones (Ultimos 6 meses)
-          </h3>
-          <div className={styles.lineChartCard}>
-            <div className={styles.lineChartContainer}>
-              <div className={styles.lineChartYAxis}>
-                {[100, 75, 50, 25, 0].map((val) => (
-                  <span key={val} className={styles.yAxisLabel}>
-                    {Math.round((maxTendencia * val) / 100)}
-                  </span>
-                ))}
-              </div>
-              <div className={styles.lineChartArea}>
-                <svg className={styles.lineChartSvg} viewBox="0 0 600 200" preserveAspectRatio="none">
-                  {/* Grid lines */}
-                  {[0, 25, 50, 75, 100].map((val) => (
-                    <line 
-                      key={val}
-                      x1="0" 
-                      y1={200 - (val * 2)} 
-                      x2="600" 
-                      y2={200 - (val * 2)} 
-                      stroke="#e5e7eb" 
-                      strokeWidth="1"
-                    />
-                  ))}
-                  
-                  {/* Linea Solicitadas (azul) */}
-                  <polyline
-                    fill="none"
-                    stroke="#3b82f6"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    points={tendencia_temporal.map((t, i) => {
-                      const x = (i / (tendencia_temporal.length - 1)) * 580 + 10;
-                      const y = 200 - ((t.solicitadas / maxTendencia) * 180);
-                      return `${x},${y}`;
-                    }).join(' ')}
-                  />
-                  
-                  {/* Linea Aprobadas (verde) */}
-                  <polyline
-                    fill="none"
-                    stroke="#10b981"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    points={tendencia_temporal.map((t, i) => {
-                      const x = (i / (tendencia_temporal.length - 1)) * 580 + 10;
-                      const y = 200 - ((t.aprobadas / maxTendencia) * 180);
-                      return `${x},${y}`;
-                    }).join(' ')}
-                  />
-                  
-                  {/* Linea Completadas (morado) */}
-                  <polyline
-                    fill="none"
-                    stroke="#8b5cf6"
-                    strokeWidth="3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    points={tendencia_temporal.map((t, i) => {
-                      const x = (i / (tendencia_temporal.length - 1)) * 580 + 10;
-                      const y = 200 - ((t.completadas / maxTendencia) * 180);
-                      return `${x},${y}`;
-                    }).join(' ')}
-                  />
+        {/* SECCION 3: Distribución (solo para admins) */}
+        {distribucion_por_entidad && distribucion_por_entidad.length > 0 && (
+          <section className={styles.analyticsSection}>
+            <h3 className={styles.sectionTitle}>
+              <FontAwesomeIcon icon={faChartPie} />
+              Distribución por {tipo_distribucion === 'universidad' ? 'Universidad' : 'Carrera'}
+            </h3>
+            <div className={styles.pieChartCard}>
+              <div className={styles.distributionGrid}>
+                {distribucion_por_entidad.map((entidad, index) => {
+                  const total = distribucion_por_entidad.reduce((sum, e) => sum + e.inscripciones, 0);
+                  const percentage = ((entidad.inscripciones / total) * 100).toFixed(1);
 
-                  {/* Puntos interactivos */}
-                  {tendencia_temporal.map((t, i) => {
-                    const x = (i / (tendencia_temporal.length - 1)) * 580 + 10;
-                    return (
-                      <g key={i}>
-                        <circle cx={x} cy={200 - ((t.solicitadas / maxTendencia) * 180)} r="5" fill="#3b82f6" />
-                        <circle cx={x} cy={200 - ((t.aprobadas / maxTendencia) * 180)} r="5" fill="#10b981" />
-                        <circle cx={x} cy={200 - ((t.completadas / maxTendencia) * 180)} r="5" fill="#8b5cf6" />
-                      </g>
-                    );
-                  })}
-                </svg>
-                <div className={styles.lineChartXAxis}>
-                  {tendencia_temporal.map((t, i) => (
-                    <span key={i} className={styles.xAxisLabel}>{t.periodo}</span>
-                  ))}
-                </div>
+                  return (
+                    <div key={index} className={styles.distributionItem}>
+                      <div className={styles.distributionHeader}>
+                        <span className={styles.distributionName}>{entidad.entidad}</span>
+                        <span className={styles.distributionPercentage}>{percentage}% del total</span>
+                      </div>
+                      <div className={styles.distributionStats}>
+                        <div className={styles.stat}>
+                          <span className={styles.statLabel}>Inscripciones:</span>
+                          <span className={styles.statValue}>{entidad.inscripciones}</span>
+                        </div>
+                        <div className={styles.stat}>
+                          <span className={styles.statLabel}>Completados:</span>
+                          <span className={styles.statValue}>{entidad.completados}</span>
+                        </div>
+                        <div className={styles.stat}>
+                          <span className={styles.statLabel}>Tasa éxito:</span>
+                          <span className={styles.statValue} style={{
+                            color: entidad.tasa_exito >= 70 ? '#10b981' : entidad.tasa_exito >= 50 ? '#f59e0b' : '#ef4444'
+                          }}>
+                            {entidad.tasa_exito}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
-            <div className={styles.lineChartLegend}>
-              <span><span className={styles.legendDot} style={{ backgroundColor: '#3b82f6' }} /> Solicitadas</span>
-              <span><span className={styles.legendDot} style={{ backgroundColor: '#10b981' }} /> Aprobadas</span>
-              <span><span className={styles.legendDot} style={{ backgroundColor: '#8b5cf6' }} /> Completadas</span>
-            </div>
-            <div className={styles.chartInsight}>
-              <FontAwesomeIcon icon={faChartLine} />
-              <span>
-                {tendencia_temporal[tendencia_temporal.length - 1]?.solicitadas > tendencia_temporal[tendencia_temporal.length - 1]?.aprobadas * 1.3 
-                  ? 'El proceso de aprobacion podria estar lento - muchas solicitudes pendientes'
-                  : tendencia_temporal[tendencia_temporal.length - 1]?.aprobadas > tendencia_temporal[tendencia_temporal.length - 1]?.completadas * 1.5
-                  ? 'Los cursos podrian tener problemas de retencion - revisar soporte'
-                  : 'El flujo de inscripciones se mantiene saludable'}
-              </span>
-            </div>
-          </div>
-        </section>
+          </section>
+        )}
 
-        {/* SECCION 3: Analisis de Cursos */}
-        <section className={styles.analyticsSection}>
-          <h3 className={styles.sectionTitle}>
-            <FontAwesomeIcon icon={faBook} />
-            Analisis de Cursos
-          </h3>
-          
-          <div className={styles.coursesAnalyticsGrid}>
-            {/* 3A: Top 10 Cursos Mas Solicitados */}
+        {/* SECCION 3: Top Cursos Mas Solicitados*/}
+        {cursos_mas_solicitados && cursos_mas_solicitados.length > 0 && (
+          <section className={styles.analyticsSection}>
+            <h3 className={styles.sectionTitle}>
+              <FontAwesomeIcon icon={faBook} />
+              Análisis Detallado de Cursos
+            </h3>
+
             <div className={styles.analyticsCard}>
               <div className={styles.cardHeader}>
                 <h4>
                   <FontAwesomeIcon icon={faChartBar} />
-                  Top 10 Cursos Mas Solicitados
+                  Top 10 Cursos Más Solicitados
                 </h4>
               </div>
               <div className={styles.cardContent}>
@@ -908,27 +796,36 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
                   <table className={styles.analyticsTable}>
                     <thead>
                       <tr>
+                        <th>Posición</th>
                         <th>Curso</th>
-                        <th>Solicitudes</th>
+                        <th>Inscripciones</th>
                         <th>Completados</th>
-                        <th>Tasa Comp.</th>
+                        <th>Tasa de Éxito</th>
                         <th>Progreso</th>
                       </tr>
                     </thead>
                     <tbody>
                       {cursos_mas_solicitados.map((curso, index) => (
                         <tr key={index}>
-                          <td className={styles.courseName}>{curso.nombre}</td>
-                          <td className={styles.numberCell}>{curso.solicitudes}</td>
+                          <td className={styles.numberCell}>#{index + 1}</td>
+                          <td className={styles.courseName}>{curso.nombre_curso}</td>
+                          <td className={styles.numberCell}>{curso.inscripciones}</td>
                           <td className={styles.numberCell}>{curso.completados}</td>
-                          <td className={styles.numberCell}>{curso.tasa_completacion}%</td>
+                          <td className={styles.numberCell}>
+                            <span style={{
+                              color: curso.tasa_exito >= 75 ? '#10b981' : curso.tasa_exito >= 50 ? '#f59e0b' : '#ef4444',
+                              fontWeight: 700
+                            }}>
+                              {curso.tasa_exito}%
+                            </span>
+                          </td>
                           <td>
                             <div className={styles.progressBarContainer}>
-                              <div 
+                              <div
                                 className={styles.progressBar}
-                                style={{ 
-                                  width: `${curso.tasa_completacion}%`,
-                                  backgroundColor: curso.tasa_completacion >= 75 ? '#10b981' : curso.tasa_completacion >= 60 ? '#f59e0b' : '#ef4444'
+                                style={{
+                                  width: `${curso.tasa_exito}%`,
+                                  backgroundColor: curso.tasa_exito >= 75 ? '#10b981' : curso.tasa_exito >= 50 ? '#f59e0b' : '#ef4444'
                                 }}
                               />
                             </div>
@@ -937,408 +834,6 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
                       ))}
                     </tbody>
                   </table>
-                </div>
-              </div>
-            </div>
-
-            {/* 3B: Top 10 Cursos con Mayor Abandono */}
-            <div className={styles.analyticsCard}>
-              <div className={styles.cardHeader}>
-                <h4>
-                  <FontAwesomeIcon icon={faExclamationTriangle} />
-                  Top 10 Cursos con Mayor Abandono
-                </h4>
-              </div>
-              <div className={styles.cardContent}>
-                <div className={styles.tableResponsive}>
-                  <table className={styles.analyticsTable}>
-                    <thead>
-                      <tr>
-                        <th>Curso</th>
-                        <th>Inscritos</th>
-                        <th>Abandonos</th>
-                        <th>Tasa</th>
-                        <th>Nivel</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {cursos_mayor_abandono.map((curso, index) => {
-                        const indicator = getAbandonoIndicator(curso.tasa_abandono);
-                        return (
-                          <tr key={index}>
-                            <td className={styles.courseName}>{curso.nombre}</td>
-                            <td className={styles.numberCell}>{curso.inscritos}</td>
-                            <td className={styles.numberCell}>{curso.abandonos}</td>
-                            <td className={styles.numberCell}>{curso.tasa_abandono}%</td>
-                            <td>
-                              <span className={`${styles.levelBadge} ${styles[indicator.level]}`}>
-                                <FontAwesomeIcon icon={indicator.icon} />
-                                {indicator.label}
-                              </span>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
-            {/* 3C: Top 10 Cursos con Mayor Completacion */}
-            <div className={styles.analyticsCard}>
-              <div className={styles.cardHeader}>
-                <h4>
-                  <FontAwesomeIcon icon={faStar} />
-                  Top 10 Cursos con Mayor Completacion
-                </h4>
-              </div>
-              <div className={styles.cardContent}>
-                <div className={styles.tableResponsive}>
-                  <table className={styles.analyticsTable}>
-                    <thead>
-                      <tr>
-                        <th>Curso</th>
-                        <th>Completados</th>
-                        <th>Inscritos</th>
-                        <th>Tasa</th>
-                        <th>Badge</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {cursos_mayor_completacion.map((curso, index) => (
-                        <tr key={index}>
-                          <td className={styles.courseName}>{curso.nombre}</td>
-                          <td className={styles.numberCell}>{curso.completados}</td>
-                          <td className={styles.numberCell}>{curso.inscritos}</td>
-                          <td className={styles.numberCell}>{curso.tasa_completacion}%</td>
-                          <td>
-                            {curso.tasa_completacion >= 85 && (
-                              <span className={styles.excellenceBadge}>
-                                <FontAwesomeIcon icon={faStar} />
-                                Excelente
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* SECCION 4: Analisis por Subgrupos Operadores */}
-        <section className={styles.analyticsSection}>
-          <h3 className={styles.sectionTitle}>
-            <FontAwesomeIcon icon={faLayerGroup} />
-            Analisis por Subgrupos Operadores (Areas de Conocimiento)
-          </h3>
-          
-          <div className={styles.subgruposGrid}>
-            {/* 4A: Distribucion por Subgrupo */}
-            <div className={styles.analyticsCard}>
-              <div className={styles.cardHeader}>
-                <h4>Distribucion de Solicitudes por Area</h4>
-              </div>
-              <div className={styles.cardContent}>
-                <div className={styles.donutAndTable}>
-                  <div className={styles.donutContainer}>
-                    <div className={styles.donutChart}>
-                      {(() => {
-                        const total = subgrupos_distribucion.reduce((acc, item) => acc + item.solicitudes, 0);
-                        let accumulatedPercentage = 0;
-                        const colors = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-                        const gradientStops = subgrupos_distribucion.map((item, i) => {
-                          const percentage = (item.solicitudes / total) * 100;
-                          const start = accumulatedPercentage;
-                          accumulatedPercentage += percentage;
-                          return `${colors[i % colors.length]} ${start}% ${accumulatedPercentage}%`;
-                        });
-                        return (
-                          <div 
-                            className={styles.donut}
-                            style={{ 
-                              background: `conic-gradient(${gradientStops.join(', ')})`
-                            }}
-                          >
-                            <div className={styles.donutHole}>
-                              <span className={styles.donutTotal}>{total}</span>
-                              <span className={styles.donutLabel}>Total</span>
-                            </div>
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </div>
-                  <div className={styles.subgruposList}>
-                    {subgrupos_distribucion.map((sg, index) => {
-                      const colors = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
-                      return (
-                        <div key={index} className={styles.subgrupoItem}>
-                          <span className={styles.legendDot} style={{ backgroundColor: colors[index % colors.length] }} />
-                          <div className={styles.subgrupoInfo}>
-                            <span className={styles.subgrupoName}>{sg.nombre}</span>
-                            <span className={styles.subgrupoStats}>
-                              {sg.solicitudes} ({sg.porcentaje}%)
-                              <span className={styles.subgrupoChange} data-positive={sg.cambio >= 0}>
-                                <FontAwesomeIcon icon={sg.cambio >= 0 ? faArrowUp : faArrowDown} />
-                                {Math.abs(sg.cambio)}%
-                              </span>
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* 4B: Subgrupos con Mejor Desempeno */}
-            <div className={styles.analyticsCard}>
-              <div className={styles.cardHeader}>
-                <h4>Desempeno por Area (Tasa de Completacion)</h4>
-              </div>
-              <div className={styles.cardContent}>
-                <div className={styles.tableResponsive}>
-                  <table className={styles.analyticsTable}>
-                    <thead>
-                      <tr>
-                        <th>Area</th>
-                        <th>Inscritos</th>
-                        <th>Completados</th>
-                        <th>Tasa</th>
-                        <th>Indicador</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {subgrupos_desempeno.map((sg, index) => {
-                        const indicator = getCompletacionIndicator(sg.tasa_completacion);
-                        return (
-                          <tr key={index}>
-                            <td className={styles.courseName}>{sg.nombre}</td>
-                            <td className={styles.numberCell}>{sg.inscritos}</td>
-                            <td className={styles.numberCell}>{sg.completados}</td>
-                            <td className={styles.numberCell}>{sg.tasa_completacion}%</td>
-                            <td>
-                              <span 
-                                className={styles.indicatorDot} 
-                                style={{ backgroundColor: indicator.color }}
-                              />
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* SECCION 5: Analisis Institucional */}
-        <section className={styles.analyticsSection}>
-          <h3 className={styles.sectionTitle}>
-            <FontAwesomeIcon icon={faUniversity} />
-            Analisis Institucional
-          </h3>
-          
-          <div className={styles.institucionalGrid}>
-            {/* 5A: Desempeno por Universidad (solo admin_sedeq) */}
-            {isSedeqAdmin && (
-              <div className={styles.analyticsCard}>
-                <div className={styles.cardHeader}>
-                  <h4>
-                    <FontAwesomeIcon icon={faUniversity} />
-                    Desempeno por Universidad
-                  </h4>
-                </div>
-                <div className={styles.cardContent}>
-                  <div className={styles.tableResponsive}>
-                    <table className={styles.analyticsTable}>
-                      <thead>
-                        <tr>
-                          <th>Universidad</th>
-                          <th>Inscripciones</th>
-                          <th>Aprobacion</th>
-                          <th>Completacion</th>
-                          <th>Indicador</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {universidades_desempeno.map((uni, index) => {
-                          const indicator = getDesempenoIndicator(uni.tasa_completacion);
-                          return (
-                            <tr key={index}>
-                              <td className={styles.courseName}>{uni.nombre}</td>
-                              <td className={styles.numberCell}>{uni.inscripciones}</td>
-                              <td className={styles.numberCell}>{uni.tasa_aprobacion}%</td>
-                              <td className={styles.numberCell}>{uni.tasa_completacion}%</td>
-                              <td>
-                                <span 
-                                  className={styles.indicatorDot} 
-                                  style={{ backgroundColor: indicator.color }}
-                                />
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* 5B: Carreras con Mayor Participacion */}
-            <div className={styles.analyticsCard}>
-              <div className={styles.cardHeader}>
-                <h4>
-                  <FontAwesomeIcon icon={faGraduationCap} />
-                  Carreras con Mayor Participacion
-                </h4>
-              </div>
-              <div className={styles.cardContent}>
-                <div className={styles.carrerasList}>
-                  {carreras_participacion.map((carrera) => (
-                    <div key={carrera.posicion} className={styles.carreraItem}>
-                      <span className={styles.carreraPosicion}>#{carrera.posicion}</span>
-                      <div className={styles.carreraInfo}>
-                        <span className={styles.carreraNombre}>{carrera.nombre}</span>
-                        <div className={styles.carreraBarContainer}>
-                          <div 
-                            className={styles.carreraBar}
-                            style={{ width: `${(carrera.solicitudes / maxCarreras) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                      <span className={styles.carreraSolicitudes}>{carrera.solicitudes}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* 5C: Desempeno por Facultad (solo admin_universidad) */}
-            {isUniversityAdmin && (
-              <div className={styles.analyticsCard}>
-                <div className={styles.cardHeader}>
-                  <h4>
-                    <FontAwesomeIcon icon={faBuilding} />
-                    Desempeno por Facultad
-                  </h4>
-                </div>
-                <div className={styles.cardContent}>
-                  <div className={styles.tableResponsive}>
-                    <table className={styles.analyticsTable}>
-                      <thead>
-                        <tr>
-                          <th>Facultad</th>
-                          <th>Inscripciones</th>
-                          <th>Aprobacion</th>
-                          <th>Completacion</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {facultades_desempeno.map((fac, index) => (
-                          <tr key={index}>
-                            <td className={styles.courseName}>{fac.nombre}</td>
-                            <td className={styles.numberCell}>{fac.inscripciones}</td>
-                            <td className={styles.numberCell}>{fac.tasa_aprobacion}%</td>
-                            <td className={styles.numberCell}>{fac.tasa_completacion}%</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* SECCION 6: Vista Especifica para Maestro */}
-        {isTeacher && (
-          <section className={styles.analyticsSection}>
-            <h3 className={styles.sectionTitle}>
-              <FontAwesomeIcon icon={faChalkboardTeacher} />
-              Mis Cursos
-            </h3>
-            
-            <div className={styles.maestroGrid}>
-              {/* 6A: Estadisticas de Mis Cursos */}
-              <div className={styles.analyticsCard}>
-                <div className={styles.cardHeader}>
-                  <h4>
-                    <FontAwesomeIcon icon={faClipboardList} />
-                    Estadisticas de Mis Cursos
-                  </h4>
-                </div>
-                <div className={styles.cardContent}>
-                  <div className={styles.tableResponsive}>
-                    <table className={styles.analyticsTable}>
-                      <thead>
-                        <tr>
-                          <th>Curso</th>
-                          <th>Inscritos</th>
-                          <th>Aprobados</th>
-                          <th>Completados</th>
-                          <th>Abandonados</th>
-                          <th>Tasa Comp.</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {maestro_cursos.map((curso, index) => (
-                          <tr key={index}>
-                            <td className={styles.courseName}>{curso.nombre}</td>
-                            <td className={styles.numberCell}>{curso.inscritos}</td>
-                            <td className={styles.numberCell}>{curso.aprobados}</td>
-                            <td className={styles.numberCell}>{curso.completados}</td>
-                            <td className={styles.numberCell}>{curso.abandonados}</td>
-                            <td className={styles.numberCell}>{curso.tasa_completacion}%</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              </div>
-
-              {/* 6B: Calificaciones Promedio de Mis Cursos */}
-              <div className={styles.analyticsCard}>
-                <div className={styles.cardHeader}>
-                  <h4>
-                    <FontAwesomeIcon icon={faStar} />
-                    Calificaciones Promedio de Mis Cursos
-                  </h4>
-                </div>
-                <div className={styles.cardContent}>
-                  <div className={styles.calificacionesList}>
-                    {maestro_calificaciones.map((curso, index) => (
-                      <div key={index} className={styles.calificacionItem}>
-                        <div className={styles.calificacionInfo}>
-                          <span className={styles.calificacionCurso}>{curso.curso}</span>
-                          <span className={styles.calificacionEvaluaciones}>
-                            {curso.evaluaciones} evaluaciones
-                          </span>
-                        </div>
-                        <div className={styles.calificacionBarContainer}>
-                          <div 
-                            className={styles.calificacionBar}
-                            style={{ 
-                              width: `${(curso.calificacion_promedio / 10) * 100}%`,
-                              backgroundColor: curso.calificacion_promedio >= 8.5 ? '#10b981' : curso.calificacion_promedio >= 7 ? '#f59e0b' : '#ef4444'
-                            }}
-                          />
-                        </div>
-                        <span className={styles.calificacionValor}>{curso.calificacion_promedio}</span>
-                      </div>
-                    ))}
-                  </div>
                 </div>
               </div>
             </div>
@@ -1389,9 +884,9 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
                           className={`${styles.chevronIcon} ${expandedCredentialId === cred.id_credencial ? styles.expanded : ''}`}
                         />
                       </div>
-                      
+
                       <div className={styles.credentialActions}>
-                        <button 
+                        <button
                           className={styles.filterButton}
                           onClick={(e) => {
                             e.stopPropagation();
@@ -1524,8 +1019,8 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
                     onChange={(e) => handleFilterChange('id_valor', e.target.value)}
                   >
                     <option value="">
-                      {filtros.tipo_filtro === 'sin_credencial' 
-                        ? 'Todos los Cursos sin Credencial' 
+                      {filtros.tipo_filtro === 'sin_credencial'
+                        ? 'Todos los Cursos sin Credencial'
                         : 'Todos Mis Cursos'}
                     </option>
                     {availableCoursesForFilter.map(curso => (
@@ -1552,7 +1047,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
                 </select>
               </div>
 
-              <button 
+              <button
                 className={styles.clearFiltersButton}
                 onClick={() => setFiltros({ tipo_filtro: 'todos', id_valor: '', estado: 'todos' })}
               >
@@ -1769,10 +1264,10 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
               <div className={styles.modalActions}>
                 <h4>Actualizar Estado</h4>
                 {isCourseFinished(selectedApplication) ? (
-                  <div style={{ 
-                    padding: '15px', 
-                    backgroundColor: '#fef2f2', 
-                    border: '1px solid #fecaca', 
+                  <div style={{
+                    padding: '15px',
+                    backgroundColor: '#fef2f2',
+                    border: '1px solid #fecaca',
                     borderRadius: '8px',
                     color: '#dc2626',
                     textAlign: 'center'
@@ -1843,7 +1338,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
           </div>
         </div>
       )}
-      
+
       {toast.show && (
         <div className={styles.toast}>
           <div className={`${styles.toastContent} ${styles[toast.type] || 'success'}`}>

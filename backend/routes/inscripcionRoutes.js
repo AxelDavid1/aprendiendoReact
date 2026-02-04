@@ -5,6 +5,7 @@ const {
     getInscripcionesAlumno,
     getAllInscripciones,
     actualizarEstadoInscripcion,
+    getAnalyticsData,
 } = require("../controllers/inscripcionController");
 const { protect, isAdmin } = require("../middleware/authMiddleware.js");
 
@@ -15,6 +16,10 @@ router.post("/", protect, crearInscripcion);
 // Ruta para que un administrador/maestro obtenga TODAS las inscripciones (con filtros)
 // @route   GET /api/inscripciones/all
 router.get("/all", protect, getAllInscripciones);
+
+// Ruta para obtener datos de analytics
+// @route   GET /api/inscripciones/analytics
+router.get("/analytics", protect, getAnalyticsData);
 
 // Ruta para que un alumno obtenga sus propias inscripciones
 // @route   GET /api/inscripciones/alumno

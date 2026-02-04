@@ -357,9 +357,253 @@ const actualizarEstadoInscripcion = async (req, res) => {
   }
 };
 
+// @desc    Obtener datos de analytics para el dashboard de análisis
+// @route   GET /api/inscripciones/analytics
+// @access  Private (Admin, Maestro)
+const getAnalyticsData = async (req, res) => {
+  const { 
+    periodo = '6meses', 
+    universidad,
+    facultad,
+    carrera,
+    subgrupo,
+    maestro
+  } = req.query;
+
+  console.log("🔍 getAnalyticsData - Iniciando consulta");
+
+  try {
+    // Calcular fechas según período
+    const fechaFin = new Date();
+    let fechaInicio = new Date();
+    let fechaInicioAnterior = new Date();
+
+    switch (periodo) {
+      case '1mes':
+        fechaInicio.setMonth(fechaInicio.getMonth() - 1);
+        fechaInicioAnterior.setMonth(fechaInicioAnterior.getMonth() - 2);
+        break;
+      case '3meses':
+        fechaInicio.setMonth(fechaInicio.getMonth() - 3);
+        fechaInicioAnterior.setMonth(fechaInicioAnterior.getMonth() - 6);
+        break;
+      case '1ano':
+        fechaInicio.setFullYear(fechaInicio.getFullYear() - 1);
+        fechaInicioAnterior.setFullYear(fechaInicioAnterior.getFullYear() - 2);
+        break;
+      default: // 6meses
+        fechaInicio.setMonth(fechaInicio.getMonth() - 6);
+        fechaInicioAnterior.setMonth(fechaInicioAnterior.getMonth() - 12);
+    }
+
+    // Construir filtros base según rol
+    const construirWhereClause = () => {
+      const conditions = [];
+      const params = [];
+
+      if (req.user.tipo_usuario === 'maestro' && req.user.id_maestro) {
+        conditions.push('c.id_maestro = ?');
+        params.push(req.user.id_maestro);
+      } else if (req.user.tipo_usuario === 'admin_universidad' && req.user.id_universidad) {
+        conditions.push('c.id_universidad = ?');
+        params.push(req.user.id_universidad);
+      }
+
+      if (universidad) {
+        conditions.push('c.id_universidad = ?');
+        params.push(universidad);
+      }
+      if (facultad) {
+        conditions.push('c.id_facultad = ?');
+        params.push(facultad);
+      }
+      if (carrera) {
+        conditions.push('c.id_carrera = ?');
+        params.push(carrera);
+      }
+      if (subgrupo) {
+        conditions.push('c.id_subgrupo = ?');
+        params.push(subgrupo);
+      }
+      if (maestro) {
+        conditions.push('c.id_maestro = ?');
+        params.push(maestro);
+      }
+
+      return { conditions, params };
+    };
+
+    const { conditions: baseConditions, params: baseParams } = construirWhereClause();
+    const whereClause = baseConditions.length > 0 ? `AND ${baseConditions.join(' AND ')}` : '';
+
+    // 1. KPIs Principales - Consulta Simplificada
+    const kpisQuery = `
+      SELECT 
+        COUNT(CASE WHEN i.fecha_solicitud BETWEEN ? AND ? THEN 1 END) as total_actual,
+        COUNT(CASE WHEN i.fecha_solicitud BETWEEN ? AND ? THEN 1 END) as total_anterior,
+        COUNT(CASE WHEN i.estatus_inscripcion = 'aprobada' AND i.fecha_solicitud BETWEEN ? AND ? THEN 1 END) as aprobadas_actual,
+        COUNT(CASE WHEN i.estatus_inscripcion = 'aprobada' AND i.fecha_solicitud BETWEEN ? AND ? THEN 1 END) as aprobadas_anterior,
+        COUNT(CASE WHEN co.id_constancia IS NOT NULL AND i.fecha_solicitud BETWEEN ? AND ? THEN 1 END) as completados_actual,
+        COUNT(CASE WHEN co.id_constancia IS NOT NULL AND i.fecha_solicitud BETWEEN ? AND ? THEN 1 END) as completados_anterior,
+        COUNT(CASE WHEN c.fecha_fin < CURDATE() AND co.id_constancia IS NULL AND i.estatus_inscripcion = 'aprobada' AND i.fecha_solicitud BETWEEN ? AND ? THEN 1 END) as abandonados_actual,
+        COUNT(CASE WHEN c.fecha_fin < CURDATE() AND co.id_constancia IS NULL AND i.estatus_inscripcion = 'aprobada' AND i.fecha_solicitud BETWEEN ? AND ? THEN 1 END) as abandonados_anterior
+      FROM inscripcion i
+      JOIN curso c ON i.id_curso = c.id_curso
+      LEFT JOIN constancia_alumno co ON i.id_alumno = co.id_alumno AND i.id_curso = co.id_curso
+      WHERE (i.fecha_solicitud BETWEEN ? AND ? OR i.fecha_solicitud BETWEEN ? AND ?)
+        ${whereClause}
+    `;
+
+    const [kpisResult] = await pool.query(kpisQuery, [
+      // Total inscripciones
+      fechaInicio, fechaFin, fechaInicioAnterior, fechaInicio,
+      // Aprobadas
+      fechaInicio, fechaFin, fechaInicioAnterior, fechaInicio,
+      // Completadas
+      fechaInicio, fechaFin, fechaInicioAnterior, fechaInicio,
+      // Abandonados
+      fechaInicio, fechaFin, fechaInicioAnterior, fechaInicio,
+      // WHERE clause
+      fechaInicio, fechaFin, fechaInicioAnterior, fechaInicio,
+      ...baseParams, ...baseParams
+    ]);
+
+    const kpisData = kpisResult[0];
+    
+    // Calcular métricas simplificadas
+    const totalInscripciones = kpisData.total_actual || 0;
+    const totalInscripcionesAnterior = kpisData.total_anterior || 0;
+    const aprobadasActual = kpisData.aprobadas_actual || 0;
+    const aprobadasAnterior = kpisData.aprobadas_anterior || 0;
+    const completadosActual = kpisData.completados_actual || 0;
+    const completadosAnterior = kpisData.completados_anterior || 0;
+    const abandonadosActual = kpisData.abandonados_actual || 0;
+    const abandonadosAnterior = kpisData.abandonados_anterior || 0;
+    
+    const kpis = {
+      total_inscripciones: totalInscripciones,
+      cambio_total: totalInscripcionesAnterior > 0 
+        ? Math.round(((totalInscripciones - totalInscripcionesAnterior) / totalInscripcionesAnterior) * 100)
+        : 0,
+      tasa_aprobacion: aprobadasActual > 0
+        ? Math.round((completadosActual / aprobadasActual) * 100)
+        : 0,
+      cambio_aprobacion: aprobadasAnterior > 0
+        ? Math.round(((aprobadasActual - aprobadasAnterior) / aprobadasAnterior) * 100)
+        : 0,
+      tasa_completacion: aprobadasActual > 0
+        ? Math.round((completadosActual / aprobadasActual) * 100)
+        : 0,
+      cambio_completacion: completadosAnterior > 0
+        ? Math.round(((completadosActual - completadosAnterior) / completadosAnterior) * 100)
+        : 0,
+      tasa_abandono: aprobadasActual > 0
+        ? Math.min(100, Math.round((abandonadosActual / aprobadasActual) * 100))
+        : 0,
+      cambio_abandono: abandonadosAnterior > 0
+        ? Math.round(((abandonadosActual - abandonadosAnterior) / abandonadosAnterior) * 100)
+        : 0
+    };
+
+    // 2. Top Cursos Más Solicitados - Consulta Simplificada
+    const cursosSolicitadosQuery = `
+      SELECT 
+        c.nombre_curso,
+        COUNT(i.id_inscripcion) as inscripciones,
+        COUNT(CASE WHEN co.id_constancia IS NOT NULL THEN 1 END) as completados,
+        ROUND(
+          COUNT(CASE WHEN co.id_constancia IS NOT NULL THEN 1 END) * 100.0 / 
+          NULLIF(COUNT(i.id_inscripcion), 0), 2
+        ) as tasa_exito
+      FROM inscripcion i
+      JOIN curso c ON i.id_curso = c.id_curso
+      LEFT JOIN constancia_alumno co ON i.id_alumno = co.id_alumno AND i.id_curso = co.id_curso
+      WHERE i.fecha_solicitud BETWEEN ? AND ?
+        ${whereClause}
+      GROUP BY c.id_curso, c.nombre_curso
+      ORDER BY inscripciones DESC
+      LIMIT 10
+    `;
+
+    const [cursosSolicitadosResult] = await pool.query(cursosSolicitadosQuery, [
+      fechaInicio, fechaFin, ...baseParams
+    ]);
+
+    // 3. Distribución por Rol - Consulta Condicional
+    let distribucionResult = [];
+    
+    if (req.user.tipo_usuario === 'admin_sedeq') {
+      // Distribución por universidad para SEDAQ
+      const distribucionQuery = `
+        SELECT 
+          u.nombre as entidad,
+          COUNT(i.id_inscripcion) as inscripciones,
+          COUNT(CASE WHEN co.id_constancia IS NOT NULL THEN 1 END) as completados,
+          ROUND(
+            COUNT(CASE WHEN co.id_constancia IS NOT NULL THEN 1 END) * 100.0 / 
+            NULLIF(COUNT(i.id_inscripcion), 0), 2
+          ) as tasa_exito
+        FROM inscripcion i
+        JOIN curso c ON i.id_curso = c.id_curso
+        JOIN universidad u ON c.id_universidad = u.id_universidad
+        LEFT JOIN constancia_alumno co ON i.id_alumno = co.id_alumno AND i.id_curso = co.id_curso
+        WHERE i.fecha_solicitud BETWEEN ? AND ?
+        GROUP BY u.id_universidad, u.nombre
+        ORDER BY inscripciones DESC
+        LIMIT 15
+      `;
+      [distribucionResult] = await pool.query(distribucionQuery, [fechaInicio, fechaFin]);
+      
+    } else if (req.user.tipo_usuario === 'admin_universidad') {
+      // Distribución por carreras para Admin Universidad
+      const distribucionQuery = `
+        SELECT 
+          car.nombre as entidad,
+          COUNT(i.id_inscripcion) as inscripciones,
+          COUNT(CASE WHEN co.id_constancia IS NOT NULL THEN 1 END) as completados,
+          ROUND(
+            COUNT(CASE WHEN co.id_constancia IS NOT NULL THEN 1 END) * 100.0 / 
+            NULLIF(COUNT(i.id_inscripcion), 0), 2
+          ) as tasa_exito
+        FROM inscripcion i
+        JOIN curso c ON i.id_curso = c.id_curso
+        JOIN alumno a ON i.id_alumno = a.id_alumno
+        LEFT JOIN carreras car ON a.id_carrera = car.id_carrera
+        LEFT JOIN constancia_alumno co ON i.id_alumno = co.id_alumno AND i.id_curso = co.id_curso
+        WHERE i.fecha_solicitud BETWEEN ? AND ?
+          AND c.id_universidad = ?
+        GROUP BY car.id_carrera, car.nombre
+        ORDER BY inscripciones DESC
+        LIMIT 15
+      `;
+      [distribucionResult] = await pool.query(distribucionQuery, [fechaInicio, fechaFin, req.user.id_universidad]);
+    }
+    // Para maestro no se incluye distribución
+
+    // 4. Respuesta simplificada y útil
+    const analyticsData = {
+      kpis,
+      cursos_mas_solicitados: cursosSolicitadosResult,
+      distribucion_subgrupos: distribucionResult,
+      tipo_distribucion: req.user.tipo_usuario === 'admin_sedeq' ? 'universidad' : 'carrera'
+    };
+
+    console.log("🔍 getAnalyticsData - Datos generados:", {
+      kpis: analyticsData.kpis,
+      cursos_count: analyticsData.cursos_mas_solicitados.length,
+    });
+
+    res.json(analyticsData);
+  } catch (error) {
+    console.error("🔍 getAnalyticsData - Error:", error);
+    res.status(500).json({ error: "Error interno del servidor al obtener analytics" });
+  }
+};
+
 module.exports = {
   crearInscripcion,
   getInscripcionesAlumno,
   getAllInscripciones,
   actualizarEstadoInscripcion,
+  getAnalyticsData,
 };
