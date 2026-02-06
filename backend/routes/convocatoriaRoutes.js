@@ -13,6 +13,7 @@ const {
     updateSolicitudStatus,
     getConvocatoriasByUniversidad, // Nueva función
     updateConvocatoriaUniversidad, // Nueva función
+    getSolicitudesByUniversidad, // Nueva función
 } = require("../controllers/convocatoriaController");
 
 const JWT_SECRET =
@@ -130,8 +131,8 @@ const verifyUniversidadAdmin = (req, res, next) => {
     }
 };
 
-// Middleware para verificar que el usuario es admin_sedeq O admin_universidad
-const verifySEDEQOrUniversidadAdmin = (req, res, next) => {
+// Middleware para verificar que el usuario puede gestionar solicitudes (SEDEQ o Universidad)
+const verifySolicitudesAdmin = (req, res, next) => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -170,13 +171,14 @@ const verifySEDEQOrUniversidadAdmin = (req, res, next) => {
 // --- Definición de Rutas ---
 // Rutas específicas PRIMERO (antes de /:id)
 router.get("/solicitudes/all", verifySEDEQAdmin, getAllSolicitudes);
-router.put("/solicitudes/:id", verifySEDEQAdmin, updateSolicitudStatus);
+router.put("/solicitudes/:id", verifySolicitudesAdmin, updateSolicitudStatus);
 
 // Rutas para alumnos (también específicas)
 router.get("/alumno/estado-general", verifyAlumno, getEstadoGeneralAlumno);
 
 // Rutas para admin_universidad
 router.get("/universidad/mis-convocatorias", verifyUniversidadAdmin, getConvocatoriasByUniversidad);
+router.get("/universidad/mis-solicitudes", verifyUniversidadAdmin, getSolicitudesByUniversidad);
 
 // Rutas públicas generales
 router.get("/", getAllConvocatorias);
@@ -187,7 +189,7 @@ router.post("/", verifySEDEQAdmin, createConvocatoria);
 router.delete("/:id", verifySEDEQAdmin, deleteConvocatoria);
 
 // Ruta de actualización que soporta ambos tipos de admin
-router.put("/:id", verifySEDEQOrUniversidadAdmin, updateConvocatoriaUniversidad);
+router.put("/:id", verifySolicitudesAdmin, updateConvocatoriaUniversidad);
 
 // Rutas para solicitar (específicas)
 router.post("/:id/solicitar", verifyAlumno, solicitarInscripcionConvocatoria);

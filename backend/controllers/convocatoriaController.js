@@ -174,6 +174,61 @@ const getConvocatoriasByUniversidad = async (req, res) => {
   }
 };
 
+// @desc    Obtener solicitudes de convocatorias donde participa la universidad del admin
+// @route   GET /api/convocatorias/universidad/mis-solicitudes
+// @access  Private (admin_universidad)
+const getSolicitudesByUniversidad = async (req, res) => {
+  const id_usuario = req.user.id_usuario;
+
+  try {
+    // Obtener el id_universidad directamente del usuario (tipo admin_universidad)
+    const [userData] = await pool.query(
+      "SELECT id_universidad FROM usuario WHERE id_usuario = ? AND tipo_usuario = 'admin_universidad'",
+      [id_usuario]
+    );
+
+    if (userData.length === 0) {
+      return res.status(404).json({ error: "Perfil de administrador de universidad no encontrado." });
+    }
+
+    const id_universidad = userData[0].id_universidad;
+
+    // Obtener solicitudes de convocatorias donde participa esta universidad
+    const query = `
+      SELECT
+        sc.id,
+        sc.convocatoria_id,
+        sc.alumno_id,
+        sc.estado,
+        sc.fecha_solicitud,
+        c.nombre AS convocatoria_nombre,
+        u_alumno.id_universidad AS id_universidad_alumno,
+        u_alumno.nombre AS universidad_nombre,
+        a.nombre_completo AS alumno_nombre,
+        usr.email AS alumno_email
+      FROM solicitudes_convocatorias sc
+      JOIN convocatorias c ON sc.convocatoria_id = c.id
+      JOIN alumno a ON sc.alumno_id = a.id_alumno
+      JOIN usuario usr ON a.id_usuario = usr.id_usuario
+      JOIN universidad u_alumno ON a.id_universidad = u_alumno.id_universidad
+      WHERE sc.convocatoria_id IN (
+        SELECT cu.convocatoria_id
+        FROM convocatoria_universidades cu
+        WHERE cu.universidad_id = ?
+      )
+      ORDER BY sc.fecha_solicitud DESC;
+    `;
+
+    const [solicitudes] = await pool.query(query, [id_universidad]);
+
+    res.json({ solicitudes });
+
+  } catch (error) {
+    console.error("Error al obtener solicitudes por universidad:", error);
+    res.status(500).json({ error: "Error interno del servidor." });
+  }
+};
+
 // @desc    Obtener una convocatoria por ID
 // @route   GET /api/convocatorias/:id
 // @access  Public
@@ -782,7 +837,7 @@ const updateSolicitudStatus = async (req, res) => {
       if (capacidadData.length === 0 || capacidadData[0].cupo_actual >= capacidadData[0].capacidad_maxima) {
         console.log('ERROR: No hay cupo disponible');
         await connection.rollback();
-        return res.status(409).json({ error: "No hay cupo disponible en la universidad para esta convocatoria." });
+        return res.status(409).json({ error: "Cupo lleno, imposible aprobar solicitud." });
       }
 
       // Incrementar el cupo
@@ -839,4 +894,5 @@ module.exports = {
   updateSolicitudStatus,
   getConvocatoriasByUniversidad, // Nueva exportación
   updateConvocatoriaUniversidad, // Nueva exportación
+  getSolicitudesByUniversidad, // Nueva exportación
 };

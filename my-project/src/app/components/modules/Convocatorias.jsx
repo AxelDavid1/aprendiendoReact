@@ -97,7 +97,7 @@ function GestionConvocatorias() {
   const [activeTab, setActiveTab] = useState("convocatorias");
 
   // Estados para información del usuario
-  const [currentUser, setCurrentUser] = useState(null);
+  const [currentUser, setCurrentUser] = useState(getUserFromToken());
   const [idUniversidadAdmin, setIdUniversidadAdmin] = useState(null);
 
   // Estados para los datos
@@ -189,9 +189,19 @@ function GestionConvocatorias() {
       const token = getAuthToken();
       if (!token) throw new Error("No estás autenticado.");
 
-      const response = await fetch(API_URL_SOLICITUDES, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      let response;
+      if (currentUser?.tipo_usuario === "admin_universidad") {
+        // Para admin_universidad, usar endpoint específico
+        response = await fetch(`${API_URL_CONVOCATORIAS}/universidad/mis-solicitudes`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      } else {
+        // Para admin_sedeq, usar endpoint general
+        response = await fetch(API_URL_SOLICITUDES, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
+
       if (!response.ok) throw new Error("Error al cargar las solicitudes.");
       const data = await response.json();
       setSolicitudes(data.solicitudes || []);
@@ -200,7 +210,7 @@ function GestionConvocatorias() {
     } finally {
       setLoadingSolicitudes(false);
     }
-  }, []); // Dependencia vacía para que se ejecute una vez
+  }, [currentUser]); // Dependencia vacía para que se ejecute una vez
 
   useEffect(() => {
     const user = initializeUser();
@@ -211,7 +221,7 @@ function GestionConvocatorias() {
   }, []); // Dependencias vacías - solo se ejecuta una vez al montar
 
   useEffect(() => {
-    if (activeTab === "solicitudes" && currentUser?.tipo_usuario === "admin_sedeq") {
+    if (activeTab === "solicitudes" && (currentUser?.tipo_usuario === "admin_sedeq" || currentUser?.tipo_usuario === "admin_universidad")) {
       fetchSolicitudes();
     }
   }, [activeTab, currentUser]);
@@ -762,7 +772,7 @@ function GestionConvocatorias() {
           >
             Convocatorias
           </button>
-          {canManageSolicitudes() && (
+          {(currentUser?.tipo_usuario === "admin_sedeq" || currentUser?.tipo_usuario === "admin_universidad") && (
             <button
               className={`${styles.tab} ${activeTab === "solicitudes" ? styles.activeTab : ""}`}
               onClick={() => setActiveTab("solicitudes")}
