@@ -171,15 +171,25 @@ exports.reemplazarFirma = async (req, res) => {
 exports.obtenerFirmas = async (req, res) => {
   try {
     const user = req.user;
+    console.log("🔍 obtenerFirmas - Usuario:", user.tipo_usuario, user.id_usuario, "id_universidad:", user.id_universidad);
+    
     let firmas;
-
     if (user.tipo_usuario === "admin_sedeq") {
+      console.log("📋 Ejecutando findAll() para admin_sedeq");
       firmas = await Firmas.findAll();
+      console.log("📊 Resultado findAll:", firmas.length, "firmas");
+      firmas.forEach(f => console.log("  -", f.tipo_firma, f.id_universidad, f.nombre_universidad || "SEDEQ"));
     } else if (user.tipo_usuario === "admin_universidad") {
+      console.log("📋 Ejecutando findForUniversity para admin_universidad:", user.id_universidad);
       firmas = await Firmas.findForUniversity(user.id_universidad);
+      console.log("📊 Resultado universidad:", firmas.length, "firmas");
+      firmas.forEach(f => console.log("  -", f.tipo_firma, f.id_universidad, f.nombre_universidad));
     } else {
       return res.status(403).json({ message: "Acceso no autorizado." });
     }
+
+    console.log("📦 Total firmas a enviar:", firmas.length);
+    firmas.forEach(f => console.log("  FINAL -", f.tipo_firma, f.id_universidad, f.nombre_universidad || "SEDEQ"));
 
     // Convertir BLOB a base64 para enviar al frontend
     const firmasConImagen = firmas.map((firma) => {
@@ -200,9 +210,10 @@ exports.obtenerFirmas = async (req, res) => {
       return firmaData;
     });
 
+    console.log("📤 Enviando", firmasConImagen.length, "firmas al frontend");
     res.status(200).json(firmasConImagen);
   } catch (error) {
-    console.error("Error al obtener las firmas:", error);
+    console.error("❌ Error en obtenerFirmas:", error);
     res.status(500).json({ message: "Error interno del servidor." });
   }
 };

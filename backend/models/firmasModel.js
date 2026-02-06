@@ -36,6 +36,22 @@ const Firmas = {
     return rows;
   },
 
+  // Encuentra solo las firmas de una universidad (para galería, sin SEDEQ)
+  findForUniversityGallery: async (id_universidad) => {
+    const [rows] = await db.execute(
+      `
+      SELECT f.id_firma, f.tipo_firma, f.id_universidad, f.imagen_blob, f.fecha_subida,
+             u.nombre as nombre_universidad, u.logo_url as logo_universidad
+      FROM firmas f
+      LEFT JOIN universidad u ON f.id_universidad = u.id_universidad
+      WHERE f.id_universidad = ?
+      ORDER BY f.fecha_subida DESC
+      `,
+      [id_universidad],
+    );
+    return rows;
+  },
+
   findById: async (id_firma) => {
     const [rows] = await db.execute("SELECT * FROM firmas WHERE id_firma = ?", [
       id_firma,

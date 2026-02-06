@@ -19,6 +19,12 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "";
 const SERVER_URL =
   process.env.NEXT_PUBLIC_SERVER_URL || "";
 
+// Mapeo temporal de usuarios a universidades (solución mientras se corrige la autenticación)
+const usuarioUniversidadMap = {
+  76: 15, // upsrj@gmail.com -> Universidad Politecnica de Santa Rosa Jauregui
+  // Agregar más mapeos según sea necesario
+};
+
 const CertificadosYConstancias = () => {
   const { user } = useAuth();
 
@@ -96,28 +102,47 @@ const CertificadosYConstancias = () => {
   const fetchSignatures = useCallback(async () => {
     setIsLoading(true);
     try {
+      // Obtener el ID de universidad correcto usando el mapeo
+      const userUniversidadId = user.tipo_usuario === "admin_universidad" 
+        ? usuarioUniversidadMap[user.id_usuario] || user.id_universidad
+        : user.id_universidad;
+      
+      console.log("🔍 fetchSignatures - Iniciando para usuario:", user?.tipo_usuario, userUniversidadId);
+      
       const token = localStorage.getItem("token");
-      const { data } = await axios.get("/api/firmas", {
+      const response = await axios.get("/api/firmas", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setSignatures(data);
+      
+      console.log("📦 Respuesta completa:", response);
+      console.log("📦 Datos recibidos:", response.data);
+      console.log("📦 Longitud:", response.data.length);
+      response.data.forEach(sig => console.log("  -", sig.tipo_firma, sig.id_universidad, sig.nombre_universidad || "SEDEQ"));
+      
+      setSignatures(response.data);
+      console.log("✅ Estado signatures actualizado con", response.data.length, "firmas");
     } catch (error) {
+      console.error("❌ Error en fetchSignatures:", error);
       showAlert("error", "Error al cargar las firmas.");
-      console.error("Error al cargar firmas:", error);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [user]);
 
   useEffect(() => {
+    console.log("👤 Usuario en componente:", user);
+    console.log("👤 Estructura completa:", JSON.stringify(user, null, 2));
+    
     if (user) {
       fetchSignatures();
     }
   }, [user, fetchSignatures]);
 
   useEffect(() => {
-    if (user && user.role === "admin_universidad") {
-      setFormData((prev) => ({ ...prev, id_universidad: user.id_universidad }));
+    if (user && user.tipo_usuario === "admin_universidad") {
+      // Obtener el ID de universidad correcto usando el mapeo
+      const userUniversidadId = usuarioUniversidadMap[user.id_usuario] || user.id_universidad;
+      setFormData((prev) => ({ ...prev, id_universidad: userUniversidadId }));
     }
   }, [user]);
 
@@ -459,7 +484,7 @@ const CertificadosYConstancias = () => {
             <div className={styles.cardHeader}>
               <span>Cargar Nueva Firma</span>
               <span className={styles.badge}>
-                {user.role === "admin_sedeq" ? "SEDEQ" : "UNIVERSIDAD"}
+                {user.tipo_usuario === "admin_sedeq" ? "SEDEQ" : "UNIVERSIDAD"}
               </span>
             </div>
             <div className={styles.cardBody}>
@@ -473,12 +498,21 @@ const CertificadosYConstancias = () => {
                     required
                   >
                     <option value="">Seleccionar tipo...</option>
-                    {user.role === "admin_sedeq" && (
+                    {(() => {
+                      // Obtener el ID de universidad correcto usando el mapeo
+                      const userUniversidadId = user.tipo_usuario === "admin_universidad" 
+                        ? usuarioUniversidadMap[user.id_usuario] || user.id_universidad
+                        : user.id_universidad;
+                      
+                      console.log("🔍 Usuario formulario:", user?.tipo_usuario, userUniversidadId, user);
+                      console.log("🔍 Condición SEDEQ:", user.tipo_usuario === "admin_sedeq", "role:", user.tipo_usuario, "tipo:", typeof user.tipo_usuario);
+                      return null;
+                    })()}
+                    {user.tipo_usuario === "admin_sedeq" && (
                       <option value="sedeq">SEDEQ</option>
                     )}
                     <option value="universidad">Universidad</option>
                     <option value="coordinador">Coordinador</option>
-                    <option value="sedeq">Sedeq</option>
                   </select>
                 </div>
 
@@ -493,7 +527,7 @@ const CertificadosYConstancias = () => {
                       name="id_universidad"
                       value={formData.id_universidad}
                       onChange={handleFormChange}
-                      disabled={user.role === "admin_universidad"}
+                      disabled={user.tipo_usuario === "admin_universidad"}
                       required
                       className={styles.scrollableSelect}
                     >
@@ -583,7 +617,33 @@ const CertificadosYConstancias = () => {
                 </div>
               ) : (
                 <div className={styles.signatureGallery}>
-                  {signatures.map((sig) => (
+                  {(() => {
+                    console.log("🎭 Renderizando galería - Usuario:", user?.tipo_usuario);
+                    console.log("🎭 Estado signatures:", signatures.length, "firmas");
+                    signatures.forEach(sig => console.log("  -", sig.tipo_firma, sig.id_universidad, sig.nombre_universidad || "SEDEQ"));
+                    
+                    // Obtener el ID de universidad correcto usando el mapeo
+                    const userUniversidadId = user.tipo_usuario === "admin_universidad" 
+                      ? usuarioUniversidadMap[user.id_usuario] || user.id_universidad
+                      : user.id_universidad;
+                    
+                    const filteredSignatures = signatures.filter(sig => {
+                      // Filtrar firmas para galería según rol
+                      let shouldShow = false;
+                      
+                      if (user.tipo_usuario === "admin_sedeq") {
+                        shouldShow = true; // Muestra todo
+                      } else if (user.tipo_usuario === "admin_universidad") {
+                        shouldShow = sig.id_universidad === userUniversidadId; // Solo las de su universidad
+                      }
+                      
+                      console.log("🎭 Filtrado:", sig.tipo_firma, "→", shouldShow ? "MOSTRAR" : "OCULTAR");
+                      return shouldShow;
+                    });
+                    
+                    console.log("🎭 Galería final:", filteredSignatures.length, "firmas");
+                    
+                    return filteredSignatures.map((sig) => (
                     <div key={sig.id_firma} className={styles.signatureItem}>
                       <span
                         className={`${styles.statusBadge} ${styles[`status${sig.tipo_firma.charAt(0).toUpperCase() + sig.tipo_firma.slice(1)}`]}`}
@@ -607,18 +667,22 @@ const CertificadosYConstancias = () => {
                         </p>
                       </div>
                       <div className={styles.signatureActions}>
-                        <button
-                          className={styles.deleteButton}
-                          onClick={() => {
-                            setSignatureToDelete(sig);
-                            setShowDeleteModal(true);
-                          }}
-                        >
-                          <FontAwesomeIcon icon={faTrash} />
-                        </button>
+                        {/* Mostrar botón de eliminar solo si no es firma SEDEQ o es admin_sedeq */}
+                        {!(sig.tipo_firma === "sedeq" && user.tipo_usuario !== "admin_sedeq") && (
+                          <button
+                            className={styles.deleteButton}
+                            onClick={() => {
+                              setSignatureToDelete(sig);
+                              setShowDeleteModal(true);
+                            }}
+                          >
+                            <FontAwesomeIcon icon={faTrash} />
+                          </button>
+                        )}
                       </div>
                     </div>
-                  ))}
+                  ));
+                  })()}
                 </div>
               )}
             </div>
