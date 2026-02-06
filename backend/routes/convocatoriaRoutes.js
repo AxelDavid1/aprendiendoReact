@@ -10,7 +10,9 @@ const {
     getEstadoGeneralAlumno,
     solicitarInscripcionConvocatoria,
     getAllSolicitudes,
-    updateSolicitudStatus, // <-- 1. Importa la función
+    updateSolicitudStatus,
+    getConvocatoriasByUniversidad, // Nueva función
+    updateConvocatoriaUniversidad, // Nueva función
 } = require("../controllers/convocatoriaController");
 
 const JWT_SECRET =
@@ -91,6 +93,80 @@ const verifyAlumno = (req, res, next) => {
     }
 };
 
+// Middleware para verificar que el usuario es un administrador de universidad.
+const verifyUniversidadAdmin = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res
+            .status(401)
+            .json({
+                error: "Acceso denegado. Formato de token inválido o no proporcionado.",
+            });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+
+        if (req.user.tipo_usuario !== "admin_universidad") {
+            return res
+                .status(403)
+                .json({
+                    error:
+                        "Acceso prohibido. No tienes los permisos necesarios para esta acción.",
+                });
+        }
+        next();
+    } catch (error) {
+        if (error.name === "TokenExpiredError") {
+            return res
+                .status(401)
+                .json({ error: "Token expirado. Por favor, inicia sesión de nuevo." });
+        }
+        res.status(401).json({ error: "Token no válido." });
+    }
+};
+
+// Middleware para verificar que el usuario es admin_sedeq O admin_universidad
+const verifySEDEQOrUniversidadAdmin = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+        return res
+            .status(401)
+            .json({
+                error: "Acceso denegado. Formato de token inválido o no proporcionado.",
+            });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+
+        if (req.user.tipo_usuario !== "admin_sedeq" && req.user.tipo_usuario !== "admin_universidad") {
+            return res
+                .status(403)
+                .json({
+                    error:
+                        "Acceso prohibido. No tienes los permisos necesarios para esta acción.",
+                });
+        }
+        next();
+    } catch (error) {
+        if (error.name === "TokenExpiredError") {
+            return res
+                .status(401)
+                .json({ error: "Token expirado. Por favor, inicia sesión de nuevo." });
+        }
+        res.status(401).json({ error: "Token no válido." });
+    }
+};
+
 // --- Definición de Rutas ---
 // Rutas específicas PRIMERO (antes de /:id)
 router.get("/solicitudes/all", verifySEDEQAdmin, getAllSolicitudes);
@@ -99,14 +175,19 @@ router.put("/solicitudes/:id", verifySEDEQAdmin, updateSolicitudStatus);
 // Rutas para alumnos (también específicas)
 router.get("/alumno/estado-general", verifyAlumno, getEstadoGeneralAlumno);
 
+// Rutas para admin_universidad
+router.get("/universidad/mis-convocatorias", verifyUniversidadAdmin, getConvocatoriasByUniversidad);
+
 // Rutas públicas generales
 router.get("/", getAllConvocatorias);
-router.get("/:id", getConvocatoriaById); // <-- ESTA debe ir AL FINAL
+router.get("/:id", getConvocatoriaById);
 
 // Rutas protegidas (solo para admin_sedeq)
 router.post("/", verifySEDEQAdmin, createConvocatoria);
-router.put("/:id", verifySEDEQAdmin, updateConvocatoria);
 router.delete("/:id", verifySEDEQAdmin, deleteConvocatoria);
+
+// Ruta de actualización que soporta ambos tipos de admin
+router.put("/:id", verifySEDEQOrUniversidadAdmin, updateConvocatoriaUniversidad);
 
 // Rutas para solicitar (específicas)
 router.post("/:id/solicitar", verifyAlumno, solicitarInscripcionConvocatoria);

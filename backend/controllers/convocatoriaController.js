@@ -101,6 +101,79 @@ const getAllConvocatorias = async (req, res) => {
   }
 };
 
+// @desc    Obtener convocatorias filtradas por universidad (para admin_universidad)
+// @route   GET /api/convocatorias/universidad/mis-convocatorias
+// @access  Private (admin_universidad)
+const getConvocatoriasByUniversidad = async (req, res) => {
+  const id_usuario = req.user.id_usuario;
+
+  try {
+    // Obtener el id_universidad directamente del usuario (tipo admin_universidad)
+    const [userData] = await pool.query(
+      "SELECT id_universidad FROM usuario WHERE id_usuario = ? AND tipo_usuario = 'admin_universidad'",
+      [id_usuario]
+    );
+
+    if (userData.length === 0) {
+      return res.status(404).json({ error: "Perfil de administrador de universidad no encontrado." });
+    }
+
+    const id_universidad = userData[0].id_universidad;
+
+    // Actualizar estados de convocatorias
+    const updateStatusesQuery = `
+        UPDATE convocatorias
+        SET estado = CASE
+            WHEN estado IN ('cancelada', 'rechazada', 'llena') THEN estado
+            WHEN CURDATE() > fecha_ejecucion_fin THEN 'finalizada'
+            WHEN CURDATE() >= fecha_ejecucion_inicio THEN 'activa'
+            WHEN fecha_revision_inicio IS NOT NULL AND fecha_revision_fin IS NOT NULL AND CURDATE() BETWEEN fecha_revision_inicio AND fecha_revision_fin THEN 'revision'
+            WHEN CURDATE() BETWEEN fecha_aviso_inicio AND fecha_aviso_fin THEN 'aviso'
+            ELSE 'planeada'
+        END;
+    `;
+    await pool.query(updateStatusesQuery);
+
+    // Obtener solo las convocatorias donde participa esta universidad
+    const getQuery = `
+      SELECT DISTINCT
+          c.*,
+          COALESCE((SELECT SUM(cu.capacidad_maxima) FROM capacidad_universidad cu WHERE cu.convocatoria_id = c.id), 0) as capacidad_maxima,
+          COALESCE((SELECT SUM(cu.cupo_actual) FROM capacidad_universidad cu WHERE cu.convocatoria_id = c.id), 0) as cupo_actual,
+          CASE
+              WHEN COALESCE((SELECT SUM(cu2.cupo_actual) FROM capacidad_universidad cu2 WHERE cu2.convocatoria_id = c.id), 0) >= COALESCE((SELECT SUM(cu3.capacidad_maxima) FROM capacidad_universidad cu3 WHERE cu3.convocatoria_id = c.id), 1) THEN 1
+              ELSE 0
+          END as llena
+      FROM convocatorias c
+      INNER JOIN convocatoria_universidades cu ON c.id = cu.convocatoria_id
+      WHERE cu.universidad_id = ?
+      ORDER BY c.fecha_ejecucion_inicio DESC;
+    `;
+    const [convocatorias] = await pool.query(getQuery, [id_universidad]);
+
+    // Para cada convocatoria, obtener los detalles de sus universidades
+    for (let convocatoria of convocatorias) {
+      const [universidades] = await pool.query(
+        `SELECT
+          u.nombre,
+          u.id_universidad,
+          cu.capacidad_maxima,
+          cu.cupo_actual
+         FROM capacidad_universidad cu
+         JOIN universidad u ON cu.universidad_id = u.id_universidad
+         WHERE cu.convocatoria_id = ?`,
+        [convocatoria.id],
+      );
+      convocatoria.universidades = universidades;
+    }
+
+    res.json({ convocatorias, id_universidad });
+  } catch (error) {
+    console.error("Error al obtener las convocatorias de la universidad:", error);
+    res.status(500).json({ error: "Error interno del servidor." });
+  }
+};
+
 // @desc    Obtener una convocatoria por ID
 // @route   GET /api/convocatorias/:id
 // @access  Public
@@ -290,6 +363,120 @@ const updateConvocatoria = async (req, res) => {
     }
 
     await manageConvocatoriaUniversidades(connection, id, universidades);
+
+    await connection.commit();
+    res.json({ message: "Convocatoria actualizada con éxito." });
+  } catch (error) {
+    if (connection) await connection.rollback();
+    console.error(`Error al actualizar la convocatoria ${id}:`, error);
+    res.status(500).json({ error: "Error interno del servidor." });
+  } finally {
+    if (connection) connection.release();
+  }
+};
+
+// @desc    Actualizar una convocatoria (admin_universidad - acceso limitado)
+// @route   PUT /api/convocatorias/:id
+// @access  Private (admin_universidad o admin_sedeq)
+const updateConvocatoriaUniversidad = async (req, res) => {
+  const { id } = req.params;
+  const id_usuario = req.user.id_usuario;
+  const tipo_usuario = req.user.tipo_usuario;
+
+  // Si es admin_sedeq, usar la función completa
+  if (tipo_usuario === "admin_sedeq") {
+    return updateConvocatoria(req, res);
+  }
+
+  // Si es admin_universidad, aplicar restricciones
+  const {
+    nombre,
+    descripcion,
+    fecha_revision_inicio,
+    fecha_revision_fin,
+    universidades,
+  } = req.body;
+
+  if (!nombre || !descripcion) {
+    return res.status(400).json({
+      error: "El nombre y la descripción son obligatorios.",
+    });
+  }
+
+  let connection;
+  try {
+    connection = await pool.getConnection();
+    await connection.beginTransaction();
+
+    // Obtener el id_universidad directamente del usuario (tipo admin_universidad)
+    const [userData] = await connection.query(
+      "SELECT id_universidad FROM usuario WHERE id_usuario = ? AND tipo_usuario = 'admin_universidad'",
+      [id_usuario]
+    );
+
+    if (userData.length === 0) {
+      await connection.rollback();
+      return res.status(404).json({ error: "Perfil de administrador de universidad no encontrado." });
+    }
+
+    const id_universidad_admin = userData[0].id_universidad;
+
+    // Verificar que la convocatoria existe y que la universidad del admin participa en ella
+    const [verificacion] = await connection.query(
+      `SELECT c.id FROM convocatorias c
+       INNER JOIN convocatoria_universidades cu ON c.id = cu.convocatoria_id
+       WHERE c.id = ? AND cu.universidad_id = ?`,
+      [id, id_universidad_admin]
+    );
+
+    if (verificacion.length === 0) {
+      await connection.rollback();
+      return res.status(403).json({ 
+        error: "No tienes permiso para editar esta convocatoria o la convocatoria no existe." 
+      });
+    }
+
+    // Actualizar solo los campos permitidos
+    const updateFields = [];
+    const updateValues = [];
+
+    updateFields.push("nombre = ?");
+    updateValues.push(nombre);
+
+    updateFields.push("descripcion = ?");
+    updateValues.push(descripcion);
+
+    if (fecha_revision_inicio) {
+      updateFields.push("fecha_revision_inicio = ?");
+      updateValues.push(fecha_revision_inicio);
+    }
+
+    if (fecha_revision_fin) {
+      updateFields.push("fecha_revision_fin = ?");
+      updateValues.push(fecha_revision_fin);
+    }
+
+    updateValues.push(id);
+
+    await connection.query(
+      `UPDATE convocatorias SET ${updateFields.join(", ")} WHERE id = ?`,
+      updateValues
+    );
+
+    // Actualizar solo la capacidad de su universidad si se proporciona
+    if (universidades && Array.isArray(universidades) && universidades.length > 0) {
+      // Buscar la entrada correspondiente a su universidad
+      const uniData = universidades.find(u => u.id_universidad === id_universidad_admin);
+      
+      if (uniData && uniData.capacidad_maxima !== undefined) {
+        await connection.query(
+          `UPDATE capacidad_universidad 
+           SET capacidad_maxima = ? 
+           WHERE convocatoria_id = ? AND universidad_id = ?`,
+          [uniData.capacidad_maxima, id, id_universidad_admin]
+        );
+      }
+    }
 
     await connection.commit();
     res.json({ message: "Convocatoria actualizada con éxito." });
@@ -650,4 +837,6 @@ module.exports = {
   solicitarInscripcionConvocatoria,
   getAllSolicitudes,
   updateSolicitudStatus,
+  getConvocatoriasByUniversidad, // Nueva exportación
+  updateConvocatoriaUniversidad, // Nueva exportación
 };

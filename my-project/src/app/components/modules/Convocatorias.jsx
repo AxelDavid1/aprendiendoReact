@@ -36,6 +36,18 @@ const initialFormState = {
 // Helper para obtener el token (asumiendo que lo guardas en localStorage)
 const getAuthToken = () => localStorage.getItem("token");
 
+// Helper para obtener información del usuario desde el token
+const getUserFromToken = () => {
+  const token = getAuthToken();
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload;
+  } catch (error) {
+    return null;
+  }
+};
+
 const formatDate = (dateString) => {
   if (!dateString) return "-";
   // La fecha viene como YYYY-MM-DDTHH:mm:ss.sssZ, la cortamos para evitar problemas de zona horaria
@@ -84,6 +96,10 @@ function GestionConvocatorias() {
   // Estado para la pestaña activa
   const [activeTab, setActiveTab] = useState("convocatorias");
 
+  // Estados para información del usuario
+  const [currentUser, setCurrentUser] = useState(null);
+  const [idUniversidadAdmin, setIdUniversidadAdmin] = useState(null);
+
   // Estados para los datos
   const [convocatorias, setConvocatorias] = useState([]);
   const [solicitudes, setSolicitudes] = useState([]);
@@ -116,20 +132,45 @@ function GestionConvocatorias() {
     setTimeout(() => setToast({ show: false, message: "", type: "" }), 3000);
   };
 
+  // Función para inicializar la información del usuario
+  const initializeUser = useCallback(() => {
+    const user = getUserFromToken();
+    if (user && JSON.stringify(user) !== JSON.stringify(currentUser)) {
+      setCurrentUser(user);
+    }
+    return user;
+  }, [currentUser]);
+
   const fetchConvocatorias = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await fetch(API_URL_CONVOCATORIAS);
+      const user = currentUser || initializeUser();
+      
+      let response;
+      if (user?.tipo_usuario === "admin_universidad") {
+        // Para admin_universidad, usar endpoint específico
+        const token = getAuthToken();
+        response = await fetch(`${API_URL_CONVOCATORIAS}/universidad/mis-convocatorias`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+        setConvocatorias(data.convocatorias || []);
+        setIdUniversidadAdmin(data.id_universidad);
+      } else {
+        // Para admin_sedeq y otros, usar endpoint general
+        response = await fetch(API_URL_CONVOCATORIAS);
+        const data = await response.json();
+        setConvocatorias(data);
+      }
+      
       if (!response.ok) throw new Error("Error al cargar las convocatorias.");
-      const data = await response.json();
-      setConvocatorias(data);
     } catch (err) {
       setError(err.message);
       showToast(err.message, "error");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [currentUser, initializeUser]);
 
   const fetchUniversidades = useCallback(async () => {
     try {
@@ -162,15 +203,53 @@ function GestionConvocatorias() {
   }, []); // Dependencia vacía para que se ejecute una vez
 
   useEffect(() => {
-    fetchConvocatorias();
-    fetchUniversidades();
-  }, [fetchConvocatorias, fetchUniversidades]);
+    const user = initializeUser();
+    if (user) {
+      fetchConvocatorias();
+      fetchUniversidades();
+    }
+  }, []); // Dependencias vacías - solo se ejecuta una vez al montar
 
   useEffect(() => {
-    if (activeTab === "solicitudes") {
+    if (activeTab === "solicitudes" && currentUser?.tipo_usuario === "admin_sedeq") {
       fetchSolicitudes();
     }
-  }, [activeTab, fetchSolicitudes]);
+  }, [activeTab, currentUser]);
+
+  // Función para determinar si un campo está deshabilitado
+  const isFieldDisabled = (fieldName) => {
+    if (!currentUser || currentUser.tipo_usuario !== "admin_universidad") return false;
+    
+    const disabledFields = [
+      "fecha_aviso_inicio",
+      "fecha_aviso_fin", 
+      "fecha_ejecucion_inicio",
+      "fecha_ejecucion_fin",
+      "estado"
+    ];
+    
+    return disabledFields.includes(fieldName);
+  };
+
+  // Función para determinar si se puede crear convocatorias
+  const canCreateConvocatorias = () => {
+    return currentUser?.tipo_usuario === "admin_sedeq";
+  };
+
+  // Función para determinar si se puede eliminar convocatorias
+  const canDeleteConvocatorias = () => {
+    return currentUser?.tipo_usuario === "admin_sedeq";
+  };
+
+  // Función para determinar si se puede gestionar solicitudes
+  const canManageSolicitudes = () => {
+    return currentUser?.tipo_usuario === "admin_sedeq";
+  };
+
+  // Función para determinar si una universidad es la del admin
+  const esSuUniversidad = (id_universidad) => {
+    return currentUser?.tipo_usuario === "admin_universidad" && id_universidad === idUniversidadAdmin;
+  };
 
   const handleOpenModal = async (convocatoria = null) => {
     if (convocatoria) {
@@ -506,16 +585,18 @@ function GestionConvocatorias() {
                     >
                       <FontAwesomeIcon icon={faEdit} />
                     </button>
-                    <button
-                      onClick={() => {
-                        setConvocatoriaToDelete(conv);
-                        setIsDeleteModalOpen(true);
-                      }}
-                      className={styles.deleteButton}
-                      title="Eliminar"
-                    >
-                      <FontAwesomeIcon icon={faTrash} />
-                    </button>
+                    {canDeleteConvocatorias() && (
+                      <button
+                        onClick={() => {
+                          setConvocatoriaToDelete(conv);
+                          setIsDeleteModalOpen(true);
+                        }}
+                        className={styles.deleteButton}
+                        title="Eliminar"
+                      >
+                        <FontAwesomeIcon icon={faTrash} />
+                      </button>
+                    )}
                   </div>
                 </td>
               </tr>
@@ -665,7 +746,12 @@ function GestionConvocatorias() {
     <div className={styles.container}>
       <header className={styles.header}>
         <div className={styles.headerContent}>
-          <h1 className={styles.title}>Gestión de Convocatorias</h1>
+          <h1 className={styles.title}>
+            Gestión de Convocatorias
+            {currentUser?.tipo_usuario === "admin_universidad" && (
+              <span className={styles.limitedAccess}> - Vista limitada (Admin Universidad)</span>
+            )}
+          </h1>
         </div>
       </header>
       <main className={styles.main}>
@@ -676,16 +762,18 @@ function GestionConvocatorias() {
           >
             Convocatorias
           </button>
-          <button
-            className={`${styles.tab} ${activeTab === "solicitudes" ? styles.activeTab : ""}`}
-            onClick={() => setActiveTab("solicitudes")}
-          >
-            Aprobación de Estudiantes
-          </button>
+          {canManageSolicitudes() && (
+            <button
+              className={`${styles.tab} ${activeTab === "solicitudes" ? styles.activeTab : ""}`}
+              onClick={() => setActiveTab("solicitudes")}
+            >
+              Aprobación de Estudiantes
+            </button>
+          )}
         </div>
 
         <div className={styles.toolbar}>
-          {activeTab === "convocatorias" ? (
+          {activeTab === "convocatorias" && canCreateConvocatorias() ? (
             <button
               onClick={() => handleOpenModal()}
               className={styles.addButton}
@@ -752,6 +840,7 @@ function GestionConvocatorias() {
                         name="fecha_aviso_inicio"
                         value={formState.fecha_aviso_inicio}
                         onChange={handleFormChange}
+                        disabled={isFieldDisabled("fecha_aviso_inicio")}
                         required
                       />
                     </div>
@@ -763,6 +852,7 @@ function GestionConvocatorias() {
                         name="fecha_aviso_fin"
                         value={formState.fecha_aviso_fin}
                         onChange={handleFormChange}
+                        disabled={isFieldDisabled("fecha_aviso_fin")}
                         required
                       />
                     </div>
@@ -816,6 +906,7 @@ function GestionConvocatorias() {
                         name="fecha_ejecucion_inicio"
                         value={formState.fecha_ejecucion_inicio}
                         onChange={handleFormChange}
+                        disabled={isFieldDisabled("fecha_ejecucion_inicio")}
                         required
                       />
                     </div>
@@ -827,6 +918,7 @@ function GestionConvocatorias() {
                         name="fecha_ejecucion_fin"
                         value={formState.fecha_ejecucion_fin}
                         onChange={handleFormChange}
+                        disabled={isFieldDisabled("fecha_ejecucion_fin")}
                         required
                       />
                     </div>
@@ -836,46 +928,48 @@ function GestionConvocatorias() {
                 <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                   <label>Universidades Participantes</label>
                   <div className={styles.universityManagement}>
-                    <div className={styles.universitySection}>
-                      <div className={styles.universitySectionHeader}>
-                        <h6>Disponibles</h6>
-                        <span className={styles.universityCount}>
-                          {universidadesDisponibles.length}
-                        </span>
-                      </div>
-                      <div className={styles.universityList}>
-                        {universidadesDisponibles.length === 0 ? (
-                          <div className={styles.emptyList}>
-                            <FontAwesomeIcon
-                              icon={faUniversity}
-                              className={styles.icon}
-                            />
-                            <p>No hay más universidades</p>
-                          </div>
-                        ) : (
-                          universidadesDisponibles.map((uni) => (
-                            <div
-                              key={uni.id_universidad}
-                              className={styles.universityItem}
-                            >
-                              <div className={styles.universityInfo}>
-                                <span className={styles.universityName}>
-                                  {uni.nombre}
-                                </span>
-                              </div>
-                              <button
-                                type="button"
-                                onClick={() => agregarUniversidad(uni)}
-                                className={styles.addUniversityBtn}
-                                title="Agregar"
-                              >
-                                <FontAwesomeIcon icon={faPlus} />
-                              </button>
+                    {currentUser?.tipo_usuario !== "admin_universidad" && (
+                      <div className={styles.universitySection}>
+                        <div className={styles.universitySectionHeader}>
+                          <h6>Disponibles</h6>
+                          <span className={styles.universityCount}>
+                            {universidadesDisponibles.length}
+                          </span>
+                        </div>
+                        <div className={styles.universityList}>
+                          {universidadesDisponibles.length === 0 ? (
+                            <div className={styles.emptyList}>
+                              <FontAwesomeIcon
+                                icon={faUniversity}
+                                className={styles.icon}
+                              />
+                              <p>No hay más universidades</p>
                             </div>
-                          ))
-                        )}
+                          ) : (
+                            universidadesDisponibles.map((uni) => (
+                              <div
+                                key={uni.id_universidad}
+                                className={styles.universityItem}
+                              >
+                                <div className={styles.universityInfo}>
+                                  <span className={styles.universityName}>
+                                    {uni.nombre}
+                                  </span>
+                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => agregarUniversidad(uni)}
+                                  className={styles.addUniversityBtn}
+                                  title="Agregar"
+                                >
+                                  <FontAwesomeIcon icon={faPlus} />
+                                </button>
+                              </div>
+                            ))
+                          )}
+                        </div>
                       </div>
-                    </div>
+                    )}
 
                     <div className={styles.universitySection}>
                       <div className={styles.universitySectionHeader}>
@@ -894,14 +988,15 @@ function GestionConvocatorias() {
                             <p>Agrega universidades</p>
                           </div>
                         ) : (
-                          universidadesEnConvocatoria.map((uni) => (
+                          universidadesEnConvocatoria.map((uni, index) => (
                             <div
-                              key={uni.id_universidad}
+                              key={uni.id_universidad || `uni-${index}`}
                               className={`${styles.universityItem} ${styles.selectedUniversityItem}`}
                             >
                               <div className={styles.universityInfo}>
                                 <span className={styles.universityNameModal}>
                                   {uni.nombre}
+                                  {esSuUniversidad(uni.id_universidad) && " (Tu Universidad)"}
                                 </span>
                                 <div className={styles.capacidadInputContainer}>
                                   <label
@@ -921,18 +1016,21 @@ function GestionConvocatorias() {
                                     }
                                     className={styles.capacidadInput}
                                     min="1"
+                                    disabled={!esSuUniversidad(uni.id_universidad) && currentUser?.tipo_usuario === "admin_universidad"}
                                     required
                                   />
                                 </div>
                               </div>
-                              <button
-                                type="button"
-                                onClick={() => quitarUniversidad(uni)}
-                                className={styles.removeUniversityBtn}
-                                title="Quitar"
-                              >
-                                <FontAwesomeIcon icon={faMinus} />
-                              </button>
+                              {currentUser?.tipo_usuario !== "admin_universidad" && (
+                                <button
+                                  type="button"
+                                  onClick={() => quitarUniversidad(uni)}
+                                  className={styles.removeUniversityBtn}
+                                  title="Quitar"
+                                >
+                                  <FontAwesomeIcon icon={faMinus} />
+                                </button>
+                              )}
                             </div>
                           ))
                         )}
@@ -940,7 +1038,7 @@ function GestionConvocatorias() {
                     </div>
                   </div>
                 </div>
-                {isEditing && (
+                {isEditing && currentUser?.tipo_usuario !== "admin_universidad" && (
                   <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                     <label htmlFor="estado">Forzar Estado (ej. Cancelar)</label>
                     <select
