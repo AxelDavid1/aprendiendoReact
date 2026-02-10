@@ -720,6 +720,15 @@
     margin-right: 1rem;
     font-size: 1.25rem;
   }
+
+  .habilidadesContainer {
+    padding: 1rem;
+  }
+
+  .habilidadesCheckboxes {
+    grid-template-columns: 1fr 1fr;
+    max-height: 240px;
+  }
 }
 .cancelButton {
   background-color: #e5e7eb;
@@ -735,6 +744,11 @@
   .habilidadTag {
     font-size: 0.875rem;
     padding: 0.5rem 1rem;
+  }
+
+  .habilidadesCheckboxes {
+    grid-template-columns: 1fr 1fr;
+    max-height: 260px;
   }
 }
 
@@ -776,4 +790,181 @@
     width: 800px;
     max-width: 900px;
   }
+}
+
+/* Estilos para checkboxes de habilidades */
+.habilidadesContainer {
+  width: 100%;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  background-color: #f9fafb;
+  box-sizing: border-box;
+}
+
+.habilidadesControls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+  flex-wrap: wrap;
+}
+
+.selectButton {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.813rem;
+  font-weight: 500;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  background-color: white;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.selectButton:hover:not(:disabled) {
+  background-color: #f3f4f6;
+  border-color: #9ca3af;
+}
+
+.selectButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #f9fafb;
+}
+
+.selectionCount {
+  font-size: 0.813rem;
+  color: #6b7280;
+  font-weight: 500;
+  margin-left: auto;
+  white-space: nowrap;
+}
+
+.habilidadesCheckboxes {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.25rem;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-right: 0.25rem;
+}
+
+.habilidadesCheckboxes::-webkit-scrollbar {
+  width: 6px;
+}
+
+.habilidadesCheckboxes::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.habilidadesCheckboxes::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.habilidadesCheckboxes::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.habilidadCheckbox {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  border: 1px solid transparent;
+  min-height: 2.25rem;
+  box-sizing: border-box;
+}
+
+.habilidadCheckbox:hover {
+  background-color: #f3f4f6;
+  border-color: #e5e7eb;
+}
+
+/* Ocultar el checkbox nativo */
+.habilidadCheckbox input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+  padding: 0;
+  pointer-events: none;
+}
+
+/* Checkbox visual personalizado */
+.customCheckbox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  min-width: 18px;
+  min-height: 18px;
+  max-width: 18px;
+  max-height: 18px;
+  border: 2px solid #d1d5db;
+  border-radius: 4px;
+  background-color: white;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.customCheckbox svg {
+  width: 12px;
+  height: 12px;
+  opacity: 0;
+  transform: scale(0.5);
+  transition: all 0.15s ease;
+  color: white;
+}
+
+/* Estado checked del checkbox custom */
+.habilidadCheckbox input[type="checkbox"]:checked + .customCheckbox {
+  background-color: #4f46e5;
+  border-color: #4f46e5;
+}
+
+.habilidadCheckbox input[type="checkbox"]:checked + .customCheckbox svg {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Focus visible para accesibilidad */
+.habilidadCheckbox input[type="checkbox"]:focus-visible + .customCheckbox {
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+  border-color: #4f46e5;
+}
+
+/* Hover en el checkbox custom */
+.habilidadCheckbox:hover .customCheckbox {
+  border-color: #9ca3af;
+}
+
+.habilidadCheckbox:hover input[type="checkbox"]:checked + .customCheckbox {
+  border-color: #4338ca;
+  background-color: #4338ca;
+}
+
+.checkboxText {
+  font-size: 0.875rem;
+  color: #374151;
+  line-height: 1.4;
+  user-select: none;
+  flex: 1;
+  min-width: 0;
+}
+
+.habilidadCheckbox input[type="checkbox"]:checked ~ .checkboxText {
+  font-weight: 500;
+  color: #1f2937;
 }

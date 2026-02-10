@@ -411,6 +411,9 @@ function CourseManagement({ userId, dashboardType, userUniversityId, teacherId }
         id_facultad: formattedCourse.id_facultad || "",
         id_carrera: formattedCourse.id_carrera || "",
         id_maestro: formattedCourse.id_maestro ? String(formattedCourse.id_maestro) : "",
+        id_habilidades: formattedCourse.habilidades_ids 
+          ? formattedCourse.habilidades_ids.split(',').map(id => parseInt(id.trim())).filter(id => !isNaN(id))
+          : (formattedCourse.id_habilidades || []),
       }
       setFormState(stateReadyCourse)
 
@@ -520,6 +523,30 @@ function CourseManagement({ userId, dashboardType, userUniversityId, teacherId }
     fetchHabilidadesBySubgrupo(subgrupoId)
   }
 
+  const handleHabilidadChange = (habilidadId, isChecked) => {
+    setFormState((prev) => ({
+      ...prev,
+      id_habilidades: isChecked 
+        ? [...prev.id_habilidades, habilidadId]
+        : prev.id_habilidades.filter(id => id !== habilidadId)
+    }))
+  }
+
+  const handleSelectAllHabilidades = () => {
+    const todasHabilidadesIds = habilidadesSubgrupo.map(h => h.id_habilidad)
+    setFormState((prev) => ({
+      ...prev,
+      id_habilidades: todasHabilidadesIds
+    }))
+  }
+
+  const handleDeselectAllHabilidades = () => {
+    setFormState((prev) => ({
+      ...prev,
+      id_habilidades: []
+    }))
+  }
+
   const handleUniversidadChange = async (e) => {
     const uniId = e.target.value
     setSelectedUniversidad(uniId)
@@ -598,6 +625,7 @@ function CourseManagement({ userId, dashboardType, userUniversityId, teacherId }
       id_facultad: selectedFacultad || formState.id_facultad || null,
       id_carrera: selectedCarrera || formState.id_carrera || null,
       id_maestro: formState.id_maestro || null, // Asegurar null si no se selecciona
+      habilidades: formState.id_habilidades, // Enviar array de habilidades seleccionadas
     }
 
     // Remueve codigo_curso si no está editando, para evitar errores en el backend
@@ -1105,23 +1133,54 @@ function CourseManagement({ userId, dashboardType, userUniversityId, teacherId }
                 ) : (
                   <div className={`${styles.formGroup} ${styles.fullWidth}`}>
                     <label>Habilidades Clave</label>
-                    <div className={styles.habilidadesDisplay}>
-                      {habilidadesSubgrupo.length === 0 ? (
-                        <p className={styles.noHabilidades}>
-                          {selectedSubgrupo
-                            ? "No hay habilidades disponibles para este subgrupo"
-                            : "Seleccione un subgrupo para ver sus habilidades"}
-                        </p>
-                      ) : (
-                        <div className={styles.habilidadesList}>
+                    {habilidadesSubgrupo.length === 0 ? (
+                      <p className={styles.noHabilidades}>
+                        {selectedSubgrupo
+                          ? "No hay habilidades disponibles para este subgrupo"
+                          : "Seleccione un subgrupo para ver sus habilidades"}
+                      </p>
+                    ) : (
+                      <div className={styles.habilidadesContainer}>
+                        <div className={styles.habilidadesControls}>
+                          <button
+                            type="button"
+                            onClick={handleSelectAllHabilidades}
+                            className={styles.selectButton}
+                            disabled={formState.id_habilidades.length === habilidadesSubgrupo.length}
+                          >
+                            Seleccionar todas
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleDeselectAllHabilidades}
+                            className={styles.selectButton}
+                            disabled={formState.id_habilidades.length === 0}
+                          >
+                            Deseleccionar todas
+                          </button>
+                          <span className={styles.selectionCount}>
+                            {formState.id_habilidades.length} de {habilidadesSubgrupo.length} seleccionadas
+                          </span>
+                        </div>
+                        <div className={styles.habilidadesCheckboxes}>
                           {habilidadesSubgrupo.map((habilidad) => (
-                            <span key={habilidad.id_habilidad} className={styles.habilidadTag}>
-                              {habilidad.nombre_habilidad}
-                            </span>
+                            <label key={habilidad.id_habilidad} className={styles.habilidadCheckbox}>
+                              <input
+                                type="checkbox"
+                                checked={formState.id_habilidades.includes(habilidad.id_habilidad)}
+                                onChange={(e) => handleHabilidadChange(habilidad.id_habilidad, e.target.checked)}
+                              />
+                              <span className={styles.customCheckbox}>
+                                <svg viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M10 3L4.5 8.5L2 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              </span>
+                              <span className={styles.checkboxText}>{habilidad.nombre_habilidad}</span>
+                            </label>
                           ))}
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 )}
                 <div className={styles.formGroup}>
