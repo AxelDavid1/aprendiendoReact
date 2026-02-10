@@ -1,871 +1,1403 @@
+/* ========== Base / Container ========== */
 .container {
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    background-color: #f9fafb;
-    font-family:
-        system-ui,
-        -apple-system,
-        sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f9fafb;
+  font-family: system-ui, -apple-system, sans-serif;
 }
 
-/* Header */
+/* ========== Header ========== */
 .header {
-    background-color: #4f46e5;
-    color: white;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  background-color: #4f46e5;
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 }
 
 .headerContent {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 1rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.headerLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.headerIcon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
 }
 
 .title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+  line-height: 1.3;
 }
 
-/* Main Content */
+.limitedAccess {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: rgba(199, 210, 254, 0.9);
+}
+
+/* ========== Main ========== */
 .main {
-    flex: 1;
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 1rem;
-    width: 100%;
-    box-sizing: border-box;
+  flex: 1;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-/* Toolbar */
-.toolbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    gap: 1rem;
-}
-
-.addButton {
-    background-color: #4f46e5;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.875rem;
-    transition: background-color 0.2s;
-    align-self: flex-start;
-}
-
-.addButton:hover {
-    background-color: #047857;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.4);
-}
-
-/* Tabs */
+/* ========== Tabs ========== */
 .tabs {
-    display: flex;
-    border-bottom: 1px solid #d1d5db;
-    margin-bottom: 1.5rem;
+  display: flex;
+  border-bottom: 1px solid #d1d5db;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .tab {
-    padding: 0.75rem 1.5rem;
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #6b7280;
-    border-bottom: 3px solid transparent;
-    margin-bottom: -1px; /* Alinea el borde con el borde del contenedor */
-    transition: all 0.2s ease;
+  padding: 0.75rem 1.25rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #6b7280;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .tab:hover {
-    color: #4f46e5;
+  color: #4f46e5;
 }
 
 .activeTab {
-    color: #4f46e5;
-    border-bottom-color: #4f46e5;
+  color: #4f46e5;
+  border-bottom-color: #4f46e5;
 }
 
-/* Filters */
+.tabBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background-color: #fef3c7;
+  color: #92400e;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.tabTextFull {
+  display: inline;
+}
+
+.tabTextShort {
+  display: none;
+}
+
+/* ========== Toolbar ========== */
+.toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* ========== Buttons ========== */
+.addButton {
+  background-color: #4f46e5;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.addButton:hover {
+  background-color: #4338ca;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
+.approveAllButton {
+  background-color: #059669;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.approveAllButton:hover:not(:disabled) {
+  background-color: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+}
+
+.approveAllButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.pendingBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background-color: rgba(255, 255, 255, 0.25);
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.buttonTextFull {
+  display: inline;
+}
+
+.buttonTextShort {
+  display: none;
+}
+
+/* ========== Filters ========== */
 .filtersContainer {
-    display: flex;
-    gap: 1rem;
-    align-items: center;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .filterGroup {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background: white;
-    border: 1px solid #d1d5db;
-    border-radius: 0.375rem;
-    padding: 0.4rem 0.6rem;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.75rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: border-color 0.2s;
+}
+
+.filterGroup:focus-within {
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.08);
 }
 
 .filterIcon {
-    color: #6b7280;
-}
-
-.filterInput, .filterSelect {
-    border: none;
-    outline: none;
-    font-size: 0.875rem;
-    background: transparent;
-    width: 100%;
-    min-width: 200px;
-    cursor: pointer;
+  color: #9ca3af;
+  font-size: 0.875rem;
+  flex-shrink: 0;
 }
 
 .filterSelect {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
+  border: none;
+  outline: none;
+  font-size: 0.875rem;
+  background: transparent;
+  width: 100%;
+  min-width: 180px;
+  cursor: pointer;
+  color: #374151;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
-/* Loading State */
+/* ========== Loading ========== */
 .loadingState {
-    text-align: center;
-    padding: 3rem;
+  text-align: center;
+  padding: 4rem 1rem;
 }
 
 .spinner {
-    display: inline-block;
-    width: 2rem;
-    height: 2rem;
-    border: 2px solid #e5e7eb;
-    border-top: 2px solid #4f46e5;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin-bottom: 1rem;
+  display: inline-block;
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid #e5e7eb;
+  border-top: 3px solid #4f46e5;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-bottom: 1rem;
 }
 
 @keyframes spin {
-    0% {
-        transform: rotate(0deg);
-    }
-    100% {
-        transform: rotate(360deg);
-    }
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
-/* Universidades Cell with Tooltips */
-.universidadesCell {
-    max-width: 250px;
-    position: relative;
-}
-
-.universidadItem {
-    display: inline;
-    position: relative;
-}
-
-.infoIcon {
-    display: inline-block;
-    margin-left: 2px;
-    color: #6b7280;
-    font-size: 0.75rem;
-    cursor: help;
-    font-style: italic;
-    position: relative;
-}
-
-.infoIcon:hover {
-    color: #4f46e5;
-}
-
-.tooltip {
-    visibility: hidden;
-    opacity: 0;
-    position: absolute;
-    z-index: 1000;
-    bottom: 125%;
-    left: 50%;
-    transform: translateX(-50%);
-    background-color: #1f2937;
-    color: white;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    white-space: nowrap;
-    box-shadow:
-        0 4px 6px -1px rgba(0, 0, 0, 0.1),
-        0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    transition:
-        opacity 0.2s ease-in-out,
-        visibility 0.2s ease-in-out;
-    pointer-events: none;
-}
-
-.tooltip::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    margin-left: -5px;
-    border-width: 5px;
-    border-style: solid;
-    border-color: #1f2937 transparent transparent transparent;
-}
-
-.tooltip div {
-    margin: 2px 0;
-}
-
-.infoIcon:hover .tooltip {
-    visibility: visible;
-    opacity: 1;
-}
-
-/* Empty State */
+/* ========== Empty State ========== */
 .emptyState {
-    text-align: center;
-    padding: 2rem;
-    border: 2px dashed #d1d5db;
-    border-radius: 0.5rem;
-    background-color: white;
+  text-align: center;
+  padding: 3rem 1.5rem;
+  border: 2px dashed #d1d5db;
+  border-radius: 0.75rem;
+  background-color: white;
 }
 
-.emptyState i,
-.emptyState .icon {
-    font-size: 2.5rem;
-    color: #9ca3af;
-    margin-bottom: 1rem;
+.emptyState .emptyIcon {
+  font-size: 2.5rem;
+  color: #d1d5db;
+  margin-bottom: 1rem;
 }
 
 .emptyState h3 {
-    font-size: 1.125rem;
-    font-weight: 500;
-    color: #4b5563;
-    margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 0.5rem;
 }
 
 .emptyState p {
-    color: #6b7280;
-    margin-bottom: 1rem;
+  color: #6b7280;
+  margin: 0 0 1.25rem;
+  font-size: 0.875rem;
 }
 
 .emptyStateButton {
-    background-color: #4f46e5;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: background-color 0.2s;
+  background-color: #4f46e5;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  transition: background-color 0.2s;
 }
 
 .emptyStateButton:hover {
-    background-color: #4338ca;
+  background-color: #4338ca;
 }
 
-/* Table Container and Table Styles - Updated */
+/* ========== Table (Desktop) ========== */
 .tableContainer {
-    width: 100%;
-    overflow-x: auto;
-    margin: 1rem 0;
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 0.75rem;
+  border: 1px solid #e5e7eb;
+  background: white;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 .table {
-    width: 100%;
-    border-collapse: collapse;
-    background: white;
-    border-radius: 0.5rem;
-    overflow: hidden;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    min-width: 800px;
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
 }
 
 .table th,
 .table td {
-    padding: 0.7rem 0.5rem;
-    text-align: left;
-    border-bottom: 1px solid #e5e7eb;
-    vertical-align: top;
+  padding: 0.75rem 0.625rem;
+  text-align: left;
+  border-bottom: 1px solid #f3f4f6;
+  vertical-align: middle;
 }
 
 .table th {
-    background-color: #f3f4f6;
-    font-weight: 600;
-    color: #374151;
-    font-size: 0.875rem;
-    white-space: nowrap;
+  background-color: #f9fafb;
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+  border-bottom-color: #e5e7eb;
+}
+
+.table tbody tr {
+  transition: background-color 0.15s;
 }
 
 .table tbody tr:hover {
-    background-color: #f9fafb;
+  background-color: #f9fafb;
 }
 
 .table tbody tr:last-child td {
-    border-bottom: none;
+  border-bottom: none;
 }
 
 .nombreCell {
-    font-weight: 500;
-    color: #111827;
-    min-width: 150px;
+  font-weight: 500;
+  color: #111827;
+  min-width: 140px;
 }
 
 .dateRangeCell {
-    text-align: center;
-    font-size: 0.875rem;
-    line-height: 1.3;
-    min-width: 120px;
-}
-
-.dateRangeCell div {
-    margin: 0.125rem 0;
+  text-align: center;
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  min-width: 110px;
 }
 
 .dateRangeCell div:first-child {
-    font-weight: 500;
-    color: #374151;
+  font-weight: 500;
+  color: #374151;
 }
 
 .dateRangeCell div:last-child {
-    color: #6b7280;
+  color: #9ca3af;
+  font-size: 0.75rem;
 }
 
-.numberCell {
-    text-align: center;
-    font-weight: 500;
-}
-
-.noData {
-    text-align: center;
-    color: #6b7280;
-    font-style: italic;
-    padding: 2rem;
-}
-
+/* ========== Estado Badges ========== */
 .estadoBadge {
-    display: inline-block;
-    padding: 0.25rem 0.75rem;
-    border-radius: 9999px;
-    font-size: 0.75rem;
-    font-weight: 500;
-    text-transform: capitalize;
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  white-space: nowrap;
+  border: 1px solid transparent;
 }
 
-.estadoPlaneada {
-    background-color: #e5e7eb;
-    color: #374151;
+.estadoPlaneada { background-color: #f3f4f6; color: #374151; border-color: #d1d5db; }
+.estadoAviso { background-color: #fef3c7; color: #92400e; border-color: #fcd34d; }
+.estadoRevision { background-color: #dbeafe; color: #1e40af; border-color: #93c5fd; }
+.estadoActiva { background-color: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+.estadoFinalizada { background-color: #ede9fe; color: #5b21b6; border-color: #c4b5fd; }
+.estadoCancelada { background-color: #f1f5f9; color: #475569; border-color: #cbd5e1; }
+.estadoLlena { background-color: #fef3c7; color: #92400e; border-color: #fcd34d; }
+.estadoSolicitada { background-color: #eef2ff; color: #4338ca; border-color: #a5b4fc; }
+.estadoAceptada { background-color: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+.estadoRechazada { background-color: #fee2e2; color: #991b1b; border-color: #fca5a5; }
+
+/* ========== Universidad cell / Tooltip ========== */
+.universidadesCell {
+  max-width: 250px;
 }
 
-.estadoAviso {
-    background-color: #fef3c7;
-    color: #92400e;
+.uniChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #f3f4f6;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  margin: 2px;
+  color: #374151;
+  position: relative;
+  cursor: default;
 }
 
-.estadoRevision {
-    background-color: #dbeafe;
-    color: #1e40af;
+.uniChip .infoIcon {
+  font-size: 0.65rem;
+  color: #9ca3af;
+  cursor: help;
+  position: relative;
 }
 
-.estadoActiva {
-    background-color: #d1fae5;
-    color: #065f46;
+.uniChip:hover .tooltipBox {
+  visibility: visible;
+  opacity: 1;
 }
 
-.estadoSolicitada {
-    background-color: #eef2ff;
-    color: #4338ca;
+.tooltipBox {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  z-index: 1000;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #1f2937;
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: opacity 0.2s, visibility 0.2s;
+  pointer-events: none;
 }
 
-.estadoAceptada {
-    background-color: #d1fae5;
-    color: #065f46;
+.tooltipBox::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #1f2937 transparent transparent transparent;
 }
 
-.estadoFinalizada {
-    background-color: #f3e8ff;
-    color: #6b21a8;
+.tooltipBox div {
+  margin: 2px 0;
 }
 
-.estadoRechazada {
-    background-color: #fee2e2;
-    color: #991b1b;
-}
-
-.estadoCancelada {
-    background-color: #f1f5f9;
-    color: #475569;
-}
-
-.estadoLlena {
-    background-color: #fef3c7;
-    color: #92400e;
-}
-
+/* ========== Table Action Buttons (Icon-only) ========== */
 .tableActions {
-    display: flex;
-    gap: 0.5rem;
-    justify-content: center;
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  align-items: center;
 }
 
-.editButton,
-.approveButton,
-.rejectButton,
-.viewButton,
-.deleteButton {
-    padding: 0.5rem;
-    border: none;
-    border-radius: 0.375rem;
-    cursor: pointer;
-    font-size: 0.875rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: background-color 0.2s;
-    width: 32px;
-    height: 32px;
+.iconBtn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  transition: all 0.15s;
+  position: relative;
+  background: transparent;
+  color: #6b7280;
 }
 
-.editButton, .approveButton {
-    background-color: #10b981;
-    color: white;
+.iconBtn:hover {
+  transform: scale(1.1);
 }
 
-.editButton:hover, .approveButton:hover {
-    background-color: #059669;
+/* Variants */
+.iconBtnEdit {
+  color: #059669;
+}
+.iconBtnEdit:hover {
+  background-color: #ecfdf5;
+  color: #047857;
 }
 
-.deleteButton, .rejectButton {
-    background-color: #ef4444;
-    color: white;
+.iconBtnDelete {
+  color: #ef4444;
+}
+.iconBtnDelete:hover {
+  background-color: #fef2f2;
+  color: #dc2626;
 }
 
-.deleteButton:hover, .rejectButton:hover {
-    background-color: #dc2626;
+.iconBtnApprove {
+  color: #059669;
+}
+.iconBtnApprove:hover {
+  background-color: #ecfdf5;
+  color: #047857;
 }
 
-.viewButton {
-    background-color: #3b82f6;
-    color: white;
+.iconBtnReject {
+  color: #ef4444;
+}
+.iconBtnReject:hover {
+  background-color: #fef2f2;
+  color: #dc2626;
 }
 
-.viewButton:hover {
-    background-color: #2563eb;
+.iconBtnReapprove {
+  color: #2563eb;
+}
+.iconBtnReapprove:hover {
+  background-color: #eff6ff;
+  color: #1d4ed8;
 }
 
-
-/* Capacidad Input en Modal */
-.capacidadInputContainer {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
+/* Icon button tooltip */
+.iconBtn .iconBtnTooltip {
+  visibility: hidden;
+  opacity: 0;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1f2937;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  pointer-events: none;
+  transition: opacity 0.15s, visibility 0.15s;
+  z-index: 50;
 }
 
-.capacidadInput {
-    width: 60px;
-    padding: 0.25rem;
+.iconBtn .iconBtnTooltip::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -4px;
+  border-width: 4px;
+  border-style: solid;
+  border-color: #1f2937 transparent transparent transparent;
 }
 
-.universityNameModal {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #1f2937;
+.iconBtn:hover .iconBtnTooltip {
+  visibility: visible;
+  opacity: 1;
 }
 
-/* Modal */
+/* SVG icon sizing inside buttons */
+.iconBtn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ========== Mobile Cards ========== */
+.mobileCards {
+  display: none;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.cardHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.cardTitle {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: #111827;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+
+.cardSubtitle {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin: 2px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardDates {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.cardDateBlock {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  background: #f9fafb;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+}
+
+.cardDateBlock .cdIcon {
+  color: #9ca3af;
+  font-size: 0.8rem;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.cardDateLabel {
+  font-size: 0.7rem;
+  color: #9ca3af;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.cardDateValue {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #374151;
+}
+
+.cardDateEnd {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.cardInfoRow {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.cardInfoRow svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: #9ca3af;
+}
+
+.cardInfoValue {
+  font-weight: 500;
+  color: #374151;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cardUnis {
+  margin-bottom: 0.75rem;
+}
+
+.cardUnisLabel {
+  font-size: 0.7rem;
+  color: #9ca3af;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 0.375rem;
+}
+
+.cardUniChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.cardActions {
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #f3f4f6;
+}
+
+.cardActionBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  border: 1px solid #e5e7eb;
+  background: white;
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.cardActionBtn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.cardActionBtnEdit {
+  color: #059669;
+  border-color: #d1fae5;
+}
+.cardActionBtnEdit:hover {
+  background: #ecfdf5;
+}
+
+.cardActionBtnDelete {
+  color: #ef4444;
+  border-color: #fee2e2;
+}
+.cardActionBtnDelete:hover {
+  background: #fef2f2;
+}
+
+.cardActionBtnApprove {
+  color: #059669;
+  border-color: #d1fae5;
+}
+.cardActionBtnApprove:hover {
+  background: #ecfdf5;
+}
+
+.cardActionBtnReject {
+  color: #ef4444;
+  border-color: #fee2e2;
+}
+.cardActionBtnReject:hover {
+  background: #fef2f2;
+}
+
+.cardActionBtnReapprove {
+  color: #2563eb;
+  border-color: #dbeafe;
+}
+.cardActionBtnReapprove:hover {
+  background: #eff6ff;
+}
+
+.cardInfoBlock {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.375rem;
+  margin-bottom: 0.75rem;
+}
+
+/* ========== Modal ========== */
 .modalBackdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-    padding: 1rem;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  padding: 1rem;
+  backdrop-filter: blur(2px);
 }
 
 .modal {
-    background: white;
-    border-radius: 0.5rem;
-    max-width: 90%;
-    width: 800px;
-    max-height: 90vh;
-    overflow-y: auto;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  background: white;
+  border-radius: 0.75rem;
+  max-width: 90%;
+  width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  animation: modalIn 0.2s ease-out;
+}
+
+@keyframes modalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 
 .modalHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem;
-    border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .modalHeader h3 {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: #1f2937;
-    margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.modalDescription {
+  font-size: 0.8125rem;
+  color: #6b7280;
+  margin: 4px 0 0;
 }
 
 .closeButton {
-    background: none;
-    border: none;
-    cursor: pointer;
-    font-size: 1rem;
-    color: #6b7280;
-    padding: 0.25rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1.5rem;
+  color: #9ca3af;
+  padding: 0.25rem;
+  line-height: 1;
+  border-radius: 0.25rem;
+  transition: all 0.15s;
 }
 
 .closeButton:hover {
-    color: #374151;
+  color: #374151;
+  background: #f3f4f6;
 }
 
-/* Form */
+/* ========== Form ========== */
 .form {
-    padding: 1.5rem;
+  padding: 1.5rem;
 }
 
 .formGrid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 1.5rem;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
 }
 
 .formGroup {
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
 }
 
 .formGroup label {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #374151;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #374151;
 }
 
 .formGroup input,
 .formGroup textarea,
 .formGroup select {
-    padding: 0.5rem;
-    border: 1px solid #d1d5db;
-    border-radius: 0.375rem;
-    font-size: 0.875rem;
-    width: 100%;
-    box-sizing: border-box;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  width: 100%;
+  box-sizing: border-box;
+  color: #111827;
+  background: white;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .formGroup input:focus,
 .formGroup textarea:focus,
 .formGroup select:focus {
-    outline: none;
-    border-color: #4f46e5;
-    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.formGroup input:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.formGroup small {
+  font-size: 0.75rem;
+  color: #9ca3af;
 }
 
 .fullWidth {
-    grid-column: 1 / -1;
+  grid-column: 1 / -1;
 }
 
 .formSection {
-    grid-column: 1 / -1;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
-    padding: 1rem;
-    margin-top: 1rem;
-    background-color: #f9fafb;
+  grid-column: 1 / -1;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  background-color: #fafafa;
 }
 
 .formSectionTitle {
-    font-size: 1rem;
-    font-weight: 600;
-    color: #4f46e5;
-    margin-bottom: 1rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #4f46e5;
+  margin: 0 0 0.75rem;
 }
 
 .formActions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
-    margin-top: 1.5rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid #e5e7eb;
-}
-
-.cancelButton,
-.saveButton {
-    padding: 0.5rem 1rem;
-    border: none;
-    border-radius: 0.375rem;
-    cursor: pointer;
-    font-size: 0.875rem;
-    font-weight: 500;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e5e7eb;
 }
 
 .cancelButton {
-    background-color: #e5e7eb;
-    color: #374151;
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background: white;
+  color: #374151;
+  transition: all 0.15s;
 }
 
 .cancelButton:hover {
-    background-color: #d1d5db;
+  background-color: #f3f4f6;
 }
 
 .saveButton {
-    background-color: #4f46e5;
-    color: white;
+  padding: 0.5rem 1.25rem;
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  background-color: #4f46e5;
+  color: white;
+  transition: all 0.15s;
 }
 
 .saveButton:hover {
-    background-color: #4338ca;
+  background-color: #4338ca;
 }
 
-/* Delete Modal */
-.deleteModal {
-    background: white;
-    border-radius: 0.5rem;
-    max-width: 90%;
-    width: 400px;
-    padding: 1.5rem;
-}
-
-.deleteModalContent {
-    text-align: center;
-}
-
-.deleteIcon {
-    font-size: 2rem;
-    color: #ef4444;
-    margin-bottom: 1rem;
-}
-
-.deleteModalContent h3 {
-    font-size: 1.125rem;
-    font-weight: 600;
-    color: #1f2937;
-    margin-bottom: 0.5rem;
-}
-
-.deleteModalContent p {
-    font-size: 0.875rem;
-    color: #6b7280;
-    margin-bottom: 1rem;
-}
-
-.deleteActions {
-    display: flex;
-    justify-content: center;
-    gap: 0.5rem;
-}
-
-.confirmDeleteButton {
-    background-color: #ef4444;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 0.375rem;
-    cursor: pointer;
-    font-size: 0.875rem;
-}
-
-.confirmDeleteButton:hover {
-    background-color: #dc2626;
-}
-
-/* Toast */
-.toast {
-    position: fixed;
-    bottom: 1rem;
-    right: 1rem;
-    z-index: 1100;
-}
-
-.toastContent {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    border-radius: 0.375rem;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-    max-width: 300px;
-}
-
-.success {
-    background-color: #10b981;
-    color: white;
-}
-
-.error {
-    background-color: #ef4444;
-    color: white;
-}
-
-/* University Management */
+/* ========== University Management ========== */
 .universityManagement {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1rem;
-    min-height: 250px;
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.75rem;
+  min-height: 220px;
 }
 
 .universitySection {
-    flex: 1;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.5rem;
-    background: white;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
+  flex: 1;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background: white;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .universitySectionHeader {
-    background: #f3f4f6;
-    padding: 0.75rem;
-    border-bottom: 1px solid #e5e7eb;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  background: #f9fafb;
+  padding: 0.625rem 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .universitySectionHeader h6 {
-    margin: 0;
-    font-size: 0.875rem;
-    font-weight: 600;
-    color: #374151;
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #374151;
 }
 
 .universityCount {
-    font-size: 0.75rem;
-    color: #6b7280;
-    background: #e5e7eb;
-    padding: 0.25rem 0.5rem;
-    border-radius: 0.75rem;
+  font-size: 0.7rem;
+  color: #6b7280;
+  background: #e5e7eb;
+  padding: 0.2rem 0.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
 }
 
 .universityList {
-    flex-grow: 1;
-    overflow-y: auto;
-    padding: 0.5rem;
+  flex-grow: 1;
+  overflow-y: auto;
+  max-height: 200px;
+  padding: 0.5rem;
 }
 
 .universityItem {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.5rem;
-    margin-bottom: 0.5rem;
-    background: #f9fafb;
-    border: 1px solid #e5e7eb;
-    border-radius: 0.375rem;
-    transition: all 0.2s ease;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0.625rem;
+  margin-bottom: 0.375rem;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  transition: all 0.15s;
 }
 
 .universityItem:hover {
-    border-color: #4f46e5;
-    box-shadow: 0 2px 4px rgba(79, 70, 229, 0.1);
-    transform: translateY(-1px);
+  border-color: #c7d2fe;
+  box-shadow: 0 1px 4px rgba(79, 70, 229, 0.08);
 }
 
 .selectedUniversityItem {
-    background: #e8f4fd;
-    border-color: #4f46e5;
+  background: #eef2ff;
+  border-color: #c7d2fe;
 }
 
 .universityInfo {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 0.25rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
 }
 
-.universityName {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #1f2937;
+.universityName,
+.universityNameModal {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #1f2937;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tuUniversidad {
+  font-size: 0.7rem;
+  color: #4f46e5;
+  font-weight: 500;
+}
+
+.capacidadInputContainer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.capacidadInputContainer label {
+  font-size: 0.75rem;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.capacidadInput {
+  width: 56px;
+  padding: 0.25rem 0.375rem;
+  border: 1px solid #d1d5db;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  text-align: center;
+}
+
+.capacidadInput:focus {
+  outline: none;
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+}
+
+.capacidadInput:disabled {
+  background: #f3f4f6;
+  color: #9ca3af;
 }
 
 .addUniversityBtn,
 .removeUniversityBtn {
-    background: #10b981;
-    color: white;
-    border: none;
-    width: 32px;
-    height: 32px;
-    border-radius: 0.375rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 0.375rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s;
+  flex-shrink: 0;
+  font-size: 0.8rem;
 }
 
+.addUniversityBtn {
+  background: #059669;
+  color: white;
+}
 .addUniversityBtn:hover {
-    background: #059669;
-    transform: scale(1.1);
+  background: #047857;
+  transform: scale(1.1);
 }
 
 .removeUniversityBtn {
-    background: #ef4444;
+  background: #ef4444;
+  color: white;
+}
+.removeUniversityBtn:hover {
+  background: #dc2626;
+  transform: scale(1.1);
 }
 
-.removeUniversityBtn:hover {
-    background: #dc2626;
-    transform: scale(1.1);
+.addUniversityBtn svg,
+.removeUniversityBtn svg {
+  width: 14px;
+  height: 14px;
 }
 
 .emptyList {
-    text-align: center;
-    padding: 2rem 1rem;
-    color: #6b7280;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #9ca3af;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
 }
 
 .emptyList .icon {
-    font-size: 1.5rem;
-    margin-bottom: 0.5rem;
-    color: #9ca3af;
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .emptyList p {
-    margin: 0;
-    font-size: 0.875rem;
+  margin: 0;
+  font-size: 0.8125rem;
 }
 
-/* Responsive design */
+/* ========== Delete Modal ========== */
+.deleteModal {
+  background: white;
+  border-radius: 0.75rem;
+  max-width: 90%;
+  width: 420px;
+  padding: 2rem;
+  animation: modalIn 0.2s ease-out;
+}
+
+.deleteModalContent {
+  text-align: center;
+}
+
+.deleteIconWrapper {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #fef2f2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.deleteIconWrapper svg {
+  width: 24px;
+  height: 24px;
+  color: #ef4444;
+}
+
+.deleteModalContent h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 0.5rem;
+}
+
+.deleteModalContent p {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0 0 1.5rem;
+  line-height: 1.5;
+}
+
+.deleteActions {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.confirmDeleteButton {
+  background-color: #ef4444;
+  color: white;
+  border: none;
+  padding: 0.5rem 1.25rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.confirmDeleteButton:hover {
+  background-color: #dc2626;
+}
+
+/* ========== Toast ========== */
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  z-index: 1100;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.toastContent {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  max-width: 360px;
+  font-size: 0.875rem;
+}
+
+.toastContent p {
+  margin: 0;
+}
+
+.success {
+  background-color: #059669;
+  color: white;
+}
+
+.error {
+  background-color: #ef4444;
+  color: white;
+}
+
+.warning {
+  background-color: #d97706;
+  color: white;
+}
+
+.info {
+  background-color: #2563eb;
+  color: white;
+}
+
+/* ========== Responsive: Tablet ========== */
+@media (max-width: 1024px) {
+  .tableContainer {
+    display: none;
+  }
+
+  .mobileCards {
+    display: flex;
+  }
+}
+
 @media (max-width: 768px) {
-    .tableContainer {
-        margin: 0.5rem 0;
-    }
-    .table th,
-    .table td {
-        padding: 0.5rem;
-        font-size: 0.875rem;
-    }
-    .dateRangeCell {
-        min-width: 100px;
-        font-size: 0.75rem;
-    }
+  .headerContent {
+    padding: 0.75rem 1rem;
+  }
+
+  .title {
+    font-size: 1.1rem;
+  }
+
+  .main {
+    padding: 1rem;
+  }
+
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filtersContainer {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .filterGroup {
+    width: 100%;
+  }
+
+  .filterSelect {
+    min-width: unset;
+  }
+
+  .tabTextFull {
+    display: none;
+  }
+
+  .tabTextShort {
+    display: inline;
+  }
+
+  .buttonTextFull {
+    display: none;
+  }
+
+  .buttonTextShort {
+    display: inline;
+  }
+
+  /* Modal responsive */
+  .modal {
+    max-width: 100%;
+    max-height: 100vh;
+    border-radius: 0.75rem 0.75rem 0 0;
+    margin-top: auto;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .universityManagement {
+    flex-direction: column;
+  }
+
+  .formActions {
+    flex-direction: column-reverse;
+  }
+
+  .formActions button {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .deleteModal {
+    width: 90%;
+    padding: 1.5rem;
+  }
+
+  .deleteActions {
+    flex-direction: column;
+  }
+
+  .deleteActions button {
+    width: 100%;
+    text-align: center;
+  }
+
+  .cardInfoBlock {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ========== Screen reader only ========== */
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
 }

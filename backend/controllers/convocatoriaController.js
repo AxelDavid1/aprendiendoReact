@@ -804,10 +804,10 @@ const updateSolicitudStatus = async (req, res) => {
 
     // 1. Obtener la solicitud y el cupo actual de la universidad
     console.log('3. Ejecutando primera query...');
-    const query1 = `SELECT sc.convocatoria_id, a.id_universidad
+    const query1 = `SELECT sc.convocatoria_id, a.id_universidad, sc.estado as current_estado
        FROM solicitudes_convocatorias sc
        JOIN alumno a ON sc.alumno_id = a.id_alumno
-       WHERE sc.id = ? AND sc.estado = 'solicitada'`;
+       WHERE sc.id = ?`;
     console.log('Query 1:', query1);
     console.log('Params 1:', [id]);
     
@@ -817,11 +817,26 @@ const updateSolicitudStatus = async (req, res) => {
     if (solicitudes.length === 0) {
       console.log('ERROR: Solicitud no encontrada');
       await connection.rollback();
-      return res.status(404).json({ error: "Solicitud no encontrada o ya ha sido procesada." });
+      return res.status(404).json({ error: "Solicitud no encontrada." });
     }
 
-    const { convocatoria_id, id_universidad } = solicitudes[0];
-    console.log('5. Datos extraídos:', { convocatoria_id, id_universidad });
+    const { convocatoria_id, id_universidad, current_estado } = solicitudes[0];
+    console.log('5. Datos extraídos:', { convocatoria_id, id_universidad, current_estado });
+
+    // Validar transiciones de estado
+    if (estado === 'aceptada') {
+      if (!['solicitada', 'rechazada'].includes(current_estado)) {
+        console.log('ERROR: No se puede aprobar esta solicitud');
+        await connection.rollback();
+        return res.status(400).json({ error: "No se puede aprobar esta solicitud." });
+      }
+    } else if (estado === 'rechazada') {
+      if (!['solicitada', 'aceptada'].includes(current_estado)) {
+        console.log('ERROR: No se puede rechazar esta solicitud');
+        await connection.rollback();
+        return res.status(400).json({ error: "No se puede rechazar esta solicitud." });
+      }
+    }
 
     // 2. Si se acepta, verificar y actualizar el cupo
     if (estado === 'aceptada') {
@@ -848,6 +863,14 @@ const updateSolicitudStatus = async (req, res) => {
       
       await connection.query(query3, [convocatoria_id, id_universidad]);
       console.log('9. Cupo incrementado exitosamente');
+    }
+
+    // 2.5. Si se rechaza una aceptada, decrementar el cupo
+    if (estado === 'rechazada' && current_estado === 'aceptada') {
+      console.log('6. Estado es rechazada desde aceptada, decrementando cupo...');
+      const queryDec = `UPDATE capacidad_universidad SET cupo_actual = cupo_actual - 1 WHERE convocatoria_id = ? AND universidad_id = ?`;
+      await connection.query(queryDec, [convocatoria_id, id_universidad]);
+      console.log('7. Cupo decrementado exitosamente');
     }
 
     // 3. Actualizar el estado de la solicitud
