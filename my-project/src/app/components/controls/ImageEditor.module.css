@@ -1,0 +1,567 @@
+/* ImageEditor.module.css - VERSIÓN CORREGIDA - COLORES EXPLÍCITOS */
+
+/* Modal Overlay */
+.imageEditorOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.8);
+  padding: 1rem;
+  backdrop-filter: blur(4px);
+}
+
+/* Modal Principal - FONDO CLARO FIJO */
+.imageEditorModal {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 960px;
+  overflow: hidden;
+  border-radius: 0.75rem;
+  background-color: #ffffff; /* BLANCO FIJO */
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  max-height: 90vh;
+}
+
+/* HEADER */
+.imageEditorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  padding: 0.75rem 1.25rem;
+}
+
+.imageEditorHeader h3 {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #0f172a;
+  margin: 0;
+}
+
+.imageEditorControls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* BOTÓN CANCELAR */
+.btnCancel {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 0.5rem;
+  background-color: #f1f5f9;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.btnCancel:hover {
+  background-color: #e2e8f0;
+  color: #0f172a;
+}
+
+/* BOTÓN CONFIRMAR */
+.btnConfirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 0.5rem;
+  background-color: #2563eb;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #ffffff;
+  border: 1px solid #2563eb;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.btnConfirm:hover {
+  background-color: #1d4ed8;
+}
+
+.btnConfirm:disabled {
+  background-color: #94a3b8;
+  border-color: #94a3b8;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+/* CONTENIDO PRINCIPAL */
+.imageEditorContent {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1rem;
+  overflow: hidden;
+  padding: 1rem;
+}
+
+@media (min-width: 768px) {
+  .imageEditorContent {
+    flex-direction: row;
+  }
+}
+
+/* CONTENEDOR DE IMAGEN - FONDO OSCURO */
+.imagePreviewContainer {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 0.5rem;
+  background-color: #0f172a;
+  min-height: 340px;
+}
+
+.imageContainer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  user-select: none;
+}
+
+.editorImage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.hiddenLoader {
+  position: absolute;
+  visibility: hidden;
+}
+
+.cropOverlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* INSTRUCCIONES SOBRE LA IMAGEN - AHORA VISIBLE */
+.cropHint {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  pointer-events: none;
+  background-color: #0f172a; /* slate-900 sólido */
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.5rem 1.25rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  border: 1px solid #334155;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  animation: hintFadeIn 0.5s ease-out;
+}
+
+/* PANEL DERECHO - VERSIÓN COMPACTA */
+.cropInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .cropInfo {
+    width: 14rem;
+    flex-shrink: 0;
+  }
+}
+
+/* ESTILOS BASE PARA SECCIONES */
+.controlsSection,
+.helpSection,
+.infoSection {
+  border-radius: 0.5rem;
+  border: 1px solid #e2e8f0;
+  background-color: #f8fafc;
+  padding: 0.75rem;
+}
+
+.infoTitle {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+}
+
+/* ===== CONTROLES COMPACTOS ===== */
+.controlsCompact {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.375rem;
+}
+
+.controlIconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  border-radius: 0.375rem;
+  background-color: #ffffff;
+  padding: 0.375rem 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  transition: all 0.15s;
+  cursor: pointer;
+  position: relative;
+}
+
+.controlIconBtn:hover {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.controlIconBtn:disabled {
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.controlIcon {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.controlIconBtn:hover .controlIcon {
+  color: #1d4ed8;
+}
+
+.controlIconBtn:disabled .controlIcon {
+  color: #94a3b8;
+}
+
+.controlLabel {
+  font-size: 0.7rem;
+}
+
+/* TOOLTIP PARA CONTROLES */
+.controlTooltip {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 0.5rem;
+  background-color: #0f172a;
+  color: white;
+  font-size: 0.65rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+  z-index: 30;
+  border: 1px solid #334155;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+}
+
+.controlIconBtn:hover .controlTooltip {
+  display: block;
+}
+
+/* ===== AYUDA COMPACTA ===== */
+.helpSection {
+  padding: 0.75rem;
+}
+
+.helpCompact {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.helpItem {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background-color: #ffffff;
+  border-radius: 0.375rem;
+  border: 1px solid #e2e8f0;
+  flex: 1;
+  position: relative;
+  cursor: help;
+}
+
+.helpIcon {
+  font-size: 0.8rem;
+  color: #2563eb;
+}
+
+.helpLabel {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #1e293b;
+}
+
+.helpTooltip {
+  display: none;
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-bottom: 0.5rem;
+  background-color: #0f172a;
+  color: white;
+  font-size: 0.65rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+  z-index: 30;
+  border: 1px solid #334155;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.helpItem:hover .helpTooltip {
+  display: block;
+}
+
+/* ===== MENSAJE ÁREA AZUL ===== */
+.blueHint {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background-color: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 0.5rem;
+  font-size: 0.7rem;
+  color: #1e40af;
+  font-weight: 500;
+}
+
+.blueDot {
+  font-size: 0.8rem;
+}
+
+/* ===== INFORMACIÓN COMPACTA ===== */
+.infoSection {
+  padding: 0.75rem;
+}
+
+.infoCompact {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  padding: 0.125rem 0;
+}
+
+.infoLabel {
+  color: #64748b;
+}
+
+.infoValue {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 767px) {
+  .cropInfo {
+    gap: 0.375rem;
+  }
+  
+  .controlsCompact {
+    grid-template-columns: 1fr;
+  }
+  
+  .helpCompact {
+    flex-direction: column;
+  }
+  
+  .controlTooltip,
+  .helpTooltip {
+    white-space: normal;
+    width: max-content;
+    max-width: 200px;
+  }
+}
+
+/* CONTENIDO DE INFORMACIÓN */
+.infoContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.infoRow {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  padding: 0.125rem 0;
+}
+
+.infoLabel {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.infoValue {
+  font-weight: 600;
+  color: #0f172a;
+}
+
+/* GRID DE BOTONES DE CONTROL */
+.controlsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+/* BOTONES DE CONTROL (Acercar, Alejar, Reiniciar, Ajustar) */
+.controlBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  border-radius: 0.375rem;
+  background-color: #ffffff;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  transition: all 0.15s;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.controlBtn:hover {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.controlBtn:disabled {
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+
+.controlIcon {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.controlBtn:hover .controlIcon {
+  color: #1d4ed8;
+}
+
+.controlBtn:disabled .controlIcon {
+  color: #94a3b8;
+}
+
+/* SECCIÓN DE AYUDA/TIPS */
+.tipsContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.tipItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  border-radius: 0.375rem;
+  background-color: #ffffff;
+  padding: 0.625rem;
+  font-size: 0.75rem;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  line-height: 1.4;
+}
+
+.tipIcon {
+  font-size: 0.875rem;
+  flex-shrink: 0;
+  color: #2563eb;
+  font-weight: 500;
+}
+
+/* ANIMACIÓN */
+@keyframes hintFadeIn {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* RESPONSIVE */
+@media (max-width: 767px) {
+  .imageEditorModal {
+    margin: 0.5rem;
+    max-height: calc(100vh - 1rem);
+  }
+  
+  .imageEditorContent {
+    padding: 0.75rem;
+  }
+  
+  .controlsGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .imagePreviewContainer {
+    min-height: 280px;
+  }
+  
+  .cropHint {
+    white-space: normal;
+    text-align: center;
+    max-width: 90%;
+    bottom: 8px;
+    font-size: 0.7rem;
+  }
+}
+
+/* OPTIMIZACIONES DE RENDIMIENTO */
+.imageContainer,
+.editorImage,
+.cropOverlay {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}

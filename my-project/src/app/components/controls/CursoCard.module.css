@@ -20,6 +20,23 @@
     object-fit: cover;
 }
 
+.cursoImagePlaceholder {
+    width: 240px;
+    height: 160px;
+    background-color: #f3f4f6;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+    font-size: 0.875rem;
+    font-style: italic;
+}
+
+.cursoImagePlaceholder::before {
+    content: "Sin imagen";
+}
+
 .cursoContent {
     padding: 1rem;
     display: flex;

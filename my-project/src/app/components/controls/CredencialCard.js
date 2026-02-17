@@ -1,6 +1,5 @@
-import React from 'react';
-import Image from 'next/image'
-import styles from './CredencialCard.module.css';
+import React from 'react'
+import styles from './CredencialCard.module.css'
 
 const getStatusChipClass = (estatus) => {
     const statusLower = estatus?.toLowerCase();
@@ -21,13 +20,16 @@ const getStatusChipClass = (estatus) => {
 const CredencialCard = ({ credencial, onVerMas }) => {
     return (
         <div className={styles.credencialCard}>
-            <Image
-                src={credencial.imagen_url || "/assets/homeWallpaper.jpg"}
-                alt={credencial.nombre_credencial || 'Imagen de la credencial'}
-                className={styles.credencialImage}
-                width={240}
-                height={160}
-            />
+            {credencial.imagen_url ? (
+                <img
+                    src={credencial.imagen_url}
+                    alt={credencial.nombre_credencial || 'Imagen de la credencial'}
+                    className={styles.credencialImage}
+                    style={{ width: '240px', height: '160px', objectFit: 'cover' }}
+                />
+            ) : (
+                <div className={styles.credencialImagePlaceholder}></div>
+            )}
             <div className={styles.credencialContent}>
                 <h3 className={`${styles.credencialTitle} ${styles.truncateTwoLines}`}>
                     {credencial.nombre_credencial || 'Credencial sin nombre'}

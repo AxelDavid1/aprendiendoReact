@@ -242,14 +242,37 @@ const getAllCursos = async (req, res) => {
 const getCursoById = async (req, res) => {
   const { id } = req.params;
   try {
-    const [cursos] = await pool.query(
-      "SELECT * FROM curso WHERE id_curso = ?",
-      [id],
+    const [rows] = await pool.query(
+      `SELECT c.*, 
+       imagen_original_url, 
+       imagen_ajustes
+      FROM curso c 
+      WHERE c.id_curso = ?`,
+      [id]
     );
-    if (cursos.length === 0) {
-      return res.status(404).json({ error: "Curso no encontrado." });
+
+    if (rows.length > 0) {
+      const curso = rows[0];
+      
+      // Parsear ajustes si existen
+      if (curso.imagen_ajustes) {
+        try {
+          curso.imagen_ajustes = JSON.parse(curso.imagen_ajustes);
+        } catch (e) {
+          console.warn('⚠️ Error al parsear imagen_ajustes:', e);
+          curso.imagen_ajustes = {};
+        }
+      } else {
+        curso.imagen_ajustes = {};
+      }
+      
+      res.json({
+        success: true,
+        data: curso
+      });
+    } else {
+      res.status(404).json({ error: "Curso no encontrado." });
     }
-    res.json(cursos[0]);
   } catch (error) {
     console.error(`Error al obtener el curso ${id}:`, error);
     res.status(500).json({ error: "Error interno del servidor." });
@@ -283,6 +306,9 @@ const createCurso = async (req, res) => {
     // Nuevos campos
     id_subgrupo,
     habilidades, // Esperamos un array de IDs: [1, 5, 10]
+    imagen_url,
+    imagen_original_url,
+    imagen_ajustes,
   } = req.body;
 
   const normalizedIdMaestro = normalizeNullableInt(id_maestro);
@@ -331,8 +357,8 @@ const createCurso = async (req, res) => {
       `INSERT INTO curso (
           id_maestro, id_area, id_categoria, id_universidad, id_facultad, id_carrera, id_subgrupo,
           nombre_curso, descripcion, objetivos, prerequisitos, duracion_horas, horas_teoria, horas_practica,
-          nivel, cupo_maximo, fecha_inicio, fecha_fin, modalidad, tipo_costo, costo
-       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          nivel, cupo_maximo, fecha_inicio, fecha_fin, modalidad, tipo_costo, costo, imagen_url, imagen_original_url, imagen_ajustes
+       ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         normalizedIdMaestro,
         areaId,
@@ -355,6 +381,9 @@ const createCurso = async (req, res) => {
         modalidad,
         tipo_costo || "gratuito",
         costo || null,
+        imagen_url || null,
+        imagen_original_url || null,
+        imagen_ajustes ? (typeof imagen_ajustes === 'string' ? imagen_ajustes : JSON.stringify(imagen_ajustes)) : null,
       ]
     );
 
@@ -427,6 +456,9 @@ const updateCurso = async (req, res) => {
     // Nuevos campos
     id_subgrupo,
     habilidades, // Array de IDs
+    imagen_url,
+    imagen_original_url,
+    imagen_ajustes,
   } = req.body;
 
   const normalizedIdMaestro = normalizeNullableInt(id_maestro);
@@ -477,7 +509,7 @@ const updateCurso = async (req, res) => {
           id_maestro = ?, id_categoria = ?, id_area = ?, id_universidad = ?, id_facultad = ?, id_carrera = ?, id_subgrupo = ?,
           nombre_curso = ?, descripcion = ?, objetivos = ?, prerequisitos = ?, duracion_horas = ?, horas_teoria = ?, horas_practica = ?,
           nivel = ?, cupo_maximo = ?, fecha_inicio = ?, fecha_fin = ?, estatus_curso = ?, modalidad = ?,
-          tipo_costo = ?, costo = ?
+          tipo_costo = ?, costo = ?, imagen_url = ?, imagen_original_url = ?, imagen_ajustes = ?
         WHERE id_curso = ?`,
       [
         normalizedIdMaestro,
@@ -502,6 +534,9 @@ const updateCurso = async (req, res) => {
         modalidad,
         tipo_costo,
         costo,
+        imagen_url || null,
+        imagen_original_url || null,
+        imagen_ajustes ? (typeof imagen_ajustes === 'string' ? imagen_ajustes : JSON.stringify(imagen_ajustes)) : null,
         id,
       ]
     );

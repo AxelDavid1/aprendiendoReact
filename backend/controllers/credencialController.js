@@ -106,6 +106,7 @@ const getAllCredenciales = async (req, res) => {
         cr.nombre as nombre_credencial,
         cr.estatus,
         cr.descripcion,
+        cr.imagen_url,
         cr.fecha_creacion,
         cr.id_universidad,
         u.nombre as nombre_universidad,
@@ -175,6 +176,20 @@ const getCredencialById = async (req, res) => {
     }
     const credencial = credenciales[0];
 
+    // Parsear ajustes si existen
+    if (credencial.imagen_ajustes) {
+      try {
+        credencial.imagen_ajustes = typeof credencial.imagen_ajustes === 'string' 
+          ? JSON.parse(credencial.imagen_ajustes) 
+          : credencial.imagen_ajustes;
+      } catch (e) {
+        console.warn('⚠️ Error al parsear imagen_ajustes de credencial:', e);
+        credencial.imagen_ajustes = {};
+      }
+    } else {
+      credencial.imagen_ajustes = {};
+    }
+
     // Obtener los cursos asociados
     const [cursos] = await pool.query(
       `
@@ -215,6 +230,7 @@ const createCredencial = async (req, res) => {
     id_universidad,
     id_facultad,
     cursos,
+    imagen_url, imagen_original_url, imagen_ajustes
   } = req.body;
 
   if (!nombre_credencial) {
@@ -229,12 +245,15 @@ const createCredencial = async (req, res) => {
     await connection.beginTransaction();
 
     const [result] = await connection.query(
-      "INSERT INTO certificacion (nombre, descripcion, id_universidad, id_facultad) VALUES (?, ?, ?, ?)",
+      "INSERT INTO certificacion (nombre, descripcion, id_universidad, id_facultad, imagen_url, imagen_original_url, imagen_ajustes) VALUES (?, ?, ?, ?, ?, ?, ?)",
       [
         nombre_credencial,
         descripcion,
         id_universidad || null,
         id_facultad || null,
+        imagen_url || null,
+        imagen_original_url || null,
+        imagen_ajustes ? (typeof imagen_ajustes === 'string' ? imagen_ajustes : JSON.stringify(imagen_ajustes)) : null,
       ],
     );
     const newCredencialId = result.insertId;
@@ -267,6 +286,7 @@ const updateCredencial = async (req, res) => {
     id_universidad,
     id_facultad,
     cursos,
+    imagen_url, imagen_original_url, imagen_ajustes
   } = req.body;
 
   if (!nombre_credencial) {
@@ -281,12 +301,15 @@ const updateCredencial = async (req, res) => {
     await connection.beginTransaction();
 
     const [result] = await connection.query(
-      "UPDATE certificacion SET nombre = ?, descripcion = ?, id_universidad = ?, id_facultad = ? WHERE id_certificacion = ?",
+      "UPDATE certificacion SET nombre = ?, descripcion = ?, id_universidad = ?, id_facultad = ?, imagen_url = ?, imagen_original_url = ?, imagen_ajustes = ? WHERE id_certificacion = ?",
       [
         nombre_credencial,
         descripcion,
         id_universidad || null,
         id_facultad || null,
+        imagen_url || null,
+        imagen_original_url || null,
+        imagen_ajustes ? (typeof imagen_ajustes === 'string' ? imagen_ajustes : JSON.stringify(imagen_ajustes)) : null,
         id,
       ],
     );

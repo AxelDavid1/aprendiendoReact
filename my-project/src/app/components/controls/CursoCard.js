@@ -1,5 +1,4 @@
 import React from 'react'
-import Image from 'next/image'
 import styles from './CursoCard.module.css'
 
 const getStatusChipClass = (estatus) => {
@@ -29,13 +28,16 @@ const formatStatusText = (estatus) => {
 const CursoCard = ({ curso, onVerMas }) => {
     return (
         <div className={styles.cursoCard}>
-            <Image 
-                src={curso.imagen_url || "/assets/homeWallpaper.jpg"} 
-                alt={curso.nombre_curso} 
-                className={styles.cursoImage}
-                width={240}
-                height={160}
-            />
+            {curso.imagen_url ? (
+                <img 
+                    src={curso.imagen_url}
+                    alt={curso.nombre_curso}
+                    className={styles.cursoImage}
+                    style={{ width: '240px', height: '160px', objectFit: 'cover' }}
+                />
+            ) : (
+                <div className={styles.cursoImagePlaceholder}></div>
+            )}
             <div className={styles.cursoContent}>
                 <h3 className={`${styles.cursoTitle} ${styles.truncateTwoLines}`}>{curso.nombre_curso}</h3>
                 

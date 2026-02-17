@@ -16,7 +16,8 @@ import GestionHorarios from "./GestionHorarios"
 import PlaneacionCurso from "./PlaneacionCurso"
 import MaterialADescargar from "./MaterialADescargar"
 import { useAuth } from "@/hooks/useAuth"
-import { authenticatedFetch } from "@/utils/api";
+import { authenticatedFetch } from "@/utils/api"
+import DualImageInput from "../controls/DualImageInput";
 
 
 const API_URL = "/api/cursos"
@@ -49,6 +50,7 @@ const initialCourseState = {
   codigo_curso: "",
   tipo_costo: "gratuito",
   costo: null,
+  imagen_url: "", // Campo para URL de imagen
 }
 
 function CourseManagement({ userId, dashboardType, userUniversityId, teacherId }) {
@@ -971,6 +973,26 @@ function CourseManagement({ userId, dashboardType, userUniversityId, teacherId }
                     value={formState.nombre_curso}
                     onChange={handleFormChange}
                     required
+                  />
+                </div>
+                <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                  <label>Imagen del Curso</label>
+                  <DualImageInput
+                    value={formState.imagen_url || ""}
+                    originalImageUrl={formState.imagen_original_url || ""}
+                    initialAdjustments={formState.imagen_ajustes ? (typeof formState.imagen_ajustes === 'string' ? JSON.parse(formState.imagen_ajustes) : formState.imagen_ajustes) : null}
+                    onChange={(value) => setFormState(prev => ({...prev, imagen_url: value}))}
+                    placeholder="https://ejemplo.com/imagen.jpg"
+                    uploadType="cursos"
+                    onImageProcessed={(imageUrl, metadata) => {
+                      console.log('Imagen procesada:', imageUrl, metadata);
+                      setFormState(prev => ({
+                        ...prev, 
+                        imagen_url: imageUrl,
+                        imagen_original_url: metadata?.originalImageUrl || prev.imagen_original_url,
+                        imagen_ajustes: metadata?.adjustments || prev.imagen_ajustes
+                      }));
+                    }}
                   />
                 </div>
                 <div className={`${styles.formGroup} ${styles.fullWidth}`}>

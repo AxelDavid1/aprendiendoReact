@@ -6,12 +6,17 @@ const path = require("path");
 const fs = require("fs");
 require("dotenv").config(); // Para cargar variables de entorno
 
+// Importar middleware de multer
+const { uploadImage, ensureUploadDirs } = require('./middleware/upload');
+
+// Asegurar directorios de carga al iniciar
+ensureUploadDirs();
+
 // Configuración de logs
 const logDir = path.join(__dirname, "logs");
 if (!fs.existsSync(logDir)) {
   fs.mkdirSync(logDir, { recursive: true });
 }
-
 const logFile = path.join(logDir, "server.log");
 const logStream = fs.createWriteStream(logFile, { flags: "a" });
 
@@ -39,6 +44,7 @@ log(`🔄 CORS configurado: ${JSON.stringify(corsOptions.origin)}`);
 const app = express();
 app.use(express.json());
 app.use(cors(corsOptions));
+// app.use(uploadImage); // Comentado porque causa error y las rutas ya manejan sus propias subidas
 
 // Middleware para registrar todas las solicitudes
 app.use((req, res, next) => {
@@ -130,6 +136,7 @@ const publicFilesRoutes = require("./routes/publicFilesRoutes");
 const subgrupoOperadorRoutes = require("./routes/subgrupoOperadorRoutes");
 const habilidadClaveRoutes = require("./routes/habilidadClaveRoutes");
 const universidadPublicRoutes = require("./routes/universidadPublicRoutes");
+const imageRoutes = require("./routes/imageRoutes");
 
 log(`✅ Rutas importadas correctamente`);
 
@@ -156,6 +163,7 @@ app.use("/api/alumno", certificadoConstanciaRoutes);
 app.use("/api/subgrupos-operadores", subgrupoOperadorRoutes);
 app.use("/api/habilidades-clave", habilidadClaveRoutes);
 app.use("/api/public", universidadPublicRoutes);
+app.use("/api/upload", imageRoutes);
 log(`🔌 Rutas configuradas en la aplicación`);
 
 log(`💾 Conectando a la base de datos...`);

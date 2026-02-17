@@ -8,7 +8,8 @@ import {
   faMinus,
 } from "@fortawesome/free-solid-svg-icons";
 import styles from "./CredencialesCursos.module.css";
-import { authenticatedFetch } from "@/utils/api";
+import { authenticatedFetch } from "@/utils/api"
+import DualImageInput from "../controls/DualImageInput";
 
 
 const API_URL = "/api/credenciales";
@@ -22,6 +23,7 @@ const initialCredentialState = {
   id_universidad: "",
   id_facultad: "",
   cursos: [],
+  imagen_url: "", // Campo para URL de imagen
 };
 
 function CredencialesCursos({ userId, dashboardType, userUniversityId }) {
@@ -595,6 +597,26 @@ function CredencialesCursos({ userId, dashboardType, userUniversityId }) {
                     value={formState.nombre_credencial}
                     onChange={handleFormChange}
                     required
+                  />
+                </div>
+                <div className={`${styles.formGroup} ${styles.fullWidth}`}>
+                  <label>Imagen de la Credencial</label>
+                  <DualImageInput
+                    value={formState.imagen_url || ""}
+                    originalImageUrl={formState.imagen_original_url || ""}
+                    initialAdjustments={formState.imagen_ajustes ? (typeof formState.imagen_ajustes === 'string' ? JSON.parse(formState.imagen_ajustes) : formState.imagen_ajustes) : null}
+                    onChange={(value) => setFormState(prev => ({...prev, imagen_url: value}))}
+                    placeholder="https://ejemplo.com/imagen.jpg"
+                    uploadType="credenciales"
+                    onImageProcessed={(imageUrl, metadata) => {
+                      console.log('Imagen de credencial procesada:', imageUrl, metadata);
+                      setFormState(prev => ({
+                        ...prev, 
+                        imagen_url: imageUrl,
+                        imagen_original_url: metadata?.originalImageUrl || prev.imagen_original_url,
+                        imagen_ajustes: metadata?.adjustments || prev.imagen_ajustes
+                      }));
+                    }}
                   />
                 </div>
                 <div className={`${styles.formGroup} ${styles.fullWidth}`}>
