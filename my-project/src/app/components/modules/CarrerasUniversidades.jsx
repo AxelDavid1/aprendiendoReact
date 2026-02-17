@@ -78,7 +78,7 @@ function CarrerasUniversidades() {
     setIsFacultadesLoading(true);
     setLoading(true);
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL_FACULTADES}/universidad/${idUniversidad}`,
       );
       if (!response.ok) throw new Error("Error al obtener facultades");
@@ -99,7 +99,7 @@ function CarrerasUniversidades() {
   const fetchCarreras = useCallback(async (idFacultad) => {
     if (!idFacultad) return;
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL_CARRERAS}/facultad/${idFacultad}`,
       );
       if (!response.ok) throw new Error("Error al obtener carreras");
@@ -180,9 +180,8 @@ function CarrerasUniversidades() {
     }
 
     try {
-      const response = await fetch(url, {
+      const response = await authenticatedFetch(url, {
         method,
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       const result = await response.json();
@@ -210,7 +209,7 @@ function CarrerasUniversidades() {
         ? `${API_URL_FACULTADES}/${id}`
         : `${API_URL_CARRERAS}/${id}`;
     try {
-      const response = await fetch(url, { method: "DELETE" });
+      const response = await authenticatedFetch(url, { method: "DELETE" });
       if (!response.ok) throw new Error("Error al eliminar");
       showToast("Eliminado con éxito", "success");
       handleCloseDeleteModal();
