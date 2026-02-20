@@ -7,7 +7,7 @@ const pool = require("../config/db"); // Importar el pool de conexiones
  * Body: { "id_facultad": 1, "nombre": "Ingeniería de Software", "clave_carrera": "IS-2024", "duracion_anos": 5 }
  */
 exports.createCarrera = async (req, res) => {
-  const { id_facultad, nombre, clave_carrera, duracion_anos } = req.body;
+  const { id_facultad, nombre, clave_carrera, duracion_periodos } = req.body;
 
   if (!id_facultad || !nombre || !clave_carrera) {
     return res.status(400).json({
@@ -153,7 +153,7 @@ exports.getCarreras = async (req, res) => {
 
 exports.updateCarrera = async (req, res) => {
   const { id } = req.params;
-  const { nombre, clave_carrera, duracion_anos } = req.body;
+  const { nombre, clave_carrera, duracion_periodos } = req.body;
 
   if (!nombre || !clave_carrera) {
     return res.status(400).json({

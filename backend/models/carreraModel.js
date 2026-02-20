@@ -8,13 +8,13 @@ const Carrera = {
    */
   create: async (newCarrera) => {
     const query =
-      "INSERT INTO carreras (id_facultad, nombre, clave_carrera, duracion_anos) VALUES (?, ?, ?, ?)";
+      "INSERT INTO carreras (id_facultad, nombre, clave_carrera, duracion_periodos) VALUES (?, ?, ?, ?)";
     try {
       const [result] = await db.query(query, [
         newCarrera.id_facultad,
         newCarrera.nombre,
         newCarrera.clave_carrera,
-        newCarrera.duracion_anos,
+        newCarrera.duracion_periodos,
       ]);
       return { id_carrera: result.insertId, ...newCarrera };
     } catch (err) {
@@ -48,12 +48,12 @@ const Carrera = {
    */
   update: async (id_carrera, carreraData) => {
     const query =
-      "UPDATE carreras SET nombre = ?, clave_carrera = ?, duracion_anos = ?, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id_carrera = ?";
+      "UPDATE carreras SET nombre = ?, clave_carrera = ?, duracion_periodos = ?, fecha_actualizacion = CURRENT_TIMESTAMP WHERE id_carrera = ?";
     try {
       const [result] = await db.query(query, [
         carreraData.nombre,
         carreraData.clave_carrera,
-        carreraData.duracion_anos,
+        carreraData.duracion_periodos,
         id_carrera,
       ]);
       return result;

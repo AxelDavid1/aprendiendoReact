@@ -24,6 +24,7 @@ const initialUniversityState = {
   telefono: "",
   email_contacto: "",
   ubicacion: "",
+  tipo_periodo: "Semestre",
   logo_url: "",
   logo_file: null,
   email_admin: "",
@@ -37,10 +38,11 @@ const getAuthToken = () => {
 // Función para hacer llamadas autenticadas
 const authenticatedFetch = async (url, options = {}) => {
   const token = getAuthToken();
-  const headers = {
-    'Content-Type': 'application/json',
-    ...options.headers,
-  };
+  const headers = { ...options.headers };
+  
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = headers['Content-Type'] || 'application/json';
+  }
   
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
@@ -251,6 +253,7 @@ function ManejoUniversidades({ dashboardType = "sedeq", userUniversityId = null,
       formData.append("telefono", formState.telefono);
       formData.append("email_contacto", formState.email_contacto);
       formData.append("ubicacion", formState.ubicacion);
+      formData.append("tipo_periodo", formState.tipo_periodo || "Semestre");
       if (logoFile) formData.append("logo", logoFile);
 
       if (isEditing) {
@@ -277,7 +280,6 @@ function ManejoUniversidades({ dashboardType = "sedeq", userUniversityId = null,
       const response = await authenticatedFetch(url, { 
         method, 
         body: formData,
-        headers: {} // No incluir Content-Type para FormData, el navegador lo establece automáticamente
       });
       const result = await response.json();
       if (!response.ok) {
@@ -390,6 +392,10 @@ function ManejoUniversidades({ dashboardType = "sedeq", userUniversityId = null,
               <div className={styles.detailItem}>
                 <span className={styles.detailLabel}>Ubicacion</span>
                 <span className={styles.detailValue}>{university.ubicacion || "No especificada"}</span>
+              </div>
+              <div className={styles.detailItem}>
+                <span className={styles.detailLabel}>Tipo de Periodo</span>
+                <span className={styles.detailValue}>{university.tipo_periodo || "Semestre"}</span>
               </div>
               <div className={styles.detailItem}>
                 <span className={styles.detailLabel}>Email del Administrador</span>
@@ -766,6 +772,21 @@ function ManejoUniversidades({ dashboardType = "sedeq", userUniversityId = null,
                         value={formState.telefono}
                         onChange={handleFormChange}
                       />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <label htmlFor="tipo_periodo">Tipo de Periodo</label>
+                      <select
+                        id="tipo_periodo"
+                        name="tipo_periodo"
+                        value={formState.tipo_periodo || "Semestre"}
+                        onChange={handleFormChange}
+                        required
+                        disabled={dashboardType === "university"}
+                        className={dashboardType === "university" ? styles.readOnlyInput : ""}
+                      >
+                        <option value="Semestre">Semestres</option>
+                        <option value="Cuatrimestre">Cuatrimestres</option>
+                      </select>
                     </div>
                     <div
                       className={styles.formGroup}

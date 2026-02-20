@@ -15,12 +15,13 @@ class Universidad {
       telefono,
       email_contacto,
       ubicacion,
+      tipo_periodo,
       logo_url,
     },
     connection,
   ) {
     const [result] = await connection.execute(
-      "INSERT INTO universidad (nombre, clave_universidad, direccion, telefono, email_contacto, ubicacion, logo_url) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO universidad (nombre, clave_universidad, direccion, telefono, email_contacto, ubicacion, tipo_periodo, logo_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
       [
         nombre,
         clave_universidad,
@@ -28,6 +29,7 @@ class Universidad {
         telefono,
         email_contacto,
         ubicacion,
+        tipo_periodo,
         logo_url,
       ],
     );

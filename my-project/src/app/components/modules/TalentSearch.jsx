@@ -125,10 +125,13 @@ const TalentSearch = ({ empresaId }) => {
 
     const calculateSeniority = (current, duration, periodType) => {
         if (!current || !duration) return null;
-        const totalPeriods = periodType === 'Cuatrimestre' ? Math.ceil(duration * 3) : Math.ceil(duration * 2);
-        if (current >= totalPeriods) return "Egresado";
-        if (current === totalPeriods - 1) return `Último ${periodType}`;
-        return `${current}° ${periodType}`;
+        
+        let labelType = periodType === 'Cuatrimestre' ? 'Cuatrimestre' : 'Semestre';
+        
+        // duration is now in periods (semesters or quarters)
+        if (current > duration) return "Egresado";
+        if (current === duration) return `Último ${labelType}`;
+        return `${current}° ${labelType}`;
     };
 
     return (
@@ -203,7 +206,7 @@ const TalentSearch = ({ empresaId }) => {
                                         <span className={styles.infoValue}>{student.nombre_carrera || "N/A"}</span>
                                     </div>
                                     <div className={styles.infoItem}>
-                                        <span className={styles.infoLabel}>Semestre</span>
+                                        <span className={styles.infoLabel}>{student.tipo_periodo || "Semestre"}</span>
                                         <span className={styles.infoValue}>{student.semestre_actual}°</span>
                                     </div>
                                     <div className={styles.infoItem}>
@@ -212,7 +215,7 @@ const TalentSearch = ({ empresaId }) => {
                                     </div>
                                     <div className={styles.infoItem}>
                                         <span className={styles.infoLabel}>Progreso</span>
-                                        <span className={styles.infoValue}>{calculateSeniority(student.semestre_actual, student.duracion_anos, student.tipo_periodo)}</span>
+                                        <span className={styles.infoValue}>{calculateSeniority(student.semestre_actual, student.duracion_periodos, student.tipo_periodo)}</span>
                                     </div>
                                 </div>
 
@@ -278,9 +281,15 @@ const TalentSearch = ({ empresaId }) => {
                                     <span className={styles.metaValue}>{selectedStudent.correo_institucional}</span>
                                 </div>
                                 <div className={styles.metaItem}>
+                                    <span className={styles.metaLabel}>{selectedStudent.tipo_periodo || "Semestre"}</span>
+                                    <span className={styles.metaValue}>
+                                        {selectedStudent.semestre_actual}°
+                                    </span>
+                                </div>
+                                <div className={styles.metaItem}>
                                     <span className={styles.metaLabel}>Estatus Actual</span>
                                     <span className={styles.metaValue}>
-                                        {calculateSeniority(selectedStudent.semestre_actual, selectedStudent.duracion_anos, selectedStudent.tipo_periodo)}
+                                        {calculateSeniority(selectedStudent.semestre_actual, selectedStudent.duracion_periodos, selectedStudent.tipo_periodo)}
                                     </span>
                                 </div>
                             </div>

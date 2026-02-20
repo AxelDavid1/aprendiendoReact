@@ -123,6 +123,7 @@ exports.createUniversidad = async (req, res) => {
       telefono,
       email_contacto,
       ubicacion,
+      tipo_periodo,
       email_admin,
       password,
     } = req.body;
@@ -143,6 +144,7 @@ exports.createUniversidad = async (req, res) => {
       telefono,
       email_contacto,
       ubicacion,
+      tipo_periodo: tipo_periodo || "Semestre",
       logo_url: req.file ? `/uploads/logos/${req.file.filename}` : null,
     };
     const { id_universidad } = await Universidad.create(

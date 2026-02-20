@@ -60,7 +60,7 @@ exports.searchStudents = async (req, res) => {
             SELECT 
                 a.id_alumno, a.nombre_completo, a.matricula, a.correo_institucional,
                 u.email as correo_usuario, uni.nombre as nombre_universidad,
-                uni.tipo_periodo, car.nombre as nombre_carrera, car.duracion_anos,
+                uni.tipo_periodo, car.nombre as nombre_carrera, car.duracion_periodos,
                 a.semestre_actual,
                 (SELECT COUNT(*) FROM constancia_alumno WHERE id_alumno = a.id_alumno) as cursos_terminados,
                 (SELECT COUNT(*) FROM certificacion_alumno WHERE id_alumno = a.id_alumno AND estatus = 'completada') as credenciales_obtenidas
@@ -316,7 +316,7 @@ exports.getStudentDetails = async (req, res) => {
             SELECT 
                 a.id_alumno, a.nombre_completo, a.matricula, a.correo_institucional, a.correo_personal,
                 uni.nombre as nombre_universidad, uni.tipo_periodo,
-                car.nombre as nombre_carrera, car.duracion_anos, a.semestre_actual
+                car.nombre as nombre_carrera, car.duracion_periodos, a.semestre_actual
             FROM alumno a
             JOIN universidad uni ON a.id_universidad = uni.id_universidad
             LEFT JOIN carreras car ON a.id_carrera = car.id_carrera

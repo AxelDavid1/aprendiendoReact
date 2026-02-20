@@ -27,7 +27,7 @@ const initialCarreraState = {
   id_carrera: null,
   nombre: "",
   clave_carrera: "",
-  duracion_anos: "",
+  duracion_periodos: "",
 };
 
 function CarrerasUniversidades() {
@@ -166,7 +166,7 @@ function CarrerasUniversidades() {
         id_facultad: currentFacultadId,
         nombre: formState.nombre,
         clave_carrera: formState.clave_carrera,
-        duracion_anos: formState.duracion_anos || null,
+        duracion_periodos: formState.duracion_periodos || null,
       };
       if (isEditing) {
         url = `${API_URL_CARRERAS}/${formState.id_carrera}`;
@@ -336,7 +336,7 @@ function CarrerasUniversidades() {
                   <tr>
                     <th>Nombre</th>
                     <th>Clave</th>
-                    <th>Duración (años)</th>
+                    <th>Duración (Periodos)</th>
                     <th>Acciones</th>
                   </tr>
                 </thead>
@@ -345,7 +345,7 @@ function CarrerasUniversidades() {
                     <tr key={car.id_carrera}>
                       <td>{car.nombre}</td>
                       <td>{car.clave_carrera}</td>
-                      <td>{car.duracion_anos || "N/A"}</td>
+                      <td>{car.duracion_periodos || "N/A"}</td>
                       <td>
                         <button
                           onClick={() =>
@@ -457,12 +457,18 @@ function CarrerasUniversidades() {
                       />
                     </div>
                     <div className={styles.formGroup}>
-                      <label htmlFor="duracion_anos">Duración (años)</label>
+                      <label htmlFor="duracion_periodos">
+                        Duración (
+                        {universidades.find((u) => u.id_universidad === Number(selectedUniversidad))?.tipo_periodo === "Cuatrimestre"
+                          ? "Cuatrimestres"
+                          : "Semestres"}
+                        )
+                      </label>
                       <input
                         type="number"
-                        id="duracion_anos"
-                        name="duracion_anos"
-                        value={formState.duracion_anos}
+                        id="duracion_periodos"
+                        name="duracion_periodos"
+                        value={formState.duracion_periodos}
                         onChange={handleFormChange}
                       />
                     </div>
