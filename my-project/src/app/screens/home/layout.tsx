@@ -13,6 +13,7 @@ import StudentDashboard from "../../components/dashboards/StudentDashboard";
 import TeacherDashboard from "../../components/dashboards/TeacherDashboard";
 import UniversityDashboard from "../../components/dashboards/UniversityDashboard";
 import SEDEQDashboard from "../../components/dashboards/SEDEQDashboard";
+import EmpresaDashboard from "../../components/dashboards/EmpresaDashboard";
 import Image from "next/image";
 import ValidacionCertificadosYConstanciasPublica from "../../components/modules/ValidacionCertificadosYConstanciasPublica";
 
@@ -21,7 +22,7 @@ const handleAnimationComplete = () => {
 };
 
 // Define the possible keys for our roleMap
-type RoleMapKeys = "alumno" | "maestro" | "admin_universidad" | "admin_sedeq";
+type RoleMapKeys = "alumno" | "maestro" | "admin_universidad" | "admin_sedeq" | "admin_empresa";
 
 // Define a type for the raw data from localStorage.
 interface RawStoredUserData {
@@ -82,6 +83,7 @@ export default function HomeLayout() {
       maestro: "MAESTRO",
       admin_universidad: "UNIVERSIDAD",
       admin_sedeq: "SEDEQ",
+      admin_empresa: "EMPRESA",
     };
     const mappedRole = user.tipo_usuario ? roleMap[user.tipo_usuario as RoleMapKeys] || user.tipo_usuario : "UNKNOWN";
 
@@ -94,6 +96,8 @@ export default function HomeLayout() {
         return <UniversityDashboard userId={user.id_usuario} />;
       case "SEDEQ":
         return <SEDEQDashboard userId={user.id_usuario} />;
+      case "EMPRESA":
+        return <EmpresaDashboard userId={user.id_usuario} user={user} />;
       default:
         return (
           <p className="text-center text-red-600">Rol de usuario no válido.</p>

@@ -9,6 +9,7 @@ import StudentDashboard from "./components/dashboards/StudentDashboard";
 import TeacherDashboard from "./components/dashboards/TeacherDashboard";
 import UniversityDashboard from "./components/dashboards/UniversityDashboard";
 import SEDEQDashboard from "./components/dashboards/SEDEQDashboard";
+import EmpresaDashboard from "./components/dashboards/EmpresaDashboard";
 import LogoSEDEQ from "../assets/Secretaria-de-educacion-Queretaro.png";
 import Image from "next/image";
 
@@ -41,6 +42,7 @@ export default function ClientLayout({
             maestro: "MAESTRO",
             admin_universidad: "UNIVERSIDAD",
             admin_sedeq: "SEDEQ",
+            admin_empresa: "EMPRESA",
           };
           storedUser.role = roleMap[storedUser.role] || storedUser.role;
           setUser(storedUser);
@@ -90,6 +92,8 @@ export default function ClientLayout({
         return <UniversityDashboard userId={user.id} />;
       case "SEDEQ":
         return <SEDEQDashboard userId={user.id} />;
+      case "EMPRESA":
+        return <EmpresaDashboard userId={user.id} user={user} />;
       default:
         return (
           <p className="text-center text-red-600">Rol de usuario no válido.</p>

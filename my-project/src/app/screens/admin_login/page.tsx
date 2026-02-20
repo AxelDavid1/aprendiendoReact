@@ -13,8 +13,9 @@ interface ApiErrorResponse {
 
 interface UserDataForLocalStorage {
   id_usuario: number;
-  tipo_usuario: "alumno" | "maestro" | "admin_universidad" | "admin_sedeq" | string;
+  tipo_usuario: "alumno" | "maestro" | "admin_universidad" | "admin_sedeq" | "admin_empresa" | string;
   username: string;
+  id_empresa?: number;
   // Add any other properties that HomeLayout might need from the user object
 }
 
@@ -56,6 +57,7 @@ export default function AdminLoginPage() {
           id_usuario: user.id_usuario, // Usa "id_usuario" directamente
           tipo_usuario: user.tipo_usuario, // Usa "tipo_usuario" directamente
           username: user.username,
+          id_empresa: user.id_empresa,
         };
 
         localStorage.setItem("user", JSON.stringify(userData));

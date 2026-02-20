@@ -137,6 +137,8 @@ const subgrupoOperadorRoutes = require("./routes/subgrupoOperadorRoutes");
 const habilidadClaveRoutes = require("./routes/habilidadClaveRoutes");
 const universidadPublicRoutes = require("./routes/universidadPublicRoutes");
 const imageRoutes = require("./routes/imageRoutes");
+const empresaRoutes = require("./routes/empresaRoutes");
+const analyticsRoutes = require("./routes/analyticsRoutes");
 
 log(`✅ Rutas importadas correctamente`);
 
@@ -164,6 +166,8 @@ app.use("/api/subgrupos-operadores", subgrupoOperadorRoutes);
 app.use("/api/habilidades-clave", habilidadClaveRoutes);
 app.use("/api/public", universidadPublicRoutes);
 app.use("/api/upload", imageRoutes);
+app.use("/api/empresa", empresaRoutes);
+app.use("/api/analytics", analyticsRoutes);
 log(`🔌 Rutas configuradas en la aplicación`);
 
 log(`💾 Conectando a la base de datos...`);
@@ -184,6 +188,7 @@ const validTipoUsuario = [
   "maestro",
   "admin_universidad",
   "admin_sedeq",
+  "admin_empresa",
 ];
 const validEstatus = ["activo", "inactivo", "pendiente", "suspendido"];
 

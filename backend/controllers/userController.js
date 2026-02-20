@@ -19,6 +19,7 @@ const validTipoUsuario = [
   "maestro",
   "admin_universidad",
   "admin_sedeq",
+  "admin_empresa",
 ];
 
 const validEstatus = ["activo", "inactivo", "pendiente", "suspendido"];
@@ -695,13 +696,13 @@ exports.login = async (req, res) => {
       }
 
       if (
-        !["maestro", "admin_universidad", "admin_sedeq"].includes(
+        !["maestro", "admin_universidad", "admin_sedeq", "admin_empresa"].includes(
           user.tipo_usuario,
         )
       ) {
         return res.status(403).json({
           error:
-            "No tienes los permisos necesarios, unicamente puedes entrar si eres Maestro, Universidad o SEDEQ",
+            "No tienes los permisos necesarios, unicamente puedes entrar si eres Maestro, Universidad, SEDEQ o Empresa",
         });
       }
 
@@ -727,6 +728,7 @@ exports.login = async (req, res) => {
           id_usuario: user.id_usuario,
           username: user.username,
           tipo_usuario: user.tipo_usuario,
+          id_empresa: user.id_empresa,
         },
       });
     } finally {

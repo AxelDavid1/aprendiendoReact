@@ -13,6 +13,7 @@ import Convocatorias from "../modules/Convocatorias"
 import CalificacionCurso from "../modules/CalificacionCurso"
 import CertificadosYConstancia from "../modules/CertificadosYConstancias"
 
+
 const API_URL_USERS = "/api/users"
 
 // Función para obtener el token de autenticación
@@ -113,6 +114,7 @@ function UniversityDashboard({ userId }) {
       modules: [
         { id: "calificaciones", label: "Calificaciones", icon: "✍️" }, // Solo cursos vigentes de su universidad
         { id: "inscripciones", label: "Inscripciones", icon: "📋" }, // Solo inscripciones de alumnos de su universidad
+
       ],
     },
     {

@@ -1,0 +1,420 @@
+.container {
+    padding: 0;
+}
+
+.header {
+    margin-bottom: 2rem;
+}
+
+.header h2 {
+    color: #1e293b;
+    font-size: 1.8rem;
+    margin-bottom: 0.5rem;
+    font-weight: 800;
+}
+
+.header p {
+    color: #64748b;
+}
+
+.searchBar {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+    align-items: center;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.inputGroup {
+    flex: 2;
+    min-width: 300px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: border-color 0.2s;
+}
+
+.inputGroup:focus-within {
+    border-color: #4f46e5;
+}
+
+.inputGroup input {
+    border: none;
+    outline: none;
+    width: 100%;
+    font-size: 0.95rem;
+    background: transparent;
+    color: #1e293b;
+}
+
+.inputGroup .icon {
+    color: #94a3b8;
+}
+
+.filters {
+    display: flex;
+    gap: 1rem;
+    flex: 3;
+    flex-wrap: wrap;
+}
+
+.filters select {
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    font-size: 0.9rem;
+    min-width: 180px;
+    flex: 1;
+    color: #475569;
+    cursor: pointer;
+}
+
+.searchButton {
+    background: #4f46e5;
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+}
+
+.searchButton:hover {
+    background: #4338ca;
+    transform: translateY(-1px);
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 2rem;
+}
+
+.skillsContainer {
+    width: 100%;
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #f1f5f9;
+    border-radius: 12px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.5rem;
+}
+
+.skillCheckbox {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+    color: #475569;
+    cursor: pointer;
+}
+
+.skillCheckbox input {
+    cursor: pointer;
+}
+
+/* Talent Card - Matching CursoCard/CredencialCard style */
+.talentCard {
+    width: 100%;
+    max-width: 260px;
+    background-color: white;
+    border-radius: 16px;
+    box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #f1f5f9;
+}
+
+.talentCard:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.imagePlaceholder {
+    width: 100%;
+    height: 140px;
+    background: linear-gradient(135deg, #e0e7ff 0%, #fae8ff 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #4f46e5;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.cardContent {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.cardTitle {
+    font-weight: 800;
+    font-size: 1.1rem;
+    text-align: center;
+    color: #1e293b;
+    margin-bottom: 1rem;
+    line-height: 1.3;
+}
+
+.infoGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.infoItem {
+    display: flex;
+    flex-direction: column;
+}
+
+.infoLabel {
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    margin-bottom: 0.125rem;
+}
+
+.infoValue {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #334155;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.statusWrapper {
+    text-align: center;
+    margin-bottom: 1.25rem;
+}
+
+.statusChip {
+    display: inline-block;
+    padding: 0.35rem 0.85rem;
+    border-radius: 9999px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.025em;
+}
+
+.chipActivo {
+    background-color: #e0e7ff;
+    color: #4338ca;
+}
+
+.recruitButton {
+    display: block;
+    width: 100%;
+    background-color: #4f46e5;
+    color: white;
+    font-weight: 700;
+    padding: 0.65rem;
+    border-radius: 12px;
+    text-align: center;
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+    border: none;
+    font-size: 0.85rem;
+    margin-top: auto;
+}
+
+.recruitButton:hover {
+    background-color: #4338ca;
+}
+
+.loader, .noResults {
+    text-align: center;
+    padding: 5rem;
+    color: #94a3b8;
+    grid-column: 1 / -1;
+    font-style: italic;
+}
+
+.toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    color: white;
+    font-weight: 700;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+.success { background: #10b981; }
+.error { background: #ef4444; }
+
+.truncateTwoLines {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Modal Styles */
+.modalBackdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 1rem;
+}
+
+.modalContent {
+    background: white;
+    width: 100%;
+    max-width: 700px;
+    max-height: 90vh;
+    border-radius: 24px;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.modalHeader {
+    padding: 2rem;
+    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    color: white;
+    position: relative;
+}
+
+.modalTitle {
+    margin: 0;
+    font-size: 1.8rem;
+    font-weight: 800;
+}
+
+.closeButton {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.modalBody {
+    padding: 2rem;
+}
+
+.studentMeta {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.metaItem {
+    display: flex;
+    flex-direction: column;
+}
+
+.metaLabel {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: #94a3b8;
+    margin-bottom: 0.25rem;
+}
+
+.metaValue {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.sectionHeading {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+.courseList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.courseItem {
+    background: #f8fafc;
+    padding: 1rem;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: 1px solid #e2e8f0;
+}
+
+.courseName {
+    font-weight: 700;
+    color: #334155;
+    font-size: 0.95rem;
+}
+
+.courseDate {
+    font-size: 0.8rem;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+@media (max-width: 640px) {
+    .searchBar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .grid {
+        justify-items: center;
+    }
+}

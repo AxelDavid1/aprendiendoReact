@@ -33,7 +33,7 @@ const protect = async (req, res, next) => {
 
       // Obtener datos del usuario desde la BD para asegurar que existe y tener datos frescos
       const [users] = await pool.query(
-        "SELECT id_usuario, username, email, tipo_usuario, id_universidad FROM usuario WHERE id_usuario = ?",
+        "SELECT id_usuario, username, email, tipo_usuario, id_universidad, id_empresa FROM usuario WHERE id_usuario = ?",
         [decoded.id_usuario],
       );
 
@@ -132,12 +132,26 @@ const isUniversityAdmin = (req, res, next) => {
   }
 };
 
+const isEmpresaAdmin = (req, res, next) => {
+  if (req.user && req.user.tipo_usuario === "admin_empresa") {
+    next();
+  } else {
+    logger.warn(
+      `Acceso no autorizado a ruta de empresa por usuario: ${req.user ? req.user.id_usuario : "desconocido"}`,
+    );
+    res.status(403).json({
+      error: "Acceso denegado. Se requiere rol de administrador de empresa.",
+    });
+  }
+};
+
 // Nuevo middleware combinado para ambos tipos de administradores
 const admin = (req, res, next) => {
   if (
     req.user &&
     (req.user.tipo_usuario === "admin_sedeq" ||
-      req.user.tipo_usuario === "admin_universidad")
+      req.user.tipo_usuario === "admin_universidad" ||
+      req.user.tipo_usuario === "admin_empresa")
   ) {
     next();
   } else {
@@ -147,4 +161,4 @@ const admin = (req, res, next) => {
   }
 };
 
-module.exports = { protect, isAdmin, isSedeqAdmin, isUniversityAdmin, admin };
+module.exports = { protect, isAdmin, isSedeqAdmin, isUniversityAdmin, isEmpresaAdmin, admin };

@@ -8,11 +8,13 @@ import StudentDashboard from "../../components/dashboards/StudentDashboard";
 import TeacherDashboard from "../../components/dashboards/TeacherDashboard";
 import UniversityDashboard from "../../components/dashboards/UniversityDashboard";
 import SEDEQDashboard from "../../components/dashboards/SEDEQDashboard";
+import EmpresaDashboard from "../../components/dashboards/EmpresaDashboard";
 
 interface User {
   id_usuario: number;
   username: string;
-  tipo_usuario: "alumno" | "maestro" | "admin_universidad" | "admin_sedeq";
+  tipo_usuario: "alumno" | "maestro" | "admin_universidad" | "admin_sedeq" | "admin_empresa";
+  id_empresa?: number;
 }
 
 export default function HomePage() {
@@ -59,6 +61,8 @@ export default function HomePage() {
         return <UniversityDashboard userId={user.id_usuario} />;
       case "admin_sedeq":
         return <SEDEQDashboard userId={user.id_usuario} />;
+      case "admin_empresa":
+        return <EmpresaDashboard userId={user.id_usuario} user={user} />;
       default:
         console.error(`Tipo de usuario no reconocido: ${user.tipo_usuario}`);
         router.push("/screens/login");

@@ -688,20 +688,6 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
             </div>
 
             <div className={styles.kpiCard}>
-              <div className={styles.kpiIcon} style={{ backgroundColor: '#10b981' }}>
-                <FontAwesomeIcon icon={faCheckCircle} />
-              </div>
-              <div className={styles.kpiContent}>
-                <span className={styles.kpiLabel}>Tasa de Aprobación</span>
-                <span className={styles.kpiValue}>{(kpis.tasa_aprobacion || 0)}%</span>
-                <span className={styles.kpiChange} data-positive={kpis.cambio_aprobacion >= 0}>
-                  <FontAwesomeIcon icon={kpis.cambio_aprobacion >= 0 ? faArrowUp : faArrowDown} />
-                  {Math.abs(kpis.cambio_aprobacion || 0)}% vs período anterior
-                </span>
-              </div>
-            </div>
-
-            <div className={styles.kpiCard}>
               <div className={styles.kpiIcon} style={{ backgroundColor: '#3b82f6' }}>
                 <FontAwesomeIcon icon={faGraduationCap} />
               </div>

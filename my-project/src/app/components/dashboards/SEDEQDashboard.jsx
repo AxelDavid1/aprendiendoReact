@@ -12,6 +12,7 @@ import Dominios from "../modules/Dominios"
 import Convocatorias from "../modules/Convocatorias"
 import CalificacionCurso from "../modules/CalificacionCurso"
 import CertificadosYConstancia from "../modules/CertificadosYConstancias"
+import ImpactAnalytics from "../modules/ImpactAnalytics"
 function SEDEQDashboard({ userId }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [activeModule, setActiveModule] = useState("welcome")
@@ -57,6 +58,7 @@ function SEDEQDashboard({ userId }) {
       modules: [
         { id: "calificaciones", label: "Calificaciones", icon: "✍️" },
         { id: "inscripciones", label: "Inscripciones", icon: "📋" },
+        { id: "impacto", label: "Impacto en Empleabilidad", icon: "📊" },
       ],
     },
     {
@@ -130,6 +132,12 @@ function SEDEQDashboard({ userId }) {
               userId={userId} 
               canEdit={true} 
             />
+          </div>
+        )
+      case "impacto":
+        return (
+          <div className={styles.moduleContainer}>
+            <ImpactAnalytics dashboardType="sedeq" />
           </div>
         )
       case "certificados":
