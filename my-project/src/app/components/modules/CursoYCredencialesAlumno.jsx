@@ -409,7 +409,8 @@ const CursoYCredencialesAlumno = ({
     const clearFilters = () => {
         setFilters({
             universidades: [],
-            categorias: [],
+            subgrupos: [],
+            habilidades: [],
             estatus: [],
             estatusInscripcion: [],
             modalidad: [],
