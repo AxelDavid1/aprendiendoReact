@@ -1,4 +1,8 @@
 const pool = require("../config/db");
+const Empresa = require("../models/empresaModel");
+const User = require("../models/userModel");
+const fs = require("fs");
+const path = require("path");
 
 // @desc    Buscar alumnos potenciales con filtros avanzados
 // @route   GET /api/empresa/search-students
@@ -344,5 +348,166 @@ exports.getStudentDetails = async (req, res) => {
     } catch (error) {
         console.error("Error fetching student details:", error);
         res.status(500).json({ error: "Error al obtener detalles del estudiante." });
+    }
+};
+
+// ==========================================================
+// MÓDULO SEDEQ: Gestión de Empresas (CRUD)
+// ==========================================================
+
+// @desc    Obtener todas las empresas (paginado con búsqueda)
+// @route   GET /api/empresa/sedeq-manage
+exports.getAllEmpresas = async (req, res) => {
+    try {
+        const { page = 1, limit = 10, searchTerm = "" } = req.query;
+        // if limit === '9999', we can pass null to get all
+        const parsedLimit = parseInt(limit) > 1000 ? null : parseInt(limit);
+        
+        const result = await Empresa.findAll({
+            searchTerm,
+            page: parseInt(page),
+            limit: parsedLimit
+        });
+        res.json(result);
+    } catch (error) {
+        console.error("Error fetching companies for SEDEQ:", error);
+        res.status(500).json({ error: "Error al obtener empresas." });
+    }
+};
+
+// @desc    Crear una nueva empresa y su admin opcionalmente
+// @route   POST /api/empresa/sedeq-manage
+exports.createEmpresa = async (req, res) => {
+    let connection;
+    try {
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const { nombre, sector, descripcion, sitio_web, email_admin, password } = req.body;
+
+        if (!nombre) {
+            return res.status(400).json({ error: "El nombre es obligatorio." });
+        }
+
+        const empresaData = {
+            nombre,
+            sector: sector || null,
+            descripcion: descripcion || null,
+            web_url: sitio_web || null,
+            logo_url: req.file ? `/uploads/logos/${req.file.filename}` : null
+        };
+
+        const { id_empresa } = await Empresa.create(empresaData, connection);
+
+        if (email_admin && password) {
+            await User.createOrUpdateAdmin(id_empresa, email_admin, password, connection, 'admin_empresa');
+        }
+
+        await connection.commit();
+        res.status(201).json({ id_empresa, message: "Empresa creada exitosamente." });
+    } catch (error) {
+        if (connection) await connection.rollback();
+        
+        if (req.file) {
+            fs.unlink(req.file.path, (err) => {
+                if (err) console.error("Error eliminando archivo tras rollback:", err);
+            });
+        }
+        console.error("Error creating company:", error);
+        if (error.code === "ER_DUP_ENTRY") {
+            return res.status(409).json({ error: "Ya existe una empresa o usuario con ese nombre/email." });
+        }
+        res.status(500).json({ error: "Error interno al crear empresa." });
+    } finally {
+        if (connection) connection.release();
+    }
+};
+
+// @desc    Actualizar empresa (y su admin)
+// @route   PUT /api/empresa/sedeq-manage/:id
+exports.updateEmpresa = async (req, res) => {
+    let connection;
+    try {
+        const { id } = req.params;
+        const { nombre, sector, descripcion, sitio_web, email_admin, password } = req.body;
+
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const existingCompany = await Empresa.findById(id);
+        if (!existingCompany) {
+            return res.status(404).json({ error: "Empresa no encontrada." });
+        }
+
+        const updateData = {};
+        if (nombre !== undefined) updateData.nombre = nombre;
+        if (sector !== undefined) updateData.sector = sector;
+        if (descripcion !== undefined) updateData.descripcion = descripcion;
+        if (sitio_web !== undefined) updateData.web_url = sitio_web;
+
+        if (req.file) {
+            updateData.logo_url = `/uploads/logos/${req.file.filename}`;
+            if (existingCompany.logo_url) {
+                const oldPath = path.join(__dirname, "..", existingCompany.logo_url);
+                fs.unlink(oldPath, err => {
+                    if (err) console.error("Error deleting old logo:", err);
+                });
+            }
+        }
+
+        await Empresa.update(id, updateData, connection);
+
+        if (email_admin || password) {
+            await User.createOrUpdateAdmin(id, email_admin || existingCompany.email_admin, password, connection, 'admin_empresa');
+        }
+
+        await connection.commit();
+        res.json({ message: "Empresa actualizada exitosamente." });
+    } catch (error) {
+        if (connection) await connection.rollback();
+        console.error("Error updating company:", error);
+        
+        if (req.file) {
+            fs.unlink(req.file.path, (err) => {
+                if (err) console.error("Error eliminando archivo tras rollback:", err);
+            });
+        }
+        res.status(500).json({ error: "Error interno al actualizar empresa." });
+    } finally {
+        if (connection) connection.release();
+    }
+};
+
+// @desc    Eliminar una empresa
+// @route   DELETE /api/empresa/sedeq-manage/:id
+exports.deleteEmpresa = async (req, res) => {
+    let connection;
+    try {
+        const { id } = req.params;
+        connection = await pool.getConnection();
+        await connection.beginTransaction();
+
+        const existingCompany = await Empresa.findById(id);
+        if (!existingCompany) {
+            return res.status(404).json({ error: "Empresa no encontrada." });
+        }
+
+        await Empresa.delete(id, connection);
+        
+        if (existingCompany.logo_url) {
+            const oldPath = path.join(__dirname, "..", existingCompany.logo_url);
+            fs.unlink(oldPath, err => {
+                 if (err) console.error("Error deleting old logo:", err);
+            });
+        }
+
+        await connection.commit();
+        res.json({ message: "Empresa eliminada exitosamente." });
+    } catch (error) {
+        if (connection) await connection.rollback();
+        console.error("Error deleting company:", error);
+        res.status(500).json({ error: "Error interno al eliminar empresa." });
+    } finally {
+        if (connection) connection.release();
     }
 };

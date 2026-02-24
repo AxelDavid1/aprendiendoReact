@@ -2,6 +2,7 @@
 import { useState } from "react"
 import styles from "./SEDEQDashboard.module.css"
 import ManejoUniversidades from "../modules/ManejoUniversidades"
+import ManejoEmpresas from "../modules/ManejoEmpresas"
 import CarrerasUniversidades from "../modules/CarrerasUniversidades"
 import GestionMaestros from "../modules/GestionMaestros"
 import GestionCursos from "../modules/GestionCursos"
@@ -36,6 +37,7 @@ function SEDEQDashboard({ userId }) {
       icon: "🏫",
       modules: [
         { id: "universidades", label: "Universidades", icon: "🎓" },
+        { id: "empresas", label: "Empresas", icon: "🏢" },
         { id: "carreras", label: "Carreras", icon: "📖" },
         { id: "maestros", label: "Maestros", icon: "👨‍🏫" },
         { id: "dominios", label: "Dominios", icon: "🌐" },
@@ -80,6 +82,12 @@ function SEDEQDashboard({ userId }) {
         return (
           <div className={styles.moduleContainer}>
             <ManejoUniversidades dashboardType="sedeq" canEdit={true} />
+          </div>
+        )
+      case "empresas":
+        return (
+          <div className={styles.moduleContainer}>
+            <ManejoEmpresas />
           </div>
         )
       case "carreras":
