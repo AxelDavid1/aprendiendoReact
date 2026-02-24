@@ -29,7 +29,7 @@ interface RawStoredUserData {
   id_usuario?: number;
   tipo_usuario?: RoleMapKeys | string;
   username?: string;
-  [key: string]: unknown; // Allow other properties
+  [key: string]: unknown;
 }
 
 export default function HomeLayout() {
@@ -40,8 +40,6 @@ export default function HomeLayout() {
     if (storedUserString) {
       try {
         const rawStoredUser: RawStoredUserData = JSON.parse(storedUserString);
-
-        // Validación básica (permisiva)
         if (rawStoredUser.id_usuario && rawStoredUser.tipo_usuario) {
           setUser(rawStoredUser);
         } else {
@@ -77,7 +75,6 @@ export default function HomeLayout() {
       );
     }
 
-    // Map the role from backend format to uppercase (fallback if undefined)
     const roleMap: Record<RoleMapKeys, string> = {
       alumno: "ALUMNO",
       maestro: "MAESTRO",
@@ -85,7 +82,9 @@ export default function HomeLayout() {
       admin_sedeq: "SEDEQ",
       admin_empresa: "EMPRESA",
     };
-    const mappedRole = user.tipo_usuario ? roleMap[user.tipo_usuario as RoleMapKeys] || user.tipo_usuario : "UNKNOWN";
+    const mappedRole = user.tipo_usuario
+      ? roleMap[user.tipo_usuario as RoleMapKeys] || user.tipo_usuario
+      : "UNKNOWN";
 
     switch (mappedRole) {
       case "ALUMNO":
@@ -107,7 +106,7 @@ export default function HomeLayout() {
 
   return (
     <div className={styles.fondoHome}>
-      {/*HEADER*/}
+      {/* HEADER */}
       <header className={styles.header}>
         <div className={styles.headerLeft}>
           <div className={styles.logoContainer}>
@@ -116,11 +115,7 @@ export default function HomeLayout() {
               alt="Logo SEDEQ"
               fill
               className={styles.logo}
-              style={{
-                objectFit: "cover",
-                zIndex: 10,
-                height: "100%",
-              }}
+              style={{ objectFit: "cover", zIndex: 10, height: "100%" }}
             />
           </div>
         </div>
@@ -151,9 +146,10 @@ export default function HomeLayout() {
           />
         </div>
       </header>
+
       {renderContent()}
-      
-      {/* CONTENIDO: Solo mostrar si NO hay user (vista pública) */}
+
+      {/* CONTENIDO APRENDIZAJE: Solo visible si NO hay user */}
       {!user && (
         <div className={styles.contenidoHomeAprendizaje}>
           <BlurText
@@ -190,33 +186,51 @@ export default function HomeLayout() {
         </div>
       )}
 
-      {/*FOOTER: Siempre visible para consistencia, pero si causa issues, hazlo {!user && <footer...>} */}
-      <footer className={styles.contenidoFooter}>
-        <div className={styles.contenidoFooter1}>
-          <div>
-            <h1>
-              SEDEQ | Secretaría de Educación del Estado de Querétaro. /*
-              Redirigir a https://portal.queretaro.gob.mx/educacion/*/
-            </h1>
-            <h2>
-              CEATyCC | Comisión de Educación en Alta Tecnología y Cloud
-              Computing /*Redirigir a https://ceatycc.fif-uaq.mx/index.html */
-            </h2>
+      {/* FOOTER */}
+      <footer className={styles.footer}>
+        {/* Columna izquierda: Logo + Links */}
+        <div className={styles.footerBrand}>
+          <p className={styles.footerOrgName}>SEDEQ</p>
+          <p className={styles.footerOrgSubtitle}>
+            Secretaría de Educación del Estado de Querétaro
+          </p>
+          <div className={styles.footerLinks}>
+            <a
+              href="https://portal.queretaro.gob.mx/educacion/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.footerLink}
+            >
+              Portal SEDEQ
+            </a>
+            <span className={styles.footerLinkDivider}>·</span>
+            <a
+              href="https://ceatycc.fif-uaq.mx/index.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={styles.footerLink}
+            >
+              CEATyCC
+            </a>
           </div>
         </div>
-        <div className={styles.contenidoFooter2}>
-          <div>
-            <h4>
-              Todos los logos y marcas registradas en este sitio son propiedad
-              de sus respectivos propietarios. La información aquí dispuesta
-              puede ser modificada con previo aviso a los participantes del
-              evento. Este programa es público, ajeno a cualquier partido
-              político. Queda prohibido el uso para fines distintos a los
-              establecidos en el programa.
-            </h4>
-            <p>© Copyright TheEvent. All Rights Reserved</p>
-            <p>Comisión de Educación en Alta Tecnología y Cloud Computing </p>
-          </div>
+
+        {/* Columna derecha: Aviso legal */}
+        <div className={styles.footerLegal}>
+          <p className={styles.footerLegalText}>
+            Todos los logos y marcas registradas en este sitio son propiedad de
+            sus respectivos propietarios. La información aquí dispuesta puede ser
+            modificada con previo aviso a los participantes del evento.
+          </p>
+          <p className={styles.footerLegalText}>
+            Este programa es público, ajeno a cualquier partido político. Queda
+            prohibido el uso para fines distintos a los establecidos en el
+            programa.
+          </p>
+          <p className={styles.footerCopyright}>
+            © {new Date().getFullYear()} CEATyCC — Comisión de Educación en Alta
+            Tecnología y Cloud Computing. Todos los derechos reservados.
+          </p>
         </div>
       </footer>
     </div>

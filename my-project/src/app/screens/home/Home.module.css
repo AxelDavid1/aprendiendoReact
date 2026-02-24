@@ -1,195 +1,321 @@
 @import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&display=swap");
 
+/* ─────────────────────────────────────────────
+   BASE
+───────────────────────────────────────────── */
 .fondoHome {
-    display: flex;
-    flex-direction: column;
-    min-height: 100vh;
-    position: relative;
-    overflow: visible;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  position: relative;
+  overflow: visible;
 }
 
-/* Header */
+/* ─────────────────────────────────────────────
+   HEADER
+───────────────────────────────────────────── */
 .header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    min-height: 10vh; /* Flexible height */
-    background-color: white;
-    border-bottom: 1px solid transparent;
-    padding: 0 clamp(8px, 2vw, 16px); /* Responsive padding */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 10vh;
+  background-color: white;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0 clamp(8px, 2vw, 16px);
 }
+
 .headerLeft {
-    flex: 0 0 auto; /* Allow logo to size naturally */
-    display: flex;
-    align-items: center;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
 }
+
 .logoContainer {
-    position: relative; /* Necesario para fill */
-    width: clamp(100px, 20vw, 200px); /* Tamaño responsivo */
-    height: 10vh; /* Ajusta según la proporción de la imagen */
-    overflow: hidden; /* Evita que la imagen se desborde */
+  position: relative;
+  width: clamp(100px, 20vw, 200px);
+  height: 10vh;
+  overflow: hidden;
 }
 
 .logo {
-    object-fit: cover; /* Mantenido por compatibilidad */
+  object-fit: cover;
 }
-.headerLeft img {
-    width: clamp(100px, 10vw, 150px); /* Responsive logo size */
-    height: auto;
-    object-fit: contain;
-}
+
 .headerCenter {
-    flex-grow: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    margin: 0 clamp(10px, 2vw, 20px);
-    font-size: clamp(1rem, 3vw, 1.25rem); /* Responsive font size */
-    font-family: "JetBrains Mono", monospace;
-    font-weight: 800;
-    font-style: italic;
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  margin: 0 clamp(10px, 2vw, 20px);
+  font-size: clamp(1rem, 3vw, 1.25rem);
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 800;
+  font-style: italic;
 }
+
 .headerRight {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: clamp(8px, 2vw, 16px); /* Responsive gap */
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: clamp(8px, 2vw, 16px);
 }
 
-/* Content */
+/* ─────────────────────────────────────────────
+   CONTENT
+───────────────────────────────────────────── */
 .contenidoIntro {
-    min-height: 50vh; /* Flexible height */
-    padding: clamp(1rem, 3vw, 2rem);
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  min-height: 50vh;
+  padding: clamp(1rem, 3vw, 2rem);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
+
 .contenidoHome {
-    min-height: 40vh; /* Flexible height */
-    padding: clamp(1rem, 3vw, 2rem);
-    color: white;
+  min-height: 40vh;
+  padding: clamp(1rem, 3vw, 2rem);
+  color: white;
 }
+
 .contenidoHomeAprendizaje {
-    min-height: 60vh; /* Flexible height */
-    padding: clamp(1rem, 3vw, 2rem);
-    color: white;
-    position: relative;
-    z-index: 1;
-    text-align: center;
+  min-height: 60vh;
+  padding: clamp(2rem, 5vw, 4rem) clamp(1rem, 3vw, 2rem);
+  color: white;
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
+
 .contenidoHomeAprendizaje::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url(/assets/wallpaperContenidoHome.jpg);
-    background-position: center;
-    background-size: cover;
-    filter: blur(2px) brightness(0.7) saturate(65%);
-    z-index: -1;
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url(/assets/wallpaperContenidoHome.jpg);
+  background-position: center;
+  background-size: cover;
+  filter: blur(2px) brightness(0.7) saturate(65%);
+  z-index: -1;
 }
+
 .contenidoText {
-    margin-left: 1rem; /* Default for mobile */
-    margin-right: 1rem;
-    max-width: 1200px; /* Constrain content width for large screens */
-    margin-left: auto; /* Center content */
-    margin-right: auto;
+  max-width: 800px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 3vw, 2rem);
 }
+
 .titulosContenido {
-    font-size: clamp(1.5rem, 4vw, 2rem);
+  font-size: clamp(1.5rem, 4vw, 2rem);
 }
+
 .FiltrosCursos {
-    display: flex;
-    align-items: center;
-    gap: clamp(10px, 2vw, 20px);
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 2vw, 20px);
 }
 
-/* Footer */
-.contenidoFooter {
-    display: flex;
-    flex-direction: row;
-    padding: clamp(1rem, 3vw, 2rem);
-    background-color: #185d96;
-    color: white;
-    text-align: center;
-    border-top: 1px solid #ccc;
-    min-height: 15vh; /* Flexible height */
-}
-.contenidoFooter1,
-.contenidoFooter2 {
-    flex: 1;
-    padding: clamp(0.5rem, 2vw, 1rem);
-    text-align: left;
+/* ─────────────────────────────────────────────
+   FOOTER
+───────────────────────────────────────────── */
+.footer {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: clamp(1.5rem, 4vw, 3rem);
+  padding: clamp(1rem, 2vw, 1.5rem) clamp(0.75rem, 2.5vw, 2rem);
+  background-color: #185d96;
+  color: white;
+  border-top: 3px solid #0f3f6a;
+  margin-top: auto; /* empuja el footer al fondo */
 }
 
-/* Media Queries */
+/* — Columna izquierda: marca — */
+.footerBrand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.footerOrgName {
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 800;
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  letter-spacing: 0.08em;
+  color: #ffffff;
+  margin: 0;
+}
+
+.footerOrgSubtitle {
+  font-family: "Open Sans", sans-serif;
+  font-size: clamp(0.75rem, 1.5vw, 0.875rem);
+  color: rgba(255, 255, 255, 0.75);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.footerLinks {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.footerLink {
+  font-family: "Open Sans", sans-serif;
+  font-size: clamp(0.75rem, 1.4vw, 0.875rem);
+  font-weight: 600;
+  color: #90caf9;
+  text-decoration: none;
+  transition: color 0.2s ease, text-decoration 0.2s ease;
+}
+
+.footerLink:hover {
+  color: #ffffff;
+  text-decoration: underline;
+}
+
+.footerLinkDivider {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 1rem;
+  user-select: none;
+}
+
+/* — Columna derecha: aviso legal — */
+.footerLegal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  padding-left: clamp(1rem, 3vw, 2rem);
+}
+
+.footerLegalText {
+  font-family: "Open Sans", sans-serif;
+  font-size: clamp(0.7rem, 1.3vw, 0.8rem);
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.footerCopyright {
+  font-family: "Open Sans", sans-serif;
+  font-size: clamp(0.65rem, 1.2vw, 0.75rem);
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+  padding-top: 0.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+/* ─────────────────────────────────────────────
+   MEDIA QUERIES
+───────────────────────────────────────────── */
+
+/* Tablet */
 @media (max-width: 768px) {
-    .header {
-        flex-direction: column;
-        padding: 8px;
-        min-height: auto;
-    }
+  .header {
+    flex-wrap: wrap;
+    padding: 8px 12px;
+    gap: 8px;
+    min-height: auto;
+  }
 
-    .headerLeft,
-    .headerRight {
-        flex: 0 0 100%;
-        justify-content: center;
-        margin: 8px 0;
-    }
+  .headerLeft {
+    flex: 0 0 auto;
+  }
 
-    .headerCenter {
-        font-size: clamp(0.875rem, 2.5vw, 1rem);
-        margin: 8px 0;
-    }
+  .headerRight {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
 
-    .contenidoHomeAprendizaje {
-        padding: 1rem;
-    }
+  .headerCenter {
+    flex: 1 1 100%;
+    order: 3; /* Mueve el título abajo del logo y menú */
+    font-size: clamp(0.8rem, 2.5vw, 1rem);
+    margin: 4px 0 8px;
+    justify-content: center;
+  }
 
-    .contenidoText {
-        margin-left: 8rem; /* 8rem for desktop */
-        margin-right: 8rem;
-    }
+  .logoContainer {
+    width: clamp(80px, 18vw, 140px);
+    height: 8vh;
+  }
 
-    .contenidoFooter {
-        flex-direction: column;
-        min-height: auto;
-    }
+  .contenidoHomeAprendizaje {
+    padding: 2rem 1rem;
+  }
 
-    .contenidoFooter1,
-    .contenidoFooter2 {
-        width: 100%;
-        text-align: center;
-    }
+  .contenidoText {
+    padding: 0 0.5rem;
+  }
 
-    /* Adjust font sizes for animations */
-    .contenidoHomeAprendizaje .text-6xl {
-        font-size: clamp(2rem, 6vw, 3rem);
-    }
+  /* Footer: 2 columnas en tablet también, pero más compactas */
+  .footer {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    padding: 2rem 1.5rem;
+  }
 }
 
+/* Mobile */
 @media (max-width: 480px) {
-    .headerLeft img {
-        width: clamp(80px, 15vw, 100px);
-    }
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px 12px;
+    gap: 6px;
+  }
 
-    .headerCenter {
-        font-size: clamp(0.75rem, 2vw, 0.875rem);
-    }
+  .headerLeft,
+  .headerRight,
+  .headerCenter {
+    width: 100%;
+    justify-content: center;
+    order: unset;
+    flex: unset;
+  }
 
-    .contenidoIntro,
-    .contenidoHome,
-    .contenidoHomeAprendizaje {
-        padding: 0.5rem;
-    }
+  .headerRight {
+    justify-content: center;
+  }
 
-    .contenidoHomeAprendizaje > div {
-        margin-left: clamp(1rem, 5vw, 2rem);
-        margin-right: clamp(1rem, 5vw, 2rem);
-    }
+  .logoContainer {
+    width: clamp(100px, 40vw, 160px);
+    height: 7vh;
+    margin: 0 auto;
+  }
+
+  .contenidoIntro,
+  .contenidoHome,
+  .contenidoHomeAprendizaje {
+    padding: 1.5rem 0.75rem;
+  }
+
+  /* Footer: 1 columna en móvil */
+  .footer {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    padding: 1.75rem 1.25rem;
+  }
+
+  .footerLegal {
+    border-left: none;
+    padding-left: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    padding-top: 1.25rem;
+  }
+
+  .footerLinks {
+    justify-content: flex-start;
+  }
 }
