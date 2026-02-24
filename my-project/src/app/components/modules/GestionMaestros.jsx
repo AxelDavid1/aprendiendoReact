@@ -160,7 +160,7 @@ function GestionMaestros({
     }
     setIsFacultadesLoading(true);
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL_FACULTADES}/universidad/${idUniversidad}`,
       );
       if (!response.ok) throw new Error("Could not fetch faculties");
@@ -182,7 +182,7 @@ function GestionMaestros({
     }
     setIsCarrerasLoading(true);
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL_CARRERAS}/facultad/${idFacultad}`,
       );
       if (!response.ok) throw new Error("Could not fetch careers");
