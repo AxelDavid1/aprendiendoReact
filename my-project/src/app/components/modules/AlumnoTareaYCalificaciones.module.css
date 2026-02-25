@@ -136,6 +136,8 @@
     overflow-x: auto;
     -ms-overflow-style: none;
     scrollbar-width: none;
+    flex-wrap: nowrap; /* Keep scrolling behavior but allow it to work better */
+    -webkit-overflow-scrolling: touch;
 }
 
 .tabs::-webkit-scrollbar {
@@ -150,6 +152,7 @@
     position: relative;
     white-space: nowrap;
     transition: color 0.3s ease;
+    flex-shrink: 0;
 }
 
 .tab:hover {

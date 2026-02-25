@@ -35,6 +35,8 @@
     border-bottom: 2px solid #e5e7eb;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    flex-wrap: wrap; /* Changed to wrap to avoid horizontal scroll on very small screens */
+    justify-content: center;
 }
 
 .tab {
@@ -48,7 +50,7 @@
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
-    flex-shrink: 0;
+    /* Removed flex-shrink: 0 to allow wrapping */
 }
 
 .tab:hover {

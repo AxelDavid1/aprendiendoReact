@@ -6,8 +6,10 @@
 .modulos {
     padding: 2rem;
     height: auto;
-    width: 100vw;
+    width: 100%;
+    margin: 0 auto;
     text-align: center;
+    box-sizing: border-box;
 }
 
 .convocatoriaBanner {
@@ -60,6 +62,7 @@
     gap: 0.5rem;
     border-bottom: 2px solid #eaeaea;
     padding-bottom: 0;
+    flex-wrap: wrap;
 }
 
 .mainTab {
@@ -86,4 +89,34 @@
     background-color: #ffffff;
     border-bottom: 3px solid #185d96;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+@media (max-width: 768px) {
+    .modulos {
+        padding: 1rem 0.5rem;
+    }
+
+    .mainTabs {
+        gap: 0.25rem;
+        margin: 1rem 0;
+    }
+
+    .mainTab {
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+        flex: 1 1 auto;
+        text-align: center;
+    }
+}
+
+@media (max-width: 480px) {
+    .mainTab {
+        padding: 0.6rem 0.5rem;
+        font-size: 0.8rem;
+    }
+    
+    .convocatoriaBanner {
+        margin: 1rem 0.5rem;
+        font-size: 0.85rem;
+    }
 }

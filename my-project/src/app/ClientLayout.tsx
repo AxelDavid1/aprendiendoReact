@@ -138,9 +138,13 @@ export default function ClientLayout({
           />
         </div>
       </nav>
-      {renderContent()}
-      <footer>
-        <div>Footer</div>
+      <div className="min-h-[82vh]">
+        {renderContent()}
+      </div>
+      <footer className="w-full py-6 bg-gray-50 border-t border-gray-200">
+        <div className="container mx-auto px-4 text-center text-gray-500 text-sm">
+          <p>© {new Date().getFullYear()} SEDEQ - Aprendizaje y Desarrollo Profesional</p>
+        </div>
       </footer>
     </>
   );

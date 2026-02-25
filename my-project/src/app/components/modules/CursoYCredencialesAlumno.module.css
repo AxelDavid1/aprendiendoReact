@@ -167,10 +167,10 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     min-height: 500px;
 }
-/* Contenedor solo para los botones de las pestañas (NUEVO) */
 .tabButtons {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 /* Contenedor para la barra de búsqueda (NUEVO) */
@@ -178,6 +178,7 @@
   position: relative; /* Necesario para posicionar el ícono dentro */
   display: flex;
   align-items: center;
+  width: auto;
 }
 
 /* Estilos para el ícono de búsqueda (NUEVO) */
@@ -197,7 +198,7 @@
   border: 1px solid #ccc;
   border-radius: 20px;
   font-size: 0.9rem;
-  width: 280px; /* Ancho fijo para que no se expanda */
+  width: 280px; /* Ancho fijo para que no se expanda en desktop */
   transition: border-color 0.2s, box-shadow 0.2s;
   background-color: #fff;
 }
@@ -211,8 +212,9 @@
 
 .cardsGrid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 0.5fr));
+    grid-template-columns: repeat(auto-fill, 240px);
     gap: 20px;
+    justify-content: center;
 }
 
 .card {
@@ -336,6 +338,27 @@
 }
 
 /* Responsive */
+@media (max-width: 1024px) {
+    .tabsContainer {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+    }
+
+    .tabButtons {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .searchBarContainer {
+        width: 100%;
+    }
+
+    .searchInput {
+        width: 100%;
+    }
+}
+
 @media (max-width: 768px) {
     .container {
         flex-direction: column;
@@ -347,6 +370,8 @@
         position: relative;
         border-right: none;
         border-bottom: 1px solid #e0e0e0;
+        max-height: 300px;
+        z-index: 10;
     }
 
     .cardsGrid {
@@ -366,6 +391,13 @@
     /* adjusted image height for mobile */
     .cardImage {
         height: 180px;
+    }
+
+    .tab {
+        padding: 10px 15px;
+        font-size: 0.9rem;
+        flex: 1;
+        text-align: center;
     }
 }
 
@@ -466,6 +498,7 @@
     border-radius: 12px;
     border: 1px solid #e0e0e0;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    overflow-x: hidden;
 }
 
 .seguimientoSection h3 {
@@ -482,12 +515,16 @@
 
 /* Estilos para las tablas (Cursos y Convocatorias) */
 .cursosTable, .convocatoriasTable {
+    width: 100%;
     overflow-x: auto; /* Para responsividad en tablas */
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid #eee;
+    border-radius: 8px;
 }
 
 .tableHeader {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr; /* Ajusta según tus columnas */
+    grid-template-columns: minmax(200px, 2fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(100px, 1fr);
     padding: 0.75rem 1rem;
     background-color: #f8f9fa;
     border-bottom: 2px solid #e0e0e0;
@@ -496,19 +533,22 @@
     color: #555;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    min-width: 800px; /* Ensure columns don't squash too much */
 }
 
 .convocatoriasTable .tableHeader {
-    grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1fr; /* Columnas para convocatorias */
+    grid-template-columns: minmax(200px, 2fr) minmax(150px, 1.5fr) minmax(120px, 1fr) minmax(150px, 1.5fr) minmax(120px, 1fr);
+    min-width: 750px;
 }
 
 .tableRow {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr; /* Debe coincidir con el header */
+    grid-template-columns: minmax(200px, 2fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(120px, 1fr) minmax(100px, 1fr);
     padding: 1rem;
     border-bottom: 1px solid #f0f0f0;
     align-items: center;
     transition: background-color 0.2s;
+    min-width: 800px;
 }
 
 .tableRow:last-child {
@@ -520,12 +560,18 @@
 }
 
 .convocatoriasTable .tableRow {
-    grid-template-columns: 2fr 1.5fr 1fr 1.5fr 1fr; /* Columnas para convocatorias */
+    grid-template-columns: minmax(200px, 2fr) minmax(150px, 1.5fr) minmax(120px, 1fr) minmax(150px, 1.5fr) minmax(120px, 1fr);
+    min-width: 750px;
 }
 
 .cursoInfo .cursoNombre, .convocatoriaNombre {
     font-weight: 600;
     color: #333;
+}
+
+.cursoInfo .cursoNombre {
+    white-space: normal;
+    word-wrap: break-word;
 }
 
 .cursoInfo .cursoModalidad {
@@ -544,6 +590,7 @@
     cursor: pointer;
     font-weight: 500;
     transition: background-color 0.2s;
+    white-space: nowrap;
 }
 
 .verMasBtn:hover {
@@ -559,6 +606,7 @@
     text-align: center;
     display: inline-block;
     border: 1px solid transparent;
+    white-space: nowrap;
 }
 
 /* Colores para los badges (ejemplos) */
@@ -585,39 +633,48 @@
 /* Progreso de Credenciales */
 .credencialesProgreso {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 1.5rem;
+}
+
+@media (max-width: 480px) {
+    .credencialesProgreso {
+        grid-template-columns: 1fr;
+    }
 }
 
 .credencialProgresoCard {
     border: 1px solid #e0e0e0;
     border-radius: 8px;
-    padding: 1rem;
+    padding: 1.5rem;
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
 
 .credencialHeader {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.75rem;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+    gap: 1rem;
 }
 
-.credencialHeader h4 { margin: 0; font-size: 1.1rem; color: #333; }
-.progresoPorcentaje { font-weight: 600; font-size: 1.1rem; color: #007bff; }
+.credencialHeader h4 { margin: 0; font-size: 1.1rem; color: #333; line-height: 1.4; }
+.progresoPorcentaje { font-weight: 700; font-size: 1.25rem; color: #007bff; }
 
 .progresoBar {
     width: 100%;
-    height: 8px;
+    height: 10px;
     background-color: #e9ecef;
-    border-radius: 4px;
+    border-radius: 5px;
     overflow: hidden;
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
 }
 
 .progresoFill {
     height: 100%;
-    background-color: #007bff;
-    border-radius: 4px;
+    background: linear-gradient(90deg, #007bff, #00c6ff);
+    border-radius: 5px;
     transition: width 0.5s ease-in-out;
 }
 
@@ -627,16 +684,19 @@
     align-items: center;
     font-size: 0.9rem;
     color: #666;
+    flex-wrap: wrap;
+    gap: 10px;
 }
 
 .verCredencialBtn {
     background: none;
     border: 1px solid #007bff;
     color: #007bff;
-    padding: 6px 10px;
+    padding: 6px 12px;
     border-radius: 6px;
     cursor: pointer;
-    transition: background-color 0.2s, color 0.2s;
+    transition: all 0.2s;
+    font-weight: 500;
 }
 
 .verCredencialBtn:hover {
@@ -650,16 +710,30 @@
     display: flex;
     align-items: center;
     gap: 1rem;
-    padding: 1rem;
+    padding: 1.25rem;
     background-color: #fff3cd;
     border-left: 5px solid #ffc107;
     border-radius: 0 8px 8px 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
-.vencimientoIcon { font-size: 1.5rem; color: #856404; }
+
+@media (max-width: 600px) {
+    .vencimientoItem {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+    
+    .vencimientoIcon {
+        font-size: 1.25rem;
+    }
+}
+
+.vencimientoIcon { font-size: 1.5rem; color: #856404; flex-shrink: 0; }
 .vencimientoInfo { flex-grow: 1; }
-.vencimientoNombre { font-weight: 600; display: block; }
-.vencimientoUniversidad, .vencimientoTipo { font-size: 0.85rem; color: #665120; }
-.vencimientoFecha { display: flex; align-items: center; gap: 0.5rem; font-weight: 500; }
+.vencimientoNombre { font-weight: 700; display: block; margin-bottom: 2px; }
+.vencimientoUniversidad, .vencimientoTipo { font-size: 0.85rem; color: #665120; display: block; }
+.vencimientoFecha { display: flex; align-items: center; gap: 0.5rem; font-weight: 600; color: #856404; }
 
 /* Estado vacío */
 .emptyState {
@@ -668,9 +742,10 @@
     background-color: #f8f9fa;
     border-radius: 8px;
     color: #6c757d;
+    border: 2px dashed #dee2e6;
 }
 .emptyState .checkIcon {
-    font-size: 2rem;
+    font-size: 2.5rem;
     color: #28a745;
-    margin-bottom: 0.5rem;
+    margin-bottom: 1rem;
 }
