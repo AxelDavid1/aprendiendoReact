@@ -33,6 +33,7 @@ interface ErrorResponse {
 interface University {
   id_universidad: number;
   nombre: string;
+  tipo_periodo: string;
 }
 
 interface Carrera {
@@ -78,8 +79,8 @@ function SignUpContent() {
 
           // Cargar universidades
           axios
-            .get(`${API_URL}/universidades?limit=999`)
-            .then((res) => setUniversidades(res.data.universities || []))
+            .get(`${API_URL}/public/universidades?limit=999`)
+            .then((res) => setUniversidades(res.data.universities || res.data || []))
             .catch(() => setError("No se pudieron cargar las universidades."));
 
           localStorage.removeItem("pendingUser");
@@ -118,9 +119,9 @@ function SignUpContent() {
         setStep("completeProfile");
         try {
           const uniResponse = await axios.get(
-            `${API_URL}/universidades?limit=999`,
+            `${API_URL}/public/universidades?limit=999`,
           );
-          setUniversidades(uniResponse.data.universities || []);
+          setUniversidades(uniResponse.data.universities || uniResponse.data || []);
         } catch (error) {
           console.error("Error cargando universidades:", error);
           setError(
@@ -171,7 +172,7 @@ function SignUpContent() {
     if (profileData.id_universidad) {
       setLoadingCarreras(true);
       axios
-        .get(`${API_URL}/carreras/by-universidad/${profileData.id_universidad}`)
+        .get(`${API_URL}/public/carreras/by-universidad/${profileData.id_universidad}`)
         .then((res) => setCarreras(res.data.carreras || []))
         .catch(() => setError("No se pudieron cargar las carreras."))
         .finally(() => setLoadingCarreras(false));
@@ -326,7 +327,12 @@ function SignUpContent() {
                   </select>
                 </div>
                 <div className={styles.formGroup}>
-                  <label htmlFor="semestre_actual">Semestre Actual</label>
+                  <label htmlFor="semestre_actual">
+                    {universidades.find((u) => u.id_universidad.toString() === profileData.id_universidad)?.tipo_periodo === "Cuatrimestre"
+                      ? "Cuatrimestre Actual"
+                      : "Semestre Actual"
+                    }
+                  </label>
                   <input
                     type="number"
                     id="semestre_actual"
