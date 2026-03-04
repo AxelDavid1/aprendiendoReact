@@ -259,6 +259,7 @@ function CarrerasUniversidades() {
         <div className={styles.emptyState}>
           <FontAwesomeIcon icon={faUniversity} />
           <h3>Selecciona una universidad</h3>
+          <p>Utiliza el menú de arriba para elegir una universidad y gestionar sus facultades.</p>
         </div>
       );
     }
@@ -331,43 +332,79 @@ function CarrerasUniversidades() {
               </div>
             </div>
             {carrerasByFacultad[fac.id_facultad] && (
-              <table className={styles.table}>
-                <thead>
-                  <tr>
-                    <th>Nombre</th>
-                    <th>Clave</th>
-                    <th>Duración (Periodos)</th>
-                    <th>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <>
+                {/* Vista de Escritorio - Tabla */}
+                <div className={styles.tableWrapper}>
+                  <table className={styles.table}>
+                    <thead>
+                      <tr>
+                        <th>Nombre</th>
+                        <th>Clave</th>
+                        <th>Duración (Periodos)</th>
+                        <th>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {carrerasByFacultad[fac.id_facultad].map((car) => (
+                        <tr key={car.id_carrera}>
+                          <td>{car.nombre}</td>
+                          <td>{car.clave_carrera}</td>
+                          <td>{car.duracion_periodos || "N/A"}</td>
+                          <td>
+                            <button
+                              onClick={() =>
+                                handleOpenModal("carrera", car, fac.id_facultad)
+                              }
+                              className={styles.editButton}
+                            >
+                              <FontAwesomeIcon icon={faEdit} />
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleOpenDeleteModal("carrera", car.id_carrera)
+                              }
+                              className={styles.deleteButton}
+                            >
+                              <FontAwesomeIcon icon={faTrash} />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Vista Móvil - Tarjetas */}
+                <div className={styles.mobileCareerList}>
                   {carrerasByFacultad[fac.id_facultad].map((car) => (
-                    <tr key={car.id_carrera}>
-                      <td>{car.nombre}</td>
-                      <td>{car.clave_carrera}</td>
-                      <td>{car.duracion_periodos || "N/A"}</td>
-                      <td>
+                    <div key={car.id_carrera} className={styles.careerCard}>
+                      <div className={styles.careerName}>{car.nombre}</div>
+                      <div className={styles.careerInfoRow}>
+                        <div className={styles.careerLabel}>Clave:</div>
+                        <div className={styles.careerValue}>{car.clave_carrera}</div>
+                      </div>
+                      <div className={styles.careerInfoRow}>
+                        <div className={styles.careerLabel}>Duración:</div>
+                        <div className={styles.careerValue}>{car.duracion_periodos || "N/A"} periodos</div>
+                      </div>
+                      <div className={styles.careerActions}>
                         <button
-                          onClick={() =>
-                            handleOpenModal("carrera", car, fac.id_facultad)
-                          }
+                          onClick={() => handleOpenModal("carrera", car, fac.id_facultad)}
                           className={styles.editButton}
                         >
-                          <FontAwesomeIcon icon={faEdit} />
+                          <FontAwesomeIcon icon={faEdit} /> Editar
                         </button>
                         <button
-                          onClick={() =>
-                            handleOpenDeleteModal("carrera", car.id_carrera)
-                          }
+                          onClick={() => handleOpenDeleteModal("carrera", car.id_carrera)}
                           className={styles.deleteButton}
                         >
-                          <FontAwesomeIcon icon={faTrash} />
+                          <FontAwesomeIcon icon={faTrash} /> Eliminar
                         </button>
-                      </td>
-                    </tr>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              </>
             )}
           </div>
         ))}
