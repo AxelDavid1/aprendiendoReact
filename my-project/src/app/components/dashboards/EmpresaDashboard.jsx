@@ -9,6 +9,7 @@ import { authenticatedFetch } from "@/utils/api"
 
 function EmpresaDashboard({ userId, user }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [activeModule, setActiveModule] = useState("welcome")
   const [empresaData, setEmpresaData] = useState(null)
   const [expandedCategories, setExpandedCategories] = useState({
@@ -29,6 +30,11 @@ function EmpresaDashboard({ userId, user }) {
       ...prev,
       [category]: !prev[category],
     }))
+  }
+
+  const handleModuleClick = (moduleId) => {
+    setActiveModule(moduleId)
+    setIsMobileMenuOpen(false) // Close menu on mobile after selection
   }
 
   const menuStructure = [
@@ -135,8 +141,26 @@ function EmpresaDashboard({ userId, user }) {
 
   return (
     <div className={styles.dashboardContainer}>
+      {/* Mobile Header Overlay */}
+      <div 
+        className={`${styles.sidebarOverlay} ${isMobileMenuOpen ? styles.visible : ''}`}
+        onClick={() => setIsMobileMenuOpen(false)}
+      />
+
+      {/* Mobile Header */}
+      <header className={styles.mobileHeader}>
+        <h1 className={styles.mobileTitle}>Empresa Admin</h1>
+        <button 
+          className={styles.hamburgerBtn}
+          onClick={() => setIsMobileMenuOpen(true)}
+          aria-label="Abrir menú"
+        >
+          ☰
+        </button>
+      </header>
+
       {/* Sidebar */}
-      <aside className={`${styles.sidebar} ${sidebarCollapsed ? styles.collapsed : ""}`}>
+      <aside className={`${styles.sidebar} ${sidebarCollapsed ? styles.collapsed : ""} ${isMobileMenuOpen ? styles.mobileOpen : ""}`}>
         <div className={styles.sidebarHeader} style={{ backgroundColor: "#4F46E5" }}>
           <h2 className={styles.sidebarTitle}>{!sidebarCollapsed && "Empresa Admin"}</h2>
           <button
@@ -156,12 +180,8 @@ function EmpresaDashboard({ userId, user }) {
                 aria-expanded={expandedCategories[category.id]}
               >
                 <span className={styles.categoryIcon}>{category.icon}</span>
-                {!sidebarCollapsed && (
-                  <>
-                    <span className={styles.categoryLabel}>{category.label}</span>
-                    <span className={styles.expandIcon}>{expandedCategories[category.id] ? "▼" : "▶"}</span>
-                  </>
-                )}
+                <span className={styles.categoryLabel}>{category.label}</span>
+                <span className={styles.expandIcon}>{expandedCategories[category.id] ? "▼" : "▶"}</span>
               </button>
               {expandedCategories[category.id] && (
                 <div className={styles.moduleList}>
@@ -169,11 +189,11 @@ function EmpresaDashboard({ userId, user }) {
                     <button
                       key={module.id}
                       className={`${styles.moduleButton} ${activeModule === module.id ? styles.active : ""}`}
-                      onClick={() => setActiveModule(module.id)}
+                      onClick={() => handleModuleClick(module.id)}
                       style={activeModule === module.id ? { backgroundColor: "#4F46E5" } : {}}
                     >
                       <span className={styles.moduleIcon}>{module.icon}</span>
-                      {!sidebarCollapsed && <span className={styles.moduleLabel}>{module.label}</span>}
+                      <span className={styles.moduleLabel}>{module.label}</span>
                     </button>
                   ))}
                 </div>
