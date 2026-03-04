@@ -136,9 +136,9 @@
     background-color: #4338ca;
 }
 
-/* Desktop View */
+/* Desktop View wrapper explicitly visible now that it scrolls */
 .desktopView {
-    display: none;
+    display: block;
 }
 
 .table {

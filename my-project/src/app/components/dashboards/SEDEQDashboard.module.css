@@ -11,18 +11,18 @@
   position: sticky;
   top: 0;
   left: 0;
-  /* Cambiado a min-height para que se adapte al contenido sin crear espacio vacío */
   min-height: 100vh;
   height: fit-content;
   width: 280px;
   background-color: #e0e7ff;
   border-right: 1px solid #c7d2fe;
-  transition: width 0.3s ease;
+  transition: transform 0.3s ease, width 0.3s ease;
   overflow-y: auto;
   overflow-x: hidden;
   z-index: 100;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
 }
 .sidebar.collapsed {
   width: 70px;
@@ -174,13 +174,12 @@
 /* Main Content */
 .mainContent {
   flex: 1;
-  /* Reducido margen izquierdo de 260px a 20px para menos separación */
   margin-left: 20px;
   padding: 1.5rem;
   transition: margin-left 0.3s ease, padding 0.3s ease;
+  min-width: 0;
 }
 .sidebar.collapsed ~ .mainContent {
-  /* Reducido margen de 60px a 15px cuando sidebar está contraído */
   margin-left: 15px;
 }
 /* Module Container */
@@ -189,6 +188,7 @@
   border-radius: 12px;
   padding: 1.5rem; /* Reducido de 2rem */
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  overflow-x: auto;
 }
 .moduleContainer h1 {
   color: white;
@@ -253,21 +253,93 @@
   margin: 0;
   line-height: 1.5;
 }
+/* Mobile Header (Hamburger Menu) */
+.mobileHeader {
+  display: none;
+  background-color: #4f46e5;
+  color: white;
+  padding: 1rem 1.5rem;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.mobileTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.hamburgerBtn {
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Sidebar Overlay for Mobile */
+.sidebarOverlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 95;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
+  .dashboardContainer {
+    flex-direction: column;
+  }
+
+  .mobileHeader {
+    display: flex;
+  }
+
   .sidebar {
-    width: 70px;
+    position: fixed;
+    height: 100vh;
+    min-height: 100vh;
+    width: 280px;
+    transform: translateX(-100%);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
+  }
+
+  /* When the sidebar is open on mobile */
+  .sidebar.mobileOpen {
+    transform: translateX(0);
+  }
+  
+  .sidebarOverlay.visible {
+    display: block;
   }
 
   .sidebar.collapsed {
-    width: 0;
-    border-right: none;
+    /* Ignore the regular collapsed state on mobile */
+    width: 280px;
+  }
+
+  /* Hide the toggle button in the sidebar header for mobile */
+  .sidebarHeader .toggleButton {
+    display: none;
   }
 
   .mainContent {
-    /* Ajustado margen para mobile */
-    margin-left: 15px;
+    margin-left: 0;
     padding: 1rem;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .sidebar.collapsed ~ .mainContent {
