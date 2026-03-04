@@ -7,6 +7,7 @@ import CalificacionCurso from "../modules/CalificacionCurso"
 
 function TeacherDashboard({ userId }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [activeModule, setActiveModule] = useState("welcome")
   const [userUniversityId, setUserUniversityId] = useState(null)
   const [teacherId, setTeacherId] = useState(null)
@@ -76,6 +77,11 @@ function TeacherDashboard({ userId }) {
       ...prev,
       [category]: !prev[category],
     }))
+  }
+
+  const handleModuleClick = (moduleId) => {
+    setActiveModule(moduleId)
+    setIsMobileMenuOpen(false) // Close menu on mobile after selection
   }
 
   // Estructura del menú - Solo los módulos a los que el maestro tiene acceso
@@ -215,8 +221,26 @@ function TeacherDashboard({ userId }) {
 
   return (
     <div className={styles.dashboardContainer}>
+      {/* Mobile Header Overlay */}
+      <div 
+        className={`${styles.sidebarOverlay} ${isMobileMenuOpen ? styles.visible : ''}`}
+        onClick={() => setIsMobileMenuOpen(false)}
+      />
+
+      {/* Mobile Header */}
+      <header className={styles.mobileHeader}>
+        <h1 className={styles.mobileTitle}>Panel Maestro</h1>
+        <button 
+          className={styles.hamburgerBtn}
+          onClick={() => setIsMobileMenuOpen(true)}
+          aria-label="Abrir menú"
+        >
+          ☰
+        </button>
+      </header>
+
       {/* Sidebar */}
-      <aside className={`${styles.sidebar} ${sidebarCollapsed ? styles.collapsed : ""}`}>
+      <aside className={`${styles.sidebar} ${sidebarCollapsed ? styles.collapsed : ""} ${isMobileMenuOpen ? styles.mobileOpen : ""}`}>
         <div className={styles.sidebarHeader}>
           <h2 className={styles.sidebarTitle}>{!sidebarCollapsed && "Panel Maestro"}</h2>
           <button
@@ -236,12 +260,8 @@ function TeacherDashboard({ userId }) {
                 aria-expanded={expandedCategories[category.id]}
               >
                 <span className={styles.categoryIcon}>{category.icon}</span>
-                {!sidebarCollapsed && (
-                  <>
-                    <span className={styles.categoryLabel}>{category.label}</span>
-                    <span className={styles.expandIcon}>{expandedCategories[category.id] ? "▼" : "▶"}</span>
-                  </>
-                )}
+                <span className={styles.categoryLabel}>{category.label}</span>
+                <span className={styles.expandIcon}>{expandedCategories[category.id] ? "▼" : "▶"}</span>
               </button>
               {expandedCategories[category.id] && (
                 <div className={styles.moduleList}>
@@ -249,10 +269,10 @@ function TeacherDashboard({ userId }) {
                     <button
                       key={module.id}
                       className={`${styles.moduleButton} ${activeModule === module.id ? styles.active : ""}`}
-                      onClick={() => setActiveModule(module.id)}
+                      onClick={() => handleModuleClick(module.id)}
                     >
                       <span className={styles.moduleIcon}>{module.icon}</span>
-                      {!sidebarCollapsed && <span className={styles.moduleLabel}>{module.label}</span>}
+                      <span className={styles.moduleLabel}>{module.label}</span>
                     </button>
                   ))}
                 </div>
