@@ -8,6 +8,7 @@ import CredencialCard from "../controls/CredencialCard"
 import CursoModal from "../modals/CursoModal"
 import CredencialModal from "../modals/CredencialModal"
 import styles from "./CursoYCredencialesAlumno.module.css"
+import { authenticatedFetch } from "@/utils/api"
 const CursoYCredencialesAlumno = ({
     enConvocatoria = false,
     universidadesConvocatoria = [],
@@ -208,26 +209,22 @@ const CursoYCredencialesAlumno = ({
                     const uniIds = universidadesConvocatoria.map(u => u.id_universidad).join(',');
                     cursosUrl += `&universidades=${uniIds}`;
                     credencialesUrl += `?universidades=${uniIds}`;
-                    // Si estamos en convocatoria, usamos las universidades de la prop y no las fetcheamos
-                    setUniversidades(universidadesConvocatoria); // Seteamos directamente las universidades
-                    fetchUniversidadesPromise = Promise.resolve({ ok: true, json: () => Promise.resolve({ universities: [] }) }); // Evitamos el fetch
+                    setUniversidades(universidadesConvocatoria);
+                    fetchUniversidadesPromise = Promise.resolve({ ok: true, json: () => Promise.resolve({ universities: [] }) });
                 } else if (universidadAlumno) {
-                    // Si NO estamos en convocatoria, filtramos por la universidad del alumno.
                     cursosUrl += `&universidades=${universidadAlumno.id_universidad}`;
                     credencialesUrl += `?universidades=${universidadAlumno.id_universidad}`;
-                    fetchUniversidadesPromise = fetch("/api/universidades", { headers });
+                    fetchUniversidadesPromise = authenticatedFetch("/api/universidades");
                 } else {
-                    // En modo normal, fetcheamos todas las universidades (el backend debería filtrar por la del alumno si es necesario)
-                    fetchUniversidadesPromise = fetch("/api/universidades", { headers });
+                    fetchUniversidadesPromise = authenticatedFetch("/api/universidades");
                 }
 
-                // 1. Peticiones de datos críticos (cursos, credenciales, etc.)
                 const [cursosRes, credencialesRes, universidadesRes, subgruposRes, habilidadesRes] = await Promise.all([
-                    fetch(cursosUrl, { headers }),
-                    fetch(credencialesUrl, { headers }),
+                    authenticatedFetch(cursosUrl),
+                    authenticatedFetch(credencialesUrl),
                     fetchUniversidadesPromise,
-                    fetch("/api/subgrupos-operadores", { headers }),
-                    fetch("/api/habilidades-clave", { headers }),
+                    authenticatedFetch("/api/subgrupos-operadores"),
+                    authenticatedFetch("/api/habilidades-clave"),
                 ]);
 
                 // Verificamos que todas las respuestas sean exitosas
@@ -261,7 +258,7 @@ const CursoYCredencialesAlumno = ({
                 // Si esta petición falla, la página principal seguirá funcionando.
                 if (token) {
                     try {
-                        const inscripcionesRes = await fetch("/api/inscripciones/alumno", { headers });
+                        const inscripcionesRes = await authenticatedFetch("/api/inscripciones/alumno");
                         if (inscripcionesRes.ok) {
                             const inscripcionesData = await inscripcionesRes.json();
                             setInscripciones(inscripcionesData.inscripciones || []);
@@ -310,12 +307,8 @@ const CursoYCredencialesAlumno = ({
         }
 
         try {
-            const response = await fetch('/api/inscripciones', {
+            const response = await authenticatedFetch('/api/inscripciones', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
                 body: JSON.stringify({ id_curso: idCurso })
             });
 
@@ -361,7 +354,7 @@ const CursoYCredencialesAlumno = ({
         setSelectedCredencial({ id_credencial: credencialId, nombre_certificacion: credencialName });
 
         try {
-            const res = await fetch(`/api/credenciales/${credencialId}`);
+            const res = await authenticatedFetch(`/api/credenciales/${credencialId}`);
             if (!res.ok) {
                 throw new Error('Error al cargar los detalles de la credencial');
             }

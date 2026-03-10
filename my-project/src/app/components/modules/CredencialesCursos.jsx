@@ -66,7 +66,7 @@ function CredencialesCursos({ userId, dashboardType, userUniversityId }) {
         url += `?${queryString}`;
       }
       
-      const response = await fetch(url);
+      const response = await authenticatedFetch(url);
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(errData.error || "Error al obtener las credenciales");
@@ -101,7 +101,7 @@ function CredencialesCursos({ userId, dashboardType, userUniversityId }) {
     setIsFacultadesLoading(true);
     setFacultades([]);
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL_FACULTADES}/universidad/${idUniversidad}`,
       );
       const data = await response.json();
@@ -226,7 +226,7 @@ function CredencialesCursos({ userId, dashboardType, userUniversityId }) {
 
       // Fetch the complete credential data including courses
       try {
-        const response = await fetch(`${API_URL}/${credential.id_credencial}`);
+        const response = await authenticatedFetch(`${API_URL}/${credential.id_credencial}`);
         if (!response.ok) {
           throw new Error("Error al obtener los datos de la credencial");
         }
@@ -377,7 +377,7 @@ function CredencialesCursos({ userId, dashboardType, userUniversityId }) {
       : "Credencial creada con éxito.";
 
     try {
-      const response = await fetch(url, {
+      const response = await authenticatedFetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formState),
@@ -397,7 +397,7 @@ function CredencialesCursos({ userId, dashboardType, userUniversityId }) {
   const handleConfirmDelete = async () => {
     if (!credentialToDelete) return;
     try {
-      const response = await fetch(
+      const response = await authenticatedFetch(
         `${API_URL}/${credentialToDelete.id_credencial}`,
         {
           method: "DELETE",

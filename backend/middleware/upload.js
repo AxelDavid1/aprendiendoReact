@@ -1,6 +1,7 @@
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const { uploadSchema } = require('../config/schemas');
 
 // Asegurar que los directorios de uploads existan
 const ensureUploadDirs = () => {
@@ -24,10 +25,15 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     ensureUploadDirs();
     
-    // Determinar el directorio basado en el tipo
-    const uploadType = req.body.uploadType || 'cursos'; // 'cursos' o 'credenciales'
-    const uploadDir = path.join(__dirname, '..', 'uploads', uploadType);
-    cb(null, uploadDir);
+    // Validación estricta con Zod para evitar Path Traversal
+    try {
+      const { uploadType } = uploadSchema.parse(req.body);
+      const uploadDir = path.join(__dirname, '..', 'uploads', uploadType);
+      cb(null, uploadDir);
+    } catch (error) {
+      console.error(`🚨 Intento de subida inválido o malicioso - IP: ${req.ip}`);
+      cb(new Error('Tipo de subida inválido o no permitido'));
+    }
   },
   filename: (req, file, cb) => {
     // Generar nombre único con timestamp

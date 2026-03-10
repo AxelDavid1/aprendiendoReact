@@ -17,7 +17,7 @@ const SERVER_URL = "";
 
 // Initial state for the form, including all fields from the database
 const initialUniversityState = {
-  id_universidad: null,
+  id_universidad: "",
   nombre: "",
   clave_universidad: "",
   direccion: "",

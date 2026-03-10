@@ -32,6 +32,7 @@ import {
   faInfoCircle,
   faFilter
 } from '@fortawesome/free-solid-svg-icons';
+import { authenticatedFetch } from "@/utils/api"
 
 function Inscripciones({ rol, userUniversityId, teacherId }) {
   // Determinar tipo de usuario para filtros
@@ -113,12 +114,6 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
     setCredentialsLoading(true);
     setCredentialsError(null);
     try {
-      const token = getToken();
-      if (!token) {
-        setCredentialsError("No autorizado, no se encontro token.");
-        return;
-      }
-
       let url = "/api/credenciales";
 
       if (isTeacher && teacherId) {
@@ -127,11 +122,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
         url += `?id_universidad=${userUniversityId}`;
       }
 
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await authenticatedFetch(url);
 
       if (!response.ok) {
         const errData = await response.json();
@@ -192,9 +183,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
       const url = `/api/inscripciones/all?${params.toString()}`;
       console.log("🔍 fetchApplications URL:", url); // Debug
 
-      const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await authenticatedFetch(url);
 
       if (!response.ok) throw new Error("Error al cargar las inscripciones.");
 
@@ -239,11 +228,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
 
       console.log("🔍 fetchUnassignedCourses URL:", url); // Debug
 
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await authenticatedFetch(url);
 
       if (!response.ok) {
         const errData = await response.json();
@@ -276,9 +261,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
         if (!token) return;
 
         try {
-          const response = await fetch('/api/cursos/maestro', {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          const response = await authenticatedFetch('/api/cursos/maestro');
           if (response.ok) {
             const data = await response.json();
             console.log("🔍 Cursos del maestro:", data.cursos); // Debug
@@ -313,11 +296,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
         url += `&id_universidad=${userUniversityId}`;
       }
 
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await authenticatedFetch(url);
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(errData.error || "Error al obtener los cursos");
@@ -355,11 +334,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
         url += `&id_universidad=${userUniversityId}`;
       }
 
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await authenticatedFetch(url);
 
       if (!response.ok) {
         const errData = await response.json();
@@ -463,11 +438,7 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
         throw new Error("No autorizado, no se encontro token.");
       }
 
-      const response = await fetch(`/api/credenciales/${credentialId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await authenticatedFetch(`/api/credenciales/${credentialId}`);
       if (!response.ok) {
         throw new Error("No se pudieron cargar los detalles de la credencial.");
       }
@@ -540,9 +511,8 @@ function Inscripciones({ rol, userUniversityId, teacherId }) {
     }
 
     try {
-      const response = await fetch(`/api/inscripciones/${selectedApplication.id_inscripcion}/estado`, {
+      const response = await authenticatedFetch(`/api/inscripciones/${selectedApplication.id_inscripcion}/estado`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(body)
       });
 

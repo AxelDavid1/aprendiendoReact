@@ -9,6 +9,21 @@ const path = require("path");
 const fs = require("fs");
 require("dotenv").config(); // Para cargar variables de entorno
 
+// 0. VALIDACIÓN DE ENTORNO (Crítico para producción)
+const requiredEnvVars = [
+  "DB_HOST", "DB_USER", "DB_PASSWORD", "DB_NAME", 
+  "JWT_SECRET", "CORS_ORIGIN", "PORT"
+];
+
+const validateEnv = () => {
+  const missing = requiredEnvVars.filter(varName => !process.env[varName]);
+  if (missing.length > 0) {
+    console.error(`❌ ERROR CRÍTICO: Faltan variables de entorno: ${missing.join(", ")}`);
+    process.exit(1);
+  }
+  console.log("✅ Configuración de entorno validada correctamente");
+};
+validateEnv();
 // Importar middleware de multer
 const { uploadImage, ensureUploadDirs } = require('./middleware/upload');
 
@@ -40,6 +55,8 @@ log(`📝 Variables de entorno cargadas`);
 // ====================== SEGURIDAD BÁSICA (Helmet + Rate Limit + Slow Down) ======================
 const app = express();
 
+app.set('trust proxy', 1); // importante para que req.ip funcione bien detrás de Cloudflare/Apache
+
 // 1. Helmet → 11 headers de seguridad automáticos (XSS, clickjacking, etc.)
 // Configuración personalizada para tu aplicación
 const helmetConfig = {
@@ -59,6 +76,10 @@ const helmetConfig = {
   crossOriginEmbedderPolicy: false, // Desactivado para compatibilidad
 };
 app.use(helmet(helmetConfig));
+
+// 4. JSON parser (después de seguridad)
+app.use(express.json({ limit: '10mb' })); // Límite para prevenir ataques de payload
+
 
 // 2. MONITOREO DE PETICIONES (conservado para análisis futuro)
 const requestCounts = new Map();
@@ -98,6 +119,18 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+// Rate limit específico y más estricto solo para login
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,                    // solo 10 intentos de login por IP
+  message: { error: 'Demasiados intentos de login. Intenta en 15 minutos.' },
+  handler: (req, res) => {
+    log(`🚨 LOGIN RATE LIMIT EXCEDIDO - IP: ${req.ip}`);
+    res.status(429).json({ error: 'Demasiados intentos de login. Intenta más tarde.' });
+  }
+});
+app.use('/login', loginLimiter);
+
 // 3. Slow Down → después de 200 peticiones, cada una se retrasa 100ms (anti-brute-force suave)
 const speedLimiter = slowDown({
   windowMs: 15 * 60 * 1000,
@@ -107,8 +140,6 @@ const speedLimiter = slowDown({
 });
 app.use(speedLimiter);
 
-// 4. JSON parser (después de seguridad)
-app.use(express.json({ limit: '10mb' })); // Límite para prevenir ataques de payload
 
 // 5. CORS mejorado y seguro
 const corsOptions = {
@@ -156,24 +187,15 @@ app.use((req, res, next) => {
     log(`📦 Body: ${JSON.stringify(safeBody)}`);
   }
 
-  // Interceptador de respuesta para medir tiempo y ocultar datos sensibles
+  // Interceptador de respuesta para medir tiempo (logs más limpios)
   const originalSend = res.send;
   res.send = function (body) {
     const duration = Date.now() - start;
-    let safeResponse = body;
     
-    try {
-      if (typeof body === "string") {
-        const parsed = JSON.parse(body);
-        if (parsed.token) parsed.token = "********";
-        if (parsed.password_hash) parsed.password_hash = "********";
-        safeResponse = JSON.stringify(parsed);
-      }
-    } catch (e) {
-      // No es JSON, enviar como está
+    // Solo log en desarrollo o errores
+    if (process.env.NODE_ENV !== 'production' || res.statusCode >= 400) {
+      log(`📤 Respuesta [${res.statusCode}] - ${duration}ms`);
     }
-    
-    log(`📤 Respuesta [${res.statusCode}] - ${duration}ms: ${typeof safeResponse === "string" ? safeResponse.substring(0, 100) : "[Binary]"}${typeof safeResponse === "string" && safeResponse.length > 100 ? "..." : ""}`);
     return originalSend.call(this, body);
   };
 
@@ -242,6 +264,9 @@ const imageRoutes = require("./routes/imageRoutes");
 const empresaRoutes = require("./routes/empresaRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
 
+const { validateRequest } = require("./middleware/validationMiddleware");
+const { loginSchema, signupSchema } = require("./config/schemas");
+
 log(`✅ Rutas importadas correctamente`);
 
 app.use("/api/public", verificacionHomeConstanciasYcertificadosRoutes);
@@ -279,10 +304,11 @@ const pool = require("./config/db");
 log(`✅ Conexión a la base de datos establecida`);
 
 // Clave JWT desde variable de entorno
-const JWT_SECRET =
-  process.env.JWT_SECRET ||
-  "0d86c1e9aaf0192c1234673d06d6ed452beb5ca2a12014cfa913818b114444bd7a6ee2c64fde53f98503a98a153754becdf0fe8ec53304adb233f0c4fec0bf31";
-
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  log("❌ ERROR CRÍTICO: JWT_SECRET no está definido en .env");
+  process.exit(1); // detiene el servidor en producción
+}
 log(`🔑 Clave JWT configurada`);
 
 // Validar tipo_usuario y estatus
@@ -304,8 +330,8 @@ const handleError = (res, error, message = "Server error") => {
 };
 
 // Signup endpoint
-app.post("/signup", async (req, res) => {
-  log(`👤 Solicitud de registro recibida`);
+app.post("/signup", validateRequest(signupSchema), async (req, res) => {
+  log(`👤 Solicitud de registro recibida (validada)`);
   const { username, email, password, tipo_usuario, estatus } = req.body;
 
   // Validaciones
@@ -382,8 +408,8 @@ app.post("/signup", async (req, res) => {
 });
 
 // Login endpoint
-app.post("/login", async (req, res) => {
-  log(`🔐 Solicitud de login recibida`);
+app.post("/login", validateRequest(loginSchema), async (req, res) => {
+  log(`🔐 Solicitud de login recibida (validada)`);
   const { username, password } = req.body;
 
   // Validaciones

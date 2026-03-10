@@ -2,9 +2,11 @@ const jwt = require("jsonwebtoken");
 const pool = require("../config/db");
 const logger = require("../config/logger");
 
-const JWT_SECRET =
-  process.env.JWT_SECRET ||
-  "0d86c1e9aaf0192c1234673d06d6ed452beb5ca2a12014cfa913818b114444bd7a6ee2c64fde53f98503a98a153754becdf0fe8ec53304adb233f0c4fec0bf31";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  logger.error("❌ ERROR CRÍTICO: JWT_SECRET no definido");
+  process.exit(1);
+}
 
 const protect = async (req, res, next) => {
   let token;
