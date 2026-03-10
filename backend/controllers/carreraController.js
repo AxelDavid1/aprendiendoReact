@@ -20,7 +20,7 @@ exports.createCarrera = async (req, res) => {
     id_facultad,
     nombre,
     clave_carrera,
-    duracion_anos: duracion_anos || null,
+    duracion_periodos: duracion_periodos || null,
   };
 
   try {
@@ -165,7 +165,7 @@ exports.updateCarrera = async (req, res) => {
   const carreraData = {
     nombre,
     clave_carrera,
-    duracion_anos: duracion_anos || null,
+    duracion_periodos: duracion_periodos || null,
   };
 
   try {
