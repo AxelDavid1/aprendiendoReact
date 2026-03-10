@@ -160,41 +160,6 @@
   gap: 0.5rem;
 }
 
-.editButton,
-.deleteButton {
-  padding: 0.5rem;
-  border: none;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-}
-
-.editButton {
-  background-color: #10b981;
-  color: white;
-}
-
-.editButton:hover {
-  background-color: #059669;
-  transform: scale(1.05);
-}
-
-.deleteButton {
-  background-color: #ef4444;
-  color: white;
-}
-
-.deleteButton:hover {
-  background-color: #dc2626;
-  transform: scale(1.05);
-}
-
 /* Estados vacíos y de carga */
 .loadingState,
 .emptyState {
@@ -271,16 +236,29 @@
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  padding: 1rem;
 }
 
 .modal {
   background: white;
   border-radius: 0.75rem;
-  width: 90%;
+  width: 100%;
   max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.habilidadesModal {
+  background: white;
+  border-radius: 0.75rem;
+  width: 100%;
+  max-width: 600px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
 .modalHeader {
@@ -289,13 +267,22 @@
   align-items: center;
   padding: 0.75rem 1.25rem;
   border-bottom: 1px solid #e5e7eb;
+  flex-shrink: 0;
 }
 
 .modalHeader h3 {
-  font-size: 1.25rem;
+  font-size: 1.125rem;
   font-weight: 600;
   color: #1f2937;
   margin: 0;
+  word-break: break-word;
+  padding-right: 0.5rem;
+}
+
+.modalContent {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
 }
 
 .closeButton {
@@ -312,6 +299,7 @@
   height: 32px;
   border-radius: 0.375rem;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
 .closeButton:hover {
@@ -517,9 +505,11 @@
   color: #1f2937;
   font-weight: 500;
 }
-/* Estilos para la nueva funcionalidad */
 
-/* Added styles for search bar in subgrupos section */
+/* ==========================================
+   SUBGRUPOS - DISEÑO MEJORADO
+   ========================================== */
+
 .searchBarContainer {
   background: white;
   padding: 1rem;
@@ -574,31 +564,30 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* Improved responsive layout for subgrupo header */
+/* HEADER DEL SUBGRUPO - Layout mejorado */
 .subgrupoHeader {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: flex-start;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
   padding: 1rem;
   background: #f9fafb;
   border-bottom: 1px solid #e5e7eb;
-  gap: 1rem;
+  align-items: start;
 }
 
 .subgrupoInfo {
-  flex: 1 1 auto;
-  min-width: 0;
+  min-width: 0; /* Permite que el texto se trunque correctamente */
 }
 
 .subgrupoInfo h3 {
   margin: 0 0 0.25rem 0;
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 600;
   color: #111827;
+  line-height: 1.4;
   word-wrap: break-word;
   overflow-wrap: break-word;
-  line-height: 1.4;
+  hyphens: auto;
 }
 
 .subgrupoInfo p {
@@ -609,33 +598,87 @@
   overflow-wrap: break-word;
 }
 
-/* Improved button layout to prevent overlapping */
+/* BOTONES DE ACCIÓN - Layout consistente en 2 filas */
 .subgrupoActions {
   display: flex;
+  flex-direction: column;
   gap: 0.5rem;
-  flex-wrap: wrap;
   flex-shrink: 0;
-  align-items: flex-start;
 }
 
-.toggleButton {
-  padding: 0.5rem 1rem;
-  background: #4f46e5;
-  color: white;
+.actionButtonsGroup,
+.habilidadesButtonsGroup {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Estilos base para todos los botones de acción */
+.editButton,
+.deleteButton,
+.toggleButton,
+.addHabilidadButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.375rem;
+  padding: 0.5rem 0.75rem;
   border: none;
   border-radius: 0.375rem;
   cursor: pointer;
-  font-size: 0.875rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: background-color 0.2s;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  white-space: nowrap;
+  min-height: 36px;
+}
+
+.editButton {
+  background-color: #10b981;
+  color: white;
+}
+
+.editButton:hover {
+  background-color: #059669;
+}
+
+.deleteButton {
+  background-color: #ef4444;
+  color: white;
+}
+
+.deleteButton:hover {
+  background-color: #dc2626;
+}
+
+.toggleButton {
+  background-color: #6366f1;
+  color: white;
 }
 
 .toggleButton:hover {
-  background: #4338ca;
+  background-color: #4f46e5;
 }
 
+.addHabilidadButton {
+  background-color: #4f46e5;
+  color: white;
+}
+
+.addHabilidadButton:hover {
+  background-color: #4338ca;
+}
+
+/* Texto de botón - oculto por defecto en pantallas pequeñas */
+.buttonText {
+  display: none;
+}
+
+/* Texto de botón para móvil - solo visible en pantallas pequeñas */
+.mobileButtonText {
+  display: none;
+}
+
+/* Sección de habilidades */
 .habilidadesSection {
   padding: 1rem;
   background: white;
@@ -678,22 +721,27 @@
   background: #f9fafb;
   border: 1px solid #e5e7eb;
   border-radius: 0.375rem;
+  gap: 0.75rem;
 }
 
 .habilidadInfo {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  min-width: 0;
+  flex: 1;
 }
 
 .habilidadName {
   font-weight: 500;
   color: #111827;
+  word-break: break-word;
 }
 
 .habilidadDesc {
-  font-size: 0.87rem;
+  font-size: 0.875rem;
   color: #6b7280;
+  word-break: break-word;
 }
 
 .removeHabilidadButton {
@@ -704,16 +752,20 @@
   border-radius: 0.375rem;
   cursor: pointer;
   transition: background-color 0.2s;
+  flex-shrink: 0;
 }
 
 .removeHabilidadButton:hover {
   background: #dc2626;
 }
 
-/* Estilos para el modal de selección de habilidades */
+/* ==========================================
+   MODAL DE SELECCIÓN DE HABILIDADES
+   ========================================== */
+
 .searchContainer {
   position: relative;
-  margin-bottom: 0.1rem;
+  margin-bottom: 0.75rem;
 }
 
 .searchIcon {
@@ -726,16 +778,17 @@
 
 .searchInput {
   width: 100%;
-  padding: 0.5rem 2.5rem;
+  padding: 0.625rem 2.5rem;
   border: 1px solid #d1d5db;
-  border-radius: 0.375rem;
+  border-radius: 0.5rem;
   font-size: 0.875rem;
+  box-sizing: border-box;
 }
 
 .searchInput:focus {
   outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  border-color: #4f46e5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
 }
 
 .clearSearchButton {
@@ -754,21 +807,20 @@
   color: #6b7280;
 }
 
-.selectionHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
+.selectionInfo {
+  margin-bottom: 0.75rem;
   font-size: 0.875rem;
   color: #6b7280;
+  font-weight: 500;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-/* Improved habilidades selection area with better height */
 .habilidadesSelection {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  max-height: 50vh;
+  max-height: 45vh;
   overflow-y: auto;
   padding-right: 0.5rem;
 }
@@ -790,6 +842,7 @@
 
 .habilidadCheckbox input[type="checkbox"] {
   margin-top: 0.25rem;
+  flex-shrink: 0;
 }
 
 .checkboxLabel {
@@ -798,6 +851,11 @@
   gap: 0.25rem;
   flex: 1;
   font-size: 0.875rem;
+  min-width: 0;
+}
+
+.checkboxLabel strong {
+  word-break: break-word;
 }
 
 .noResults {
@@ -813,7 +871,7 @@
   margin-top: 0.5rem;
 }
 
-/* Added new styles for improved empty state in modal */
+/* Estado vacío en modal */
 .emptyModalState {
   display: flex;
   flex-direction: column;
@@ -852,21 +910,11 @@
   margin: 0;
 }
 
-/* Improved selection info without "Select All" button */
-.selectionInfo {
-  margin-bottom: 1rem;
-  font-size: 0.875rem;
-  color: #6b7280;
-  font-weight: 500;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-/* Improved modal actions layout with more compact design */
+/* Acciones de modal mejoradas */
 .modalActionsImproved {
   display: flex;
-  gap: 0.5rem;
-  padding: 1rem 1.5rem;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
   background-color: #f9fafb;
   border-top: 1px solid #e5e7eb;
   flex-shrink: 0;
@@ -874,7 +922,7 @@
 
 .cancelButtonImproved {
   flex: 1;
-  padding: 0.7rem 0.5rem;
+  padding: 0.75rem 1rem;
   background-color: white;
   border: 1.5px solid #d1d5db;
   border-radius: 0.5rem;
@@ -892,7 +940,7 @@
 
 .saveButtonImproved {
   flex: 1;
-  padding: 0.7rem 0.5rem;
+  padding: 0.75rem 1rem;
   background-color: #4f46e5;
   color: white;
   border: none;
@@ -917,50 +965,75 @@
   box-shadow: none;
 }
 
-/* Asegúrate de que los botones existentes tengan estos estilos mínimos */
-.editButton,
-.deleteButton,
-.addButton {
-  padding: 0.5rem 1rem;
-  border: none;
-  border-radius: 0.375rem;
-  cursor: pointer;
-  font-size: 0.875rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  transition: background-color 0.2s;
+/* ==========================================
+   RESPONSIVE - TABLET (768px+)
+   ========================================== */
+
+@media (min-width: 768px) {
+  .title {
+    font-size: 1.75rem;
+  }
+
+  .subgrupoInfo h3 {
+    font-size: 1.125rem;
+  }
+
+  /* Mostrar texto en botones en tablet+ */
+  .buttonText {
+    display: inline;
+  }
+
+  .editButton,
+  .deleteButton,
+  .toggleButton,
+  .addHabilidadButton {
+    padding: 0.5rem 1rem;
+  }
+
+  .habilidadesModal {
+    max-height: 80vh;
+  }
+
+  .habilidadesSelection {
+    max-height: 50vh;
+  }
 }
 
-.editButton {
-  background: #10b981;
-  color: white;
+/* ==========================================
+   RESPONSIVE - DESKTOP (1024px+)
+   ========================================== */
+
+@media (min-width: 1024px) {
+  /* En desktop, los botones se alinean en una sola fila si hay espacio */
+  .subgrupoActions {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .actionButtonsGroup,
+  .habilidadesButtonsGroup {
+    flex-shrink: 0;
+  }
 }
 
-.editButton:hover {
-  background: #059669;
-}
+/* ==========================================
+   RESPONSIVE - MÓVIL (max 767px)
+   ========================================== */
 
-.deleteButton {
-  background: #ef4444;
-  color: white;
-}
+@media (max-width: 767px) {
+  .headerContent {
+    padding: 0.75rem 1rem;
+  }
 
-.deleteButton:hover {
-  background: #dc2626;
-}
+  .title {
+    font-size: 1.125rem;
+  }
 
-.addButton {
-  background: #4f46e5;
-  color: white;
-}
+  .main {
+    padding: 0.75rem;
+  }
 
-.addButton:hover {
-  background: #4338ca;
-}
-
-/* Enhanced responsive design for mobile */
-@media (max-width: 768px) {
+  /* Pestañas en columna para móvil */
   .tabs {
     flex-direction: column;
     gap: 0;
@@ -970,8 +1043,9 @@
   .tab {
     border-bottom: 1px solid #e5e7eb;
     border-left: 3px solid transparent;
-    padding: 1rem;
+    padding: 0.875rem 1rem;
     margin-bottom: 0;
+    justify-content: flex-start;
   }
 
   .tabActive {
@@ -979,62 +1053,220 @@
     border-left-color: #4f46e5;
   }
 
-  /* Force buttons to wrap on small screens */
+  /* Header del subgrupo en móvil - todo en columna */
   .subgrupoHeader {
-    flex-direction: column;
-    align-items: stretch;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
   }
 
-  .subgrupoInfo {
-    max-width: 100%;
-    width: 100%;
+  .subgrupoInfo h3 {
+    font-size: 1rem;
   }
 
+  /* Botones ocupan todo el ancho disponible */
   .subgrupoActions {
     width: 100%;
-    justify-content: flex-start;
   }
 
-  .subgrupoActions button {
-    flex: 1 1 auto;
-    min-width: fit-content;
+  .actionButtonsGroup,
+  .habilidadesButtonsGroup {
+    width: 100%;
+  }
+
+  .editButton,
+  .deleteButton,
+  .toggleButton,
+  .addHabilidadButton {
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* Tabla responsive - convertir a cards en móvil */
+  .tableContainer {
+    border: none;
+    box-shadow: none;
+    background: transparent;
   }
 
   .table {
-    font-size: 0.813rem;
+    display: block;
+    font-size: 0.875rem;
   }
 
-  .table th,
+  .table thead {
+    display: none;
+  }
+
+  .table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .table tbody tr {
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    gap: 0.5rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+
+  .table tbody tr:hover {
+    background-color: white;
+  }
+
   .table td {
-    padding: 0.75rem 0.5rem;
+    display: block;
+    padding: 0;
+    border-bottom: none;
   }
 
+  .nameCell {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .descCell {
+    max-width: none;
+  }
+
+  /* Botones de acción de tabla en móvil */
+  .tableActions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .tableActions button {
+    flex: 1;
+    justify-content: center;
+    padding: 0.625rem 0.75rem;
+    min-height: 40px;
+  }
+
+  /* Mostrar texto en botones de tabla en móvil */
+  .mobileButtonText {
+    display: inline;
+  }
+
+  /* Toast en móvil */
   .toast {
-    right: 1rem;
-    left: 1rem;
-    bottom: 1rem;
+    right: 0.75rem;
+    left: 0.75rem;
+    bottom: 0.75rem;
   }
 
   .toastContent {
     min-width: auto;
+    width: 100%;
   }
 
-  /* Better modal sizing on mobile */
-  .modal {
-    width: 95% !important;
-    max-width: none !important;
+  /* Modales ocupan más pantalla */
+  .modal,
+  .habilidadesModal {
+    width: 100%;
+    max-width: none;
+    max-height: 95vh;
+    border-radius: 0.5rem;
   }
 
   .habilidadesSelection {
     max-height: 40vh;
   }
 
+  /* Acciones de modal en columna */
   .modalActionsImproved {
     flex-direction: column;
     gap: 0.5rem;
+    padding: 1rem;
   }
 
-  .modalActionsImproved button {
+  .cancelButtonImproved,
+  .saveButtonImproved {
     width: 100%;
+  }
+
+  .formActions {
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+  }
+
+  .cancelButton,
+  .saveButton {
+    width: 100%;
+    text-align: center;
+  }
+
+  .deleteActions {
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+  }
+
+  .deleteActions button {
+    width: 100%;
+  }
+
+  /* Item de habilidad en móvil */
+  .habilidadItem {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .removeHabilidadButton {
+    align-self: flex-end;
+    width: auto;
+  }
+}
+
+/* ==========================================
+   RESPONSIVE - MÓVIL MUY PEQUEÑO (max 400px)
+   ========================================== */
+
+@media (max-width: 400px) {
+  .headerContent {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .title {
+    font-size: 1rem;
+  }
+
+  .main {
+    padding: 0.5rem;
+  }
+
+  .subgrupoHeader {
+    padding: 0.75rem;
+  }
+
+  .editButton,
+  .deleteButton,
+  .toggleButton,
+  .addHabilidadButton {
+    padding: 0.5rem 0.625rem;
+    font-size: 0.75rem;
+  }
+
+  .modalHeader {
+    padding: 0.75rem 1rem;
+  }
+
+  .modalHeader h3 {
+    font-size: 1rem;
+  }
+
+  .form {
+    padding: 1rem;
+  }
+
+  .habilidadesSection {
+    padding: 0.75rem;
   }
 }

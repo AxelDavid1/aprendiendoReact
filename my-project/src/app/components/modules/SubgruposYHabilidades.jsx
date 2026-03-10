@@ -546,42 +546,46 @@ function SubgruposYHabilidades() {
                     <p>{subgrupo.descripcion || "Sin descripción"}</p>
                   </div>
                   <div className={styles.subgrupoActions}>
-                    <button
-                      onClick={() => handleOpenModal(subgrupo)}
-                      className={styles.editButton}
-                      title="Editar subgrupo"
-                    >
-                      <FontAwesomeIcon icon={faEdit} />
-                    </button>
-                    <button
-                      onClick={() => handleOpenDeleteModal(subgrupo)}
-                      className={styles.deleteButton}
-                      title="Eliminar subgrupo"
-                    >
-                      <FontAwesomeIcon icon={faTrash} />
-                    </button>
-                    <button
-                      onClick={() => toggleSubgrupoHabilidades(subgrupo.id_subgrupo)}
-                      className={styles.toggleButton}
-                      title={subgrupoHabilidades[subgrupo.id_subgrupo] ? "Ocultar habilidades" : "Mostrar habilidades"}
-                    >
-                      {subgrupoHabilidades[subgrupo.id_subgrupo] ? (
-                        <>
-                          <FontAwesomeIcon icon={faChevronUp} /> Ocultar Habilidades
-                        </>
-                      ) : (
-                        <>
-                          <FontAwesomeIcon icon={faChevronDown} /> Mostrar Habilidades
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => handleOpenHabilidadesModal(subgrupo)}
-                      className={styles.addButton}
-                      title="Agregar habilidades"
-                    >
-                      <FontAwesomeIcon icon={faPlus} /> Agregar Habilidades
-                    </button>
+                    {/* Grupo de botones de acción (Editar/Eliminar) */}
+                    <div className={styles.actionButtonsGroup}>
+                      <button
+                        onClick={() => handleOpenModal(subgrupo)}
+                        className={styles.editButton}
+                        title="Editar subgrupo"
+                      >
+                        <FontAwesomeIcon icon={faEdit} />
+                        <span className={styles.buttonText}>Editar</span>
+                      </button>
+                      <button
+                        onClick={() => handleOpenDeleteModal(subgrupo)}
+                        className={styles.deleteButton}
+                        title="Eliminar subgrupo"
+                      >
+                        <FontAwesomeIcon icon={faTrash} />
+                        <span className={styles.buttonText}>Eliminar</span>
+                      </button>
+                    </div>
+                    {/* Grupo de botones de habilidades */}
+                    <div className={styles.habilidadesButtonsGroup}>
+                      <button
+                        onClick={() => toggleSubgrupoHabilidades(subgrupo.id_subgrupo)}
+                        className={styles.toggleButton}
+                        title={subgrupoHabilidades[subgrupo.id_subgrupo] ? "Ocultar habilidades" : "Mostrar habilidades"}
+                      >
+                        <FontAwesomeIcon icon={subgrupoHabilidades[subgrupo.id_subgrupo] ? faChevronUp : faChevronDown} />
+                        <span className={styles.buttonText}>
+                          {subgrupoHabilidades[subgrupo.id_subgrupo] ? "Ocultar" : "Mostrar"}
+                        </span>
+                      </button>
+                      <button
+                        onClick={() => handleOpenHabilidadesModal(subgrupo)}
+                        className={styles.addHabilidadButton}
+                        title="Agregar habilidades"
+                      >
+                        <FontAwesomeIcon icon={faPlus} />
+                        <span className={styles.buttonText}>Agregar</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -687,6 +691,7 @@ function SubgruposYHabilidades() {
                   <div className={styles.tableActions}>
                     <button onClick={() => handleOpenModal(item)} className={styles.editButton} title="Editar">
                       <FontAwesomeIcon icon={faEdit} />
+                      <span className={styles.mobileButtonText}>Editar</span>
                     </button>
                     <button
                       onClick={() => handleOpenDeleteModal(item)}
@@ -694,6 +699,7 @@ function SubgruposYHabilidades() {
                       title="Eliminar"
                     >
                       <FontAwesomeIcon icon={faTrash} />
+                      <span className={styles.mobileButtonText}>Eliminar</span>
                     </button>
                   </div>
                 </td>
@@ -825,9 +831,8 @@ function SubgruposYHabilidades() {
       {isHabilidadesModalOpen && (
         <div className={styles.modalBackdrop} onClick={handleCloseHabilidadesModal}>
           <div
-            className={styles.modal}
+            className={styles.habilidadesModal}
             onClick={(e) => e.stopPropagation()}
-            style={{ width: "600px", maxHeight: "80vh", display: "flex", flexDirection: "column" }}
           >
             <div className={styles.modalHeader}>
               <h3>Agregar Habilidades a "{selectedSubgrupo?.nombre_subgrupo}"</h3>
@@ -836,7 +841,7 @@ function SubgruposYHabilidades() {
               </button>
             </div>
 
-            <div className={styles.modalContent} style={{ flex: 1, overflow: "auto", padding: "1rem" }}>
+            <div className={styles.modalContent}>
               {availableHabilidades.length === 0 ? (
                 <div className={styles.emptyModalState}>
                   <div className={styles.emptyModalIcon}>
