@@ -2,6 +2,9 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const cors = require("cors");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
+const slowDown = require("express-slow-down");
 const path = require("path");
 const fs = require("fs");
 require("dotenv").config(); // Para cargar variables de entorno
@@ -32,54 +35,152 @@ log("🚀 Iniciando servidor...");
 log(`📂 Entorno: ${process.env.NODE_ENV || "development"}`);
 log(`📝 Variables de entorno cargadas`);
 
-// Configuración CORS
-const corsOptions = {
-  origin: process.env.CORS_ORIGIN || "*",
-  credentials: true,
-  optionsSuccessStatus: 200,
-};
+// Configuración CORS eliminada - ahora está integrada en el middleware de seguridad
 
-log(`🔄 CORS configurado: ${JSON.stringify(corsOptions.origin)}`);
-
+// ====================== SEGURIDAD BÁSICA (Helmet + Rate Limit + Slow Down) ======================
 const app = express();
-app.use(express.json());
+
+// 1. Helmet → 11 headers de seguridad automáticos (XSS, clickjacking, etc.)
+// Configuración personalizada para tu aplicación
+const helmetConfig = {
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"],
+    },
+  },
+  crossOriginEmbedderPolicy: false, // Desactivado para compatibilidad
+};
+app.use(helmet(helmetConfig));
+
+// 2. MONITOREO DE PETICIONES (conservado para análisis futuro)
+const requestCounts = new Map();
+const usageTracker = (req, res, next) => {
+  const ip = req.ip;
+  const timestamp = new Date().toISOString();
+  
+  if (!requestCounts.has(ip)) {
+    requestCounts.set(ip, { count: 0, startTime: Date.now() });
+  }
+  
+  const userStats = requestCounts.get(ip);
+  userStats.count++;
+  
+  const elapsedMinutes = ((Date.now() - userStats.startTime) / 60000).toFixed(1);
+  
+  // Mostrar resumen cada 50 peticiones (reducido frecuencia de logs)
+  if (userStats.count % 50 === 0) {
+    log(`📈 RESUMEN PARCIAL - IP: ${ip} - Total: ${userStats.count} peticiones en ${elapsedMinutes}min`);
+  }
+  
+  next();
+};
+// app.use(usageTracker); // Desactivado para producción, disponible para debugging
+
+// 2. Rate Limit → 750 peticiones por IP cada 15 minutos (basado en tests reales)
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000,   // 15 minutos
+  max: 750,                   // límite por IP (ajustado según tests)
+  message: { error: 'Demasiadas solicitudes desde tu IP. Intenta más tarde.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+  handler: (req, res) => {
+    log(`🚨 Rate limit excedido - IP: ${req.ip}, URL: ${req.originalUrl}`);
+    res.status(429).json({ error: 'Demasiadas solicitudes desde tu IP. Intenta más tarde.' });
+  }
+});
+app.use(limiter);
+
+// 3. Slow Down → después de 200 peticiones, cada una se retrasa 100ms (anti-brute-force suave)
+const speedLimiter = slowDown({
+  windowMs: 15 * 60 * 1000,
+  delayAfter: 200,           // Aumentado de 50 a 200
+  delayMs: () => 100,        // Reducido de 500ms a 100ms
+  maxDelayMs: 5000,          // Reducido de 20000 a 5000ms
+});
+app.use(speedLimiter);
+
+// 4. JSON parser (después de seguridad)
+app.use(express.json({ limit: '10mb' })); // Límite para prevenir ataques de payload
+
+// 5. CORS mejorado y seguro
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Lista de orígenes permitidos
+    const allowedOrigins = [
+      process.env.CORS_ORIGIN,
+      'http://localhost:3000',
+      'http://localhost:3001',
+      'http://site36787-lxnz30.scloudsite101.com'
+    ].filter(Boolean); // Eliminar valores undefined
+
+    // Permitir solicitudes sin origin (móviles, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      log(`🚨 CORS bloqueado - Origen no permitido: ${origin}`);
+      callback(new Error('No permitido por CORS'));
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  optionsSuccessStatus: 200
+};
 app.use(cors(corsOptions));
-// app.use(uploadImage); // Comentado porque causa error y las rutas ya manejan sus propias subidas
 
-// Middleware para registrar todas las solicitudes
+// 6. Middleware de logging mejorado y seguro
 app.use((req, res, next) => {
-  log(`📨 ${req.method} ${req.originalUrl}`);
-
-  // Registrar el cuerpo de la solicitud solo para POST, PUT, PATCH
+  const start = Date.now();
+  
+  // Log de solicitud
+  log(`📨 ${req.method} ${req.originalUrl} - IP: ${req.ip}`);
+  
+  // Log seguro del body
   if (["POST", "PUT", "PATCH"].includes(req.method) && req.body) {
-    // No mostrar contraseñas en logs
     const safeBody = { ...req.body };
+    // Ocultar información sensible
     if (safeBody.password) safeBody.password = "********";
     if (safeBody.password_hash) safeBody.password_hash = "********";
+    if (safeBody.token) safeBody.token = "********";
+    if (safeBody.contraseña) safeBody.contraseña = "********";
     log(`📦 Body: ${JSON.stringify(safeBody)}`);
   }
 
-  // Registrar la respuesta
+  // Interceptador de respuesta para medir tiempo y ocultar datos sensibles
   const originalSend = res.send;
   res.send = function (body) {
+    const duration = Date.now() - start;
     let safeResponse = body;
+    
     try {
       if (typeof body === "string") {
         const parsed = JSON.parse(body);
         if (parsed.token) parsed.token = "********";
+        if (parsed.password_hash) parsed.password_hash = "********";
         safeResponse = JSON.stringify(parsed);
       }
     } catch (e) {
       // No es JSON, enviar como está
     }
-    log(
-      `📤 Respuesta [${res.statusCode}]: ${typeof safeResponse === "string" ? safeResponse.substring(0, 200) : "[No string]"}${typeof safeResponse === "string" && safeResponse.length > 200 ? "..." : ""}`,
-    );
+    
+    log(`📤 Respuesta [${res.statusCode}] - ${duration}ms: ${typeof safeResponse === "string" ? safeResponse.substring(0, 100) : "[Binary]"}${typeof safeResponse === "string" && safeResponse.length > 100 ? "..." : ""}`);
     return originalSend.call(this, body);
   };
 
   next();
 });
+
+// ====================== FIN SEGURIDAD ======================
 
 // Servir archivos estáticos (para los logos)
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
@@ -347,15 +448,54 @@ app.post("/login", async (req, res) => {
   }
 });
 
-// Middleware para manejar rutas no encontradas
-app.use((req, res) => {
-  log(`❌ Ruta no encontrada: ${req.method} ${req.originalUrl}`);
-  res.status(404).json({ error: "Route not found" });
+// Middleware para manejar errores seguro (nunca muestra detalles en producción)
+app.use((err, req, res, next) => {
+  // Logging detallado para depuración interna
+  log(`❌ Error: ${err.message}`);
+  log(`📍 Ruta: ${req.method} ${req.originalUrl}`);
+  log(`🌐 IP: ${req.ip}`);
+  log(`🔍 User-Agent: ${req.get('User-Agent')}`);
+  
+  // En desarrollo, mostrar más detalles
+  const isDevelopment = process.env.NODE_ENV !== 'production';
+  
+  if (isDevelopment) {
+    console.error(err.stack);
+  }
+  
+  // Respuesta segura para el cliente
+  const status = err.status || 500;
+  let message = 'Error interno del servidor';
+  
+  // Mensajes específicos para errores comunes (sin revelar información sensible)
+  if (err.message === 'No permitido por CORS') {
+    message = 'Origen no permitido';
+  } else if (err.status === 400) {
+    message = 'Solicitud inválida';
+  } else if (err.status === 401) {
+    message = 'No autorizado';
+  } else if (err.status === 403) {
+    message = 'Acceso prohibido';
+  } else if (err.status === 404) {
+    message = 'Recurso no encontrado';
+  } else if (isDevelopment) {
+    message = err.message; // Solo en desarrollo
+  }
+  
+  res.status(status).json({ 
+    error: message,
+    timestamp: new Date().toISOString(),
+    path: req.originalUrl
+  });
 });
 
-// Manejo de errores global
-app.use((err, req, res, next) => {
-  handleError(res, err, "Internal Server Error");
+// Middleware para manejar rutas no encontradas
+app.use((req, res) => {
+  log(`❌ Ruta no encontrada: ${req.method} ${req.originalUrl} - IP: ${req.ip}`);
+  res.status(404).json({ 
+    error: 'Ruta no encontrada',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // Iniciar servidor
